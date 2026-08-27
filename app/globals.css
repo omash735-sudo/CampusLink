@@ -1,0 +1,113 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary-green: #176B3A;
+    --color-deep-green: #0B3D25;
+    --color-campus-blue: #1769AA;
+    --color-light-blue: #E8F3FA;
+    --color-white: #FFFFFF;
+    --color-off-white: #F7F9F8;
+    --color-primary-text: #17211B;
+    --color-muted-text: #64706A;
+    --color-success: #2E8B57;
+    
+    --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-white text-primary-text font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  h4 {
+    @apply text-lg md:text-xl;
+  }
+
+  a {
+    @apply text-campus-blue hover:underline;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center bg-primary-green px-6 py-3 text-white 
+           font-medium transition-colors hover:bg-deep-green focus:outline-none focus:ring-2 
+           focus:ring-primary-green focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center border-2 border-primary-green 
+           bg-transparent px-6 py-3 text-primary-green font-medium transition-colors 
+           hover:bg-primary-green hover:text-white focus:outline-none focus:ring-2 
+           focus:ring-primary-green focus:ring-offset-2;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center bg-transparent px-6 py-3 
+           text-primary-text font-medium transition-colors hover:bg-off-white 
+           focus:outline-none focus:ring-2 focus:ring-primary-green focus:ring-offset-2;
+  }
+
+  .card {
+    @apply border border-gray-200 bg-white p-6;
+  }
+
+  .input-field {
+    @apply w-full border border-gray-300 bg-white px-4 py-3 text-primary-text 
+           transition-colors focus:border-primary-green focus:outline-none 
+           focus:ring-2 focus:ring-primary-green/20;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-primary-text;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold text-primary-text md:text-3xl;
+  }
+
+  .section-subtitle {
+    @apply mt-2 text-lg text-muted-text;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
