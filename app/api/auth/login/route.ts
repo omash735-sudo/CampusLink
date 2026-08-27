@@ -1,4 +1,4 @@
-// app/api/auth/login/route.ts
+// app/api/auth/login/route.ts (updated)
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const token = signToken(user.id);
+    const token = signToken(user.id, user.role);
     setAuthCookie(token);
 
     return NextResponse.json({ 
