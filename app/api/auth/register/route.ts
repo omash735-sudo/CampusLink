@@ -1,4 +1,4 @@
-// app/api/auth/register/route.ts
+// app/api/auth/register/route.ts (updated)
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       role: 'student',
     }).returning();
 
-    const token = signToken(user.id);
+    const token = signToken(user.id, user.role);
     setAuthCookie(token);
 
     return NextResponse.json({ 
