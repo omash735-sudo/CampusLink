@@ -1,109 +1,91 @@
-// app/login/page.tsx
+// app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { supabase } from '@/lib/auth/auth';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
       });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
 
-      router.push('/home');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login');
+      router.push('/student/dashboard');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-off-white px-4 py-12">
+    <div className="min-h-screen bg-off-white flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md border border-gray-200 bg-white p-8">
-        <div className="mb-8 text-center">
-          <div className="mb-4 flex justify-center">
-            <div className="h-12 w-12 border-2 border-primary-green bg-white"></div>
-          </div>
-          <h1 className="text-2xl font-semibold text-primary-text">
-            Welcome Back
-          </h1>
-          <p className="mt-2 text-muted-text">
-            Sign in to your CampusLink account
-          </p>
+        <div className="text-center mb-8">
+          <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4"></div>
+          <h1 className="text-2xl font-bold">Welcome Back</h1>
+          <p className="text-muted-text mt-2">Sign in to your CampusLink account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="label-text">
-              Email Address
-            </label>
-            <Input
-              id="email"
+            <label className="text-sm font-medium text-primary-text block mb-1">Email Address</label>
+            <input
               type="email"
               required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full border border-gray-300 bg-white px-4 py-3 text-primary-text transition-colors focus:border-primary-green focus:outline-none focus:ring-2 focus:ring-primary-green/20"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="john@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="label-text">
-              Password
-            </label>
-            <Input
-              id="password"
+            <label className="text-sm font-medium text-primary-text block mb-1">Password</label>
+            <input
               type="password"
               required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full border border-gray-300 bg-white px-4 py-3 text-primary-text transition-colors focus:border-primary-green focus:outline-none focus:ring-2 focus:ring-primary-green/20"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="Enter your password"
             />
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-muted-text hover:text-primary-green hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
           {error && (
-            <div className="rounded border border-red-400 bg-red-50 p-3 text-sm text-red-700">
+            <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <Button type="submit" fullWidth disabled={loading}>
+          <button 
+            type="submit" 
+            className="w-full bg-primary-green text-white font-medium transition-colors hover:bg-deep-green focus:outline-none focus:ring-2 focus:ring-primary-green focus:ring-offset-2 px-6 py-3"
+            disabled={loading}
+          >
             {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          </button>
 
           <p className="text-center text-sm text-muted-text">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-primary-green hover:underline">
+            Don't have an account?{' '}
+            <Link href="/auth/register" className="text-primary-green hover:underline font-medium">
               Create one
             </Link>
           </p>
