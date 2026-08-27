@@ -55,7 +55,7 @@ export default async function StudentDashboard() {
                 <div key={event.id} className="border-b border-gray-100 pb-3 last:border-0">
                   <div className="font-medium">{event.title}</div>
                   <div className="text-sm text-muted-text">
-                    {event.location && `📍 ${event.location}`}
+                    {event.location && ` ${event.location}`}
                   </div>
                   <div className="text-sm text-muted-text">
                     {new Date(event.startDate).toLocaleDateString()}
