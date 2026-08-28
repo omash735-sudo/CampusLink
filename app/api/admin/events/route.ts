@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     category: validated.category,
     maxAttendees: validated.maxAttendees,
     isPublished: validated.isPublished,
+    status: 'draft',
   }).returning();
   
   return NextResponse.json(event);
