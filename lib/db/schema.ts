@@ -1,4 +1,3 @@
-
 // lib/db/schema.ts
 import { pgTable, text, uuid, timestamp, integer, jsonb, boolean, foreignKey, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
@@ -101,13 +100,13 @@ export const posts = pgTable('posts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Comments
+// Comments - Fixed circular reference
 export const comments = pgTable('comments', {
   id: uuid('id').primaryKey().defaultRandom(),
   postId: uuid('post_id').references(() => posts.id).notNull(),
   authorId: uuid('author_id').references(() => users.id).notNull(),
   content: text('content').notNull(),
-  parentId: uuid('parent_id').references(() => comments.id),
+  parentId: uuid('parent_id'),
   likes: integer('likes').default(0),
   status: text('status').default('published').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
