@@ -2,11 +2,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { resources } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   const all = await db.select().from(resources)
-    .where(eq(resources.isApproved, true))
-    .orderBy(resources.createdAt, 'desc');
+    .where(eq(resources.status, 'approved'))
+    .orderBy(desc(resources.createdAt));
   return NextResponse.json(all);
 }
