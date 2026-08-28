@@ -33,7 +33,7 @@ export const eventSchema = z.object({
   organizer: z.string().optional(),
   category: z.string().optional(),
   maxAttendees: z.number().optional(),
-  isPublished: z.boolean().default(false),
+  status: z.enum(['draft', 'published']).default('draft'),
 });
 
 export const resourceSchema = z.object({
