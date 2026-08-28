@@ -26,8 +26,7 @@ export async function POST(request: Request) {
     organizer: validated.organizer,
     category: validated.category,
     maxAttendees: validated.maxAttendees,
-    isPublished: validated.isPublished,
-    status: 'draft',
+    status: validated.isPublished ? 'published' : 'draft',
   }).returning();
   
   return NextResponse.json(event);
