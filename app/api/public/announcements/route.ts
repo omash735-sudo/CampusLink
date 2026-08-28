@@ -2,7 +2,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { announcements } from '@/lib/db/schema';
-import { and, eq, lte, or } from 'drizzle-orm';
+import { and, eq, lte, or, isNull, desc } from 'drizzle-orm';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   const now = new Date();
@@ -11,11 +13,11 @@ export async function GET() {
       and(
         eq(announcements.isPublished, true),
         or(
-          eq(announcements.expiresAt, null),
+          isNull(announcements.expiresAt),
           lte(announcements.expiresAt, now)
         )
       )
     )
-    .orderBy(announcements.publishedAt, 'desc');
+    .orderBy(desc(announcements.publishedAt));
   return NextResponse.json(all);
 }
