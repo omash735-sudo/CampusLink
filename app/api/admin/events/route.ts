@@ -6,6 +6,9 @@ import { desc } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
 import { eventSchema } from '@/lib/validation';
 
+// Force Node.js runtime for JWT compatibility
+export const runtime = 'nodejs';
+
 export async function GET() {
   await requireAdmin();
   const all = await db.select().from(events).orderBy(desc(events.startDate));
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
     organizer: validated.organizer,
     category: validated.category,
     maxAttendees: validated.maxAttendees,
-    status: validated.isPublished ? 'published' : 'draft',
+    status: validated.status, // Use status directly from schema
   }).returning();
   
   return NextResponse.json(event);
