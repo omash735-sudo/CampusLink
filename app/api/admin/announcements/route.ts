@@ -18,8 +18,14 @@ export async function POST(request: Request) {
   const validated = announcementSchema.parse(body);
   
   const [announcement] = await db.insert(announcements).values({
-    ...validated,
+    title: validated.title,
+    content: validated.content,
+    type: validated.type,
+    priority: validated.priority,
+    isPublished: validated.isPublished,
     authorId: admin.id,
+    expiresAt: validated.expiresAt ? new Date(validated.expiresAt) : null,
+    publishedAt: validated.isPublished ? new Date() : null,
   }).returning();
   
   return NextResponse.json(announcement);
