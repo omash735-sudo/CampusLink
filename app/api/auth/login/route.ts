@@ -1,10 +1,12 @@
-// app/api/auth/login/route.ts (updated)
+// app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { comparePassword, signToken, setAuthCookie } from '@/lib/auth';
 import { loginSchema } from '@/lib/validation';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +15,11 @@ export async function POST(request: Request) {
 
     const [user] = await db.select().from(users).where(eq(users.email, validated.email));
     if (!user) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // Ensure passwordHash exists
+    if (!user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
