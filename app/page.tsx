@@ -2,17 +2,17 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { announcements, events } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 
 export default async function HomePage() {
   const recentAnnouncements = await db.select().from(announcements)
     .where(eq(announcements.isPublished, true))
-    .orderBy(announcements.publishedAt, 'desc')
+    .orderBy(desc(announcements.publishedAt))
     .limit(3);
 
   const upcomingEvents = await db.select().from(events)
-    .where(eq(events.isPublished, true))
-    .orderBy(events.startDate, 'asc')
+    .where(eq(events.status, 'published'))
+    .orderBy(asc(events.startDate))
     .limit(3);
 
   return (
@@ -31,10 +31,10 @@ export default async function HomePage() {
             discover opportunities, and make the most of your university experience.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register" className="btn-primary px-8 py-3">
+            <Link href="/auth/register" className="bg-primary-green text-white font-medium px-8 py-3 hover:bg-deep-green transition-colors">
               Join CampusLink
             </Link>
-            <Link href="/campus" className="btn-secondary px-8 py-3">
+            <Link href="/campus" className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 hover:bg-primary-green hover:text-white transition-colors">
               Explore City Campus
             </Link>
           </div>
