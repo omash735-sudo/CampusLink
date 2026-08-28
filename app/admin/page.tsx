@@ -2,7 +2,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { users, announcements, events, resources, posts, opportunities } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, desc } from 'drizzle-orm';
 import Link from 'next/link';
 
 export default async function AdminDashboard() {
@@ -15,8 +15,8 @@ export default async function AdminDashboard() {
   const [postCount] = await db.select({ count: sql<number>`count(*)` }).from(posts);
   const [opportunityCount] = await db.select({ count: sql<number>`count(*)` }).from(opportunities);
 
-  const recentUsers = await db.select().from(users).orderBy(users.createdAt, 'desc').limit(5);
-  const recentAnnouncements = await db.select().from(announcements).orderBy(announcements.createdAt, 'desc').limit(5);
+  const recentUsers = await db.select().from(users).orderBy(desc(users.createdAt)).limit(5);
+  const recentAnnouncements = await db.select().from(announcements).orderBy(desc(announcements.createdAt)).limit(5);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
