@@ -2,7 +2,7 @@
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { announcements, events, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import Link from 'next/link';
 
 export default async function StudentDashboard() {
@@ -10,12 +10,12 @@ export default async function StudentDashboard() {
 
   const recentAnnouncements = await db.select().from(announcements)
     .where(eq(announcements.isPublished, true))
-    .orderBy(announcements.publishedAt, 'desc')
+    .orderBy(desc(announcements.publishedAt))
     .limit(5);
 
   const upcomingEvents = await db.select().from(events)
-    .where(eq(events.isPublished, true))
-    .orderBy(events.startDate, 'asc')
+    .where(eq(events.status, 'published'))
+    .orderBy(asc(events.startDate))
     .limit(5);
 
   return (
@@ -55,7 +55,7 @@ export default async function StudentDashboard() {
                 <div key={event.id} className="border-b border-gray-100 pb-3 last:border-0">
                   <div className="font-medium">{event.title}</div>
                   <div className="text-sm text-muted-text">
-                    {event.location && ` ${event.location}`}
+                    {event.location && `📍 ${event.location}`}
                   </div>
                   <div className="text-sm text-muted-text">
                     {new Date(event.startDate).toLocaleDateString()}
