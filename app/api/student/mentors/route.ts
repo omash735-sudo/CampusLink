@@ -1,16 +1,18 @@
 // app/api/student/mentors/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { mentors, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { mentors } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { mentorSchema } from '@/lib/validation';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   await requireAuth();
   const all = await db.select().from(mentors)
-    .where(eq(mentors.isApproved, true))
-    .orderBy(mentors.rating, 'desc');
+    .where(eq(mentors.status, 'verified'))
+    .orderBy(desc(mentors.rating));
   return NextResponse.json(all);
 }
 
@@ -21,7 +23,11 @@ export async function POST(request: Request) {
   
   const [mentor] = await db.insert(mentors).values({
     userId: user.id,
-    ...validated,
+    expertise: validated.expertise,
+    subjects: validated.subjects,
+    introduction: validated.introduction,
+    experience: validated.experience,
+    availability: validated.availability,
     status: 'pending',
   }).returning();
   
