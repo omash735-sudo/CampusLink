@@ -2,12 +2,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { announcements } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
 import { announcementSchema } from '@/lib/validation';
 
 export async function GET() {
   await requireAdmin();
-  const all = await db.select().from(announcements).orderBy(announcements.createdAt, 'desc');
+  const all = await db.select().from(announcements).orderBy(desc(announcements.createdAt));
   return NextResponse.json(all);
 }
 
