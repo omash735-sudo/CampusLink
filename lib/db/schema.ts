@@ -1,3 +1,4 @@
+
 // lib/db/schema.ts
 import { pgTable, text, uuid, timestamp, integer, jsonb, boolean, foreignKey, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
@@ -179,7 +180,22 @@ export const opportunities = pgTable('opportunities', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Messages
+// Announcements
+export const announcements = pgTable('announcements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  authorId: uuid('author_id').references(() => users.id).notNull(),
+  type: text('type').default('general').notNull(),
+  priority: text('priority').default('normal').notNull(),
+  isPublished: boolean('is_published').default(false),
+  publishedAt: timestamp('published_at'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Conversations
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   isGroup: boolean('is_group').default(false),
@@ -231,7 +247,21 @@ export const reports = pgTable('reports', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Relations
+// Audit Logs
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  adminId: uuid('admin_id').references(() => users.id),
+  action: text('action').notNull(),
+  entity: text('entity').notNull(),
+  entityId: uuid('entity_id'),
+  previousValue: jsonb('previous_value'),
+  newValue: jsonb('new_value'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== RELATIONS ====================
 export const usersRelations = relations(users, ({ many }) => ({
   mentors: many(mentors),
   resources: many(resources),
@@ -241,6 +271,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   eventAttendees: many(eventAttendees),
   conversations: many(conversationMembers),
   notifications: many(notifications),
+  announcements: many(announcements),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -326,6 +357,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
   sender: one(users, {
     fields: [messages.senderId],
+    references: [users.id],
+  }),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+  author: one(users, {
+    fields: [announcements.authorId],
     references: [users.id],
   }),
 }));
