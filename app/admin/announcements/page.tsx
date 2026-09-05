@@ -1,4 +1,4 @@
-// 
+// app/admin/announcements/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,16 +44,17 @@ export default function AdminAnnouncements() {
           <h1 className="text-3xl font-bold">Announcements</h1>
           <button
             onClick={() => router.push('/admin/announcements/new')}
-            className="btn-primary px-6 py-2"
+            className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
           >
             New Announcement
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200">
+        <div className="bg-white border border-gray-200 overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200">
               <tr className="text-left">
+                <th className="p-4">Image</th>
                 <th className="p-4">Title</th>
                 <th className="p-4">Type</th>
                 <th className="p-4">Status</th>
@@ -63,11 +64,24 @@ export default function AdminAnnouncements() {
             </thead>
             <tbody>
               {announcements.map((ann: any) => (
-                <tr key={ann.id} className="border-b border-gray-100">
-                  <td className="p-4">{ann.title}</td>
+                <tr key={ann.id} className="border-b border-gray-100 hover:bg-off-white">
+                  <td className="p-4">
+                    {ann.imageUrl ? (
+                      <img 
+                        src={ann.imageUrl} 
+                        alt={ann.title}
+                        className="w-12 h-12 object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">
+                        No img
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-4 font-medium">{ann.title}</td>
                   <td className="p-4 text-sm text-muted-text">{ann.type}</td>
                   <td className="p-4">
-                    <span className={`text-sm ${ann.isPublished ? 'text-success' : 'text-muted-text'}`}>
+                    <span className={`text-sm ${ann.isPublished ? 'text-green-600' : 'text-muted-text'}`}>
                       {ann.isPublished ? 'Published' : 'Draft'}
                     </span>
                   </td>
