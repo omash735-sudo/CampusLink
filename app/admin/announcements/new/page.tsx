@@ -123,7 +123,7 @@ export default function NewAnnouncement() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-300 hover:border-primary-green transition-colors p-4 rounded text-center flex-1"
+                  className="border-2 border-dashed border-gray-300 hover:border-primary-green transition-colors p-4 text-center flex-1"
                 >
                   <svg className="h-8 w-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -202,13 +202,13 @@ export default function NewAnnouncement() {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button type="submit" className="btn-primary px-6 py-2" disabled={loading}>
+              <button type="submit" className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors" disabled={loading}>
                 {loading ? 'Creating...' : 'Create Announcement'}
               </button>
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="btn-secondary px-6 py-2"
+                className="border-2 border-primary-green text-primary-green px-6 py-2 font-medium hover:bg-primary-green hover:text-white transition-colors"
               >
                 Cancel
               </button>
