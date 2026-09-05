@@ -21,7 +21,8 @@ export const announcementSchema = z.object({
   type: z.enum(['general', 'academic', 'student_union']).default('general'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   isPublished: z.boolean().default(false),
-  expiresAt: z.string().optional(),
+  imageUrl: z.string().url().optional().nullable(), // ADDED
+  expiresAt: z.string().optional().nullable(),
 });
 
 export const eventSchema = z.object({
