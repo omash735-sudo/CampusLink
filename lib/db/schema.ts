@@ -179,7 +179,7 @@ export const opportunities = pgTable('opportunities', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Announcements
+// ==================== ANNOUNCEMENTS (UPDATED WITH imageUrl) ====================
 export const announcements = pgTable('announcements', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -188,6 +188,7 @@ export const announcements = pgTable('announcements', {
   type: text('type').default('general').notNull(),
   priority: text('priority').default('normal').notNull(),
   isPublished: boolean('is_published').default(false),
+  imageUrl: text('image_url'), // <-- ADDED THIS
   publishedAt: timestamp('published_at'),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
