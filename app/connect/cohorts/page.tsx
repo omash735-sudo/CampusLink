@@ -1,7 +1,7 @@
 // app/connect/cohorts/page.tsx
 import { db } from '@/lib/db';
 import { programmes, cohorts } from '@/lib/db/schema';
-import { eq, desc, count, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 import Link from 'next/link';
 import { UserGroupIcon } from '@/components/icons';
 
