@@ -28,20 +28,27 @@ interface MentorCardProps {
 
 export function MentorCard({ mentor, currentUserId }: MentorCardProps) {
   const isOwnProfile = currentUserId === mentor.userId;
+  const fullName = mentor.user?.fullName || 'Unknown User';
+  const initials = fullName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="border border-gray-200 bg-white p-6 hover:border-primary-green transition-colors">
       <div className="flex items-start gap-4">
         <div className="h-16 w-16 flex-shrink-0 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-xl overflow-hidden">
           {mentor.user?.avatar ? (
-            <img src={mentor.user.avatar} alt={mentor.user.fullName || ''} className="h-full w-full object-cover" />
+            <img src={mentor.user.avatar} alt={fullName} className="h-full w-full object-cover" />
           ) : (
-            mentor.user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+            initials
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg truncate">{mentor.user?.fullName || 'Unknown'}</h3>
+            <h3 className="font-semibold text-lg truncate">{fullName}</h3>
             {mentor.status === 'verified' && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 flex-shrink-0">Verified</span>
             )}
