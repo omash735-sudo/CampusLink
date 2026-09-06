@@ -12,19 +12,66 @@ import { RecentResources } from '@/components/resources/RecentResources';
 import { RecommendedResources } from '@/components/resources/RecommendedResources';
 import { ResourceCategories } from '@/components/resources/ResourceCategories';
 
+// Debug logger
+const debug = {
+  log: (step: string, data?: any) => {
+    console.log(`[DEBUG RESOURCES] ${step}`, data || '');
+  },
+  error: (step: string, error: any) => {
+    console.error(`[DEBUG RESOURCES ERROR] ${step}:`, error);
+    if (error instanceof Error) {
+      console.error(`[DEBUG RESOURCES] Message: ${error.message}`);
+      console.error(`[DEBUG RESOURCES] Stack: ${error.stack}`);
+    }
+  },
+  table: (step: string, data: any) => {
+    console.log(`[DEBUG RESOURCES TABLE] ${step}:`);
+    console.table(data);
+  }
+};
+
 export default async function ResourcesPage({
   searchParams,
 }: {
   searchParams: { search?: string; type?: string; programme?: string; year?: string; sort?: string }
 }) {
   try {
+    debug.log('=== STARTING RESOURCES PAGE ===');
+    
     const currentUser = await getCurrentUser();
+    debug.log('Step 1: Current user', currentUser ? `Logged in: ${currentUser.id}` : 'Not logged in');
+    
     const search = searchParams.search || '';
     const programmeFilter = searchParams.programme || '';
     const yearFilter = searchParams.year || '';
     const sort = searchParams.sort || 'recent';
+    debug.log('Step 2: Search params', { search, programmeFilter, yearFilter, sort });
+
+    // STEP 3: Check resources table
+    debug.log('Step 3: Checking resources table...');
+    let totalResources = 0;
+    try {
+      const countResult = await db.select({ count: sql<number>`count(*)` }).from(resources);
+      totalResources = countResult[0]?.count || 0;
+      debug.log('Step 3: Total resources in database', totalResources);
+    } catch (countError) {
+      debug.error('Step 3: Error counting resources', countError);
+    }
+
+    // STEP 4: Check what status values exist
+    debug.log('Step 4: Checking resource statuses...');
+    try {
+      const statuses = await db
+        .select({ status: resources.status })
+        .from(resources)
+        .groupBy(resources.status);
+      debug.log('Step 4: Available statuses', statuses.map(s => s.status));
+    } catch (statusError) {
+      debug.error('Step 4: Error fetching statuses', statusError);
+    }
 
     // Build query - using snake_case column names to match database
+    debug.log('Step 5: Building main query...');
     let query = db
       .select({
         id: resources.id,
@@ -58,7 +105,10 @@ export default async function ResourcesPage({
       .leftJoin(courses, eq(resources.courseId, courses.id))
       .where(eq(resources.status, 'approved'));
 
+    debug.log('Step 6: Query built successfully');
+
     if (search) {
+      debug.log('Step 7: Adding search filter', search);
       query = query.where(
         or(
           like(resources.title, `%${search}%`),
@@ -70,9 +120,11 @@ export default async function ResourcesPage({
     }
 
     if (programmeFilter) {
+      debug.log('Step 8: Adding programme filter', programmeFilter);
       query = query.where(eq(resources.programmeId, programmeFilter));
     }
     if (yearFilter) {
+      debug.log('Step 9: Adding year filter', yearFilter);
       query = query.where(eq(resources.year, parseInt(yearFilter)));
     }
 
@@ -86,11 +138,22 @@ export default async function ResourcesPage({
       query = query.orderBy(resources.title);
     }
 
+    debug.log('Step 10: Executing main query...');
     const resourceList = await query.limit(24);
+    debug.log('Step 11: Resources fetched', resourceList.length);
 
+    // Get programmes for filters
+    debug.log('Step 12: Fetching programmes...');
     const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
-    const categories = await db.select().from(resourceCategories).orderBy(resourceCategories.name);
+    debug.log('Step 13: Programmes fetched', programmesList.length);
 
+    // Get categories
+    debug.log('Step 14: Fetching categories...');
+    const categories = await db.select().from(resourceCategories).orderBy(resourceCategories.name);
+    debug.log('Step 15: Categories fetched', categories.length);
+
+    // Get popular resources
+    debug.log('Step 16: Fetching popular resources...');
     const popularResources = await db
       .select({
         id: resources.id,
@@ -109,7 +172,10 @@ export default async function ResourcesPage({
       .where(eq(resources.status, 'approved'))
       .orderBy(desc(resources.downloads))
       .limit(6);
+    debug.log('Step 17: Popular resources fetched', popularResources.length);
 
+    // Get recent resources
+    debug.log('Step 18: Fetching recent resources...');
     const recentResources = await db
       .select({
         id: resources.id,
@@ -127,8 +193,19 @@ export default async function ResourcesPage({
       .where(eq(resources.status, 'approved'))
       .orderBy(desc(resources.createdAt))
       .limit(6);
+    debug.log('Step 19: Recent resources fetched', recentResources.length);
 
     const resourceTypes = ['Past Paper', 'Lecture Notes', 'Study Guide', 'Handout', 'Course Outline', 'Research', 'Assignment', 'Textbook', 'Other'];
+
+    debug.log('Step 20: Rendering page...');
+    debug.log('Step 21: Final summary', {
+      totalResources,
+      resourceListCount: resourceList.length,
+      popularResourcesCount: popularResources.length,
+      recentResourcesCount: recentResources.length,
+      programmesCount: programmesList.length,
+      categoriesCount: categories.length,
+    });
 
     return (
       <div className="min-h-screen bg-off-white">
@@ -209,7 +286,7 @@ export default async function ResourcesPage({
       </div>
     );
   } catch (error) {
-    console.error('ResourcesPage Error:', error);
+    debug.error('FATAL: ResourcesPage error', error);
     return (
       <div className="min-h-screen bg-off-white flex items-center justify-center px-4">
         <div className="border border-gray-200 bg-white p-8 max-w-md text-center">
