@@ -18,21 +18,70 @@ interface InterestWithCount {
   count: number;
 }
 
+// Debug logger that will appear in server logs and browser console
+const debug = {
+  log: (step: string, data?: any) => {
+    console.log(`[DEBUG] ${step}`, data || '');
+  },
+  error: (step: string, error: any) => {
+    console.error(`[DEBUG ERROR] ${step}:`, error);
+    if (error instanceof Error) {
+      console.error(`[DEBUG ERROR] Message: ${error.message}`);
+      console.error(`[DEBUG ERROR] Stack: ${error.stack}`);
+    }
+  },
+  table: (step: string, data: any) => {
+    console.log(`[DEBUG TABLE] ${step}:`);
+    console.table(data);
+  }
+};
+
 export default async function ConnectPage() {
   try {
-    console.log('1. Starting ConnectPage');
+    debug.log('=== STARTING CONNECT PAGE ===');
     
-    const currentUser = await getCurrentUser();
-    console.log('2. Current user:', currentUser?.id || 'Not logged in');
+    // STEP 1: Get current user
+    debug.log('Step 1: Getting current user...');
+    let currentUser = null;
+    try {
+      currentUser = await getCurrentUser();
+      debug.log('Step 1: Current user retrieved', { 
+        id: currentUser?.id || 'Not logged in',
+        fullName: currentUser?.fullName || 'N/A',
+        programme: currentUser?.programme || 'N/A',
+        year: currentUser?.year || 'N/A'
+      });
+    } catch (authError) {
+      debug.error('Step 1: Auth error', authError);
+      throw new Error(`Authentication failed: ${authError instanceof Error ? authError.message : String(authError)}`);
+    }
     
-    console.log('3. Fetching programmes...');
-    const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
-    console.log('4. Programmes fetched:', programmesList.length);
+    // STEP 2: Fetch programmes
+    debug.log('Step 2: Fetching programmes...');
+    let programmesList = [];
+    try {
+      programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
+      debug.log('Step 2: Programmes fetched', { count: programmesList.length });
+      if (programmesList.length > 0) {
+        debug.log('Step 2: Sample programme', programmesList[0]);
+      }
+    } catch (programmesError) {
+      debug.error('Step 2: Programmes fetch error', programmesError);
+      throw new Error(`Failed to fetch programmes: ${programmesError instanceof Error ? programmesError.message : String(programmesError)}`);
+    }
     
-    // Get popular interests with proper typing
-    console.log('5. Fetching interests...');
+    // STEP 3: Fetch interests
+    debug.log('Step 3: Fetching interests...');
     let popularInterests: InterestWithCount[] = [];
     try {
+      // Check if interests table exists first
+      try {
+        const tableCheck = await db.execute(sql`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'interests')`);
+        debug.log('Step 3: Interests table exists check', tableCheck);
+      } catch (tableError) {
+        debug.error('Step 3: Table check error', tableError);
+      }
+      
       popularInterests = await db.select({
         id: interests.id,
         name: interests.name,
@@ -44,44 +93,85 @@ export default async function ConnectPage() {
       .groupBy(interests.id, interests.name, interests.slug)
       .orderBy(sql`count(${studentInterests.studentId}) DESC`)
       .limit(12);
-      console.log('6. Interests fetched:', popularInterests.length);
-    } catch (interestError) {
-      console.error('7. Interests error:', interestError);
+      debug.log('Step 3: Interests fetched', { count: popularInterests.length });
+      if (popularInterests.length > 0) {
+        debug.log('Step 3: Sample interest', popularInterests[0]);
+      }
+    } catch (interestsError) {
+      debug.error('Step 3: Interests fetch error (non-fatal)', interestsError);
       popularInterests = [];
+      debug.log('Step 3: Using empty interests array as fallback');
     }
-
-    console.log('8. Fetching recent students...');
-    const recentStudents = await db.select({
-      id: users.id,
-      fullName: users.fullName,
-      username: users.username,
-      avatar: users.avatar,
-      programme: users.programme,
-      year: users.year,
-      interests: users.interests,
-    })
-    .from(users)
-    .where(eq(users.isActive, true))
-    .orderBy(desc(users.createdAt))
-    .limit(12);
-    console.log('9. Recent students fetched:', recentStudents.length);
-
-    console.log('10. Fetching communities...');
-    const communities = await db.select({
-      id: groups.id,
-      name: groups.name,
-      slug: groups.slug,
-      description: groups.description,
-      memberCount: groups.memberCount,
-      category: groups.category,
-    })
-    .from(groups)
-    .where(eq(groups.type, 'open'))
-    .orderBy(desc(groups.memberCount))
-    .limit(8);
-    console.log('11. Communities fetched:', communities.length);
-
-    console.log('12. Rendering page...');
+    
+    // STEP 4: Fetch recent students
+    debug.log('Step 4: Fetching recent students...');
+    let recentStudents = [];
+    try {
+      // First check if users table exists
+      try {
+        const userTableCheck = await db.execute(sql`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')`);
+        debug.log('Step 4: Users table exists check', userTableCheck);
+      } catch (tableError) {
+        debug.error('Step 4: Users table check error', tableError);
+      }
+      
+      recentStudents = await db.select({
+        id: users.id,
+        fullName: users.fullName,
+        username: users.username,
+        avatar: users.avatar,
+        programme: users.programme,
+        year: users.year,
+        interests: users.interests,
+      })
+      .from(users)
+      .where(eq(users.isActive, true))
+      .orderBy(desc(users.createdAt))
+      .limit(12);
+      debug.log('Step 4: Recent students fetched', { count: recentStudents.length });
+      if (recentStudents.length > 0) {
+        debug.log('Step 4: Sample student', recentStudents[0]);
+      }
+    } catch (studentsError) {
+      debug.error('Step 4: Students fetch error', studentsError);
+      throw new Error(`Failed to fetch students: ${studentsError instanceof Error ? studentsError.message : String(studentsError)}`);
+    }
+    
+    // STEP 5: Fetch communities
+    debug.log('Step 5: Fetching communities...');
+    let communities = [];
+    try {
+      communities = await db.select({
+        id: groups.id,
+        name: groups.name,
+        slug: groups.slug,
+        description: groups.description,
+        memberCount: groups.memberCount,
+        category: groups.category,
+      })
+      .from(groups)
+      .where(eq(groups.type, 'open'))
+      .orderBy(desc(groups.memberCount))
+      .limit(8);
+      debug.log('Step 5: Communities fetched', { count: communities.length });
+      if (communities.length > 0) {
+        debug.log('Step 5: Sample community', communities[0]);
+      }
+    } catch (communitiesError) {
+      debug.error('Step 5: Communities fetch error', communitiesError);
+      throw new Error(`Failed to fetch communities: ${communitiesError instanceof Error ? communitiesError.message : String(communitiesError)}`);
+    }
+    
+    // STEP 6: Verify data before rendering
+    debug.log('Step 6: Data summary', {
+      currentUser: currentUser ? 'Exists' : 'None',
+      programmesCount: programmesList.length,
+      interestsCount: popularInterests.length,
+      studentsCount: recentStudents.length,
+      communitiesCount: communities.length
+    });
+    
+    debug.log('Step 7: Rendering page...');
     
     return (
       <div className="min-h-screen bg-off-white">
@@ -228,12 +318,7 @@ export default async function ConnectPage() {
       </div>
     );
   } catch (error) {
-    console.error(' ConnectPage Error:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    debug.error('FATAL: ConnectPage error', error);
     return (
       <div className="min-h-screen bg-off-white flex items-center justify-center px-4">
         <div className="border border-gray-200 bg-white p-8 max-w-md text-center">
