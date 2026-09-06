@@ -1,25 +1,27 @@
 // app/api/programmes/route.ts
 import { NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { db } from '@/lib/db';
+import { programmes } from '@/lib/db/schema';
+import { eq, desc, asc } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const { rows } = await sql`
-      SELECT 
-        id, 
-        name, 
-        code, 
-        faculty, 
-        department,
-        degree, 
-        duration,
-        slug,
-        description,
-        campus
-      FROM programmes 
-      WHERE deleted_at IS NULL  -- Only show active programmes
-      ORDER BY faculty, name
-    `;
+    const rows = await db
+      .select({
+        id: programmes.id,
+        name: programmes.name,
+        code: programmes.code,
+        faculty: programmes.faculty,
+        department: programmes.department,
+        degree: programmes.degree,
+        duration: programmes.duration,
+        slug: programmes.slug,
+        description: programmes.description,
+        campus: programmes.campus,
+      })
+      .from(programmes)
+      .where(eq(programmes.isActive, true))
+      .orderBy(asc(programmes.faculty), asc(programmes.name));
 
     if (rows.length === 0) {
       return NextResponse.json(
