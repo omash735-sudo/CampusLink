@@ -21,7 +21,7 @@ export const announcementSchema = z.object({
   type: z.enum(['general', 'academic', 'student_union']).default('general'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   isPublished: z.boolean().default(false),
-  imageUrl: z.string().url().optional().nullable(), // ADDED
+  imageUrl: z.string().url().optional().nullable(),
   expiresAt: z.string().optional().nullable(),
 });
 
@@ -50,11 +50,11 @@ export const resourceSchema = z.object({
 });
 
 export const mentorSchema = z.object({
-  expertise: z.array(z.string()),
-  subjects: z.array(z.string()),
-  introduction: z.string().min(50),
-  experience: z.string().optional(),
-  availability: z.record(z.any()).optional(),
+  expertise: z.array(z.string()).optional().default([]),
+  subjects: z.array(z.string()).optional().default([]),
+  introduction: z.string().optional().default(''),
+  experience: z.string().optional().nullable(),
+  availability: z.enum(['available', 'limited', 'unavailable']).optional().default('available'),
 });
 
 export const opportunitySchema = z.object({
@@ -74,4 +74,20 @@ export const postSchema = z.object({
   content: z.string().min(1),
   type: z.enum(['post', 'question', 'announcement']).default('post'),
   visibility: z.enum(['public', 'private']).default('public'),
+});
+
+// New: Mentorship Request Schema
+export const mentorshipRequestSchema = z.object({
+  message: z.string().min(10),
+  introduction: z.string().optional(),
+  helpNeeded: z.array(z.string()).optional(),
+});
+
+// New: Become Mentor Schema
+export const becomeMentorSchema = z.object({
+  expertise: z.array(z.string()).min(1, 'At least one area of expertise is required'),
+  subjects: z.array(z.string()).optional(),
+  introduction: z.string().min(20, 'Introduction must be at least 20 characters'),
+  experience: z.string().optional(),
+  mentorType: z.enum(['Student', 'Alumni', 'Professional', 'Staff']).default('Student'),
 });
