@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { announcements, events } from '@/lib/db/schema';
 import { eq, desc, asc } from 'drizzle-orm';
+import { Hero } from '@/components/home/Hero';
 
 export default async function HomePage() {
   const recentAnnouncements = await db.select().from(announcements)
@@ -17,29 +18,8 @@ export default async function HomePage() {
 
   return (
     <div className="bg-white">
-      {/* Hero */}
-      <section className="bg-off-white py-20">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <div className="h-16 w-16 border-2 border-primary-green bg-white mx-auto mb-6"></div>
-          <h1 className="text-4xl md:text-5xl font-bold text-primary-text mb-4">
-            <span className="text-primary-green">CampusLink</span>
-            <br />
-            Connect. Discover. Belong.
-          </h1>
-          <p className="text-xl text-muted-text mb-8 max-w-2xl mx-auto">
-            Your digital community for LUANAR City Campus. Find your people, 
-            discover opportunities, and make the most of your university experience.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register" className="bg-primary-green text-white font-medium px-8 py-3 hover:bg-deep-green transition-colors">
-              Join CampusLink
-            </Link>
-            <Link href="/campus" className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 hover:bg-primary-green hover:text-white transition-colors">
-              Explore City Campus
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Section with Carousel */}
+      <Hero />
 
       {/* Features */}
       <section className="py-16">
@@ -51,8 +31,8 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature) => (
               <Link key={feature.title} href={feature.href} 
-                className="border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white transition-colors">
-                <feature.icon className="h-8 w-8 text-primary-green mb-4" />
+                className="border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white transition-colors group">
+                <feature.icon className="h-8 w-8 text-primary-green mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-text">{feature.description}</p>
               </Link>
@@ -64,17 +44,26 @@ export default async function HomePage() {
       {/* Announcements */}
       <section className="bg-off-white py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-8">Latest Announcements</h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold">Latest Announcements</h2>
+            <Link href="/announcements" className="text-primary-green hover:underline text-sm font-medium">
+              View all →
+            </Link>
+          </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recentAnnouncements.map((announcement) => (
-              <div key={announcement.id} className="border border-gray-200 bg-white p-6">
-                <span className="text-xs text-muted-text">
-                  {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
-                </span>
-                <h3 className="text-lg font-semibold mt-1">{announcement.title}</h3>
-                <p className="text-muted-text text-sm mt-2 line-clamp-2">{announcement.content}</p>
-              </div>
-            ))}
+            {recentAnnouncements.length > 0 ? (
+              recentAnnouncements.map((announcement) => (
+                <div key={announcement.id} className="border border-gray-200 bg-white p-6 hover:shadow-md transition-shadow">
+                  <span className="text-xs text-muted-text">
+                    {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
+                  </span>
+                  <h3 className="text-lg font-semibold mt-1">{announcement.title}</h3>
+                  <p className="text-muted-text text-sm mt-2 line-clamp-2">{announcement.content}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-text col-span-3 text-center py-8">No announcements yet.</p>
+            )}
           </div>
         </div>
       </section>
@@ -82,20 +71,29 @@ export default async function HomePage() {
       {/* Events */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-8">Upcoming Events</h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold">Upcoming Events</h2>
+            <Link href="/events" className="text-primary-green hover:underline text-sm font-medium">
+              View all →
+            </Link>
+          </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {upcomingEvents.map((event) => (
-              <div key={event.id} className="border border-gray-200 p-6">
-                <span className="text-xs text-muted-text">
-                  {new Date(event.startDate).toLocaleDateString()}
-                </span>
-                <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
-                {event.location && (
-                  <p className="text-sm text-muted-text mt-1">📍 {event.location}</p>
-                )}
-                <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
-              </div>
-            ))}
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event) => (
+                <div key={event.id} className="border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <span className="text-xs text-muted-text">
+                    {new Date(event.startDate).toLocaleDateString()}
+                  </span>
+                  <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
+                  {event.location && (
+                    <p className="text-sm text-muted-text mt-1">📍 {event.location}</p>
+                  )}
+                  <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-text col-span-3 text-center py-8">No upcoming events.</p>
+            )}
           </div>
         </div>
       </section>
