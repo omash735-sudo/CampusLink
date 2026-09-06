@@ -105,24 +105,39 @@ export default async function HomePage() {
               upcomingEvents.map((event) => (
                 <div 
                   key={event.id} 
-                  className="border border-gray-200 p-6 hover:shadow-xl transition-shadow duration-300"
+                  className="border border-gray-200 bg-white overflow-hidden hover:shadow-xl transition-shadow duration-300"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-muted-text">
-                      {new Date(event.startDate).toLocaleDateString()}
-                    </span>
-                    {event.isVerified && (
+                  {event.image && (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={event.image}
+                        alt={event.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-xs text-muted-text">
+                        {new Date(event.startDate).toLocaleDateString()}
+                      </span>
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5">Verified</span>
+                      {event.category && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 capitalize">
+                          {event.category}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
+                    {event.location && (
+                      <p className="text-sm text-muted-text mt-1">{event.location}</p>
+                    )}
+                    <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
+                    {event.organizer && (
+                      <p className="text-xs text-muted-text mt-2">Organized by: {event.organizer}</p>
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
-                  {event.location && (
-                    <p className="text-sm text-muted-text mt-1">{event.location}</p>
-                  )}
-                  <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
-                  {event.organizer && (
-                    <p className="text-xs text-muted-text mt-2">Organized by: {event.organizer}</p>
-                  )}
                 </div>
               ))
             ) : (
