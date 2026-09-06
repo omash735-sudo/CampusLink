@@ -54,13 +54,13 @@ export function Hero() {
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link 
               href="/auth/register" 
-              className="bg-primary-green text-white font-medium px-8 py-3 rounded-lg hover:bg-deep-green transition-colors inline-flex items-center"
+              className="bg-primary-green text-white font-medium px-8 py-3 hover:bg-deep-green transition-colors inline-flex items-center"
             >
               Join CampusLink
             </Link>
             <Link 
               href="/campus" 
-              className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 rounded-lg hover:bg-primary-green hover:text-white transition-colors inline-flex items-center"
+              className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 hover:bg-primary-green hover:text-white transition-colors inline-flex items-center"
             >
               Explore City Campus
             </Link>
@@ -76,7 +76,7 @@ export function Hero() {
 
         <div className="mt-16">
           <div className="mb-4 text-center">
-            <span className="inline-block rounded-full bg-primary-green/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-green">
+            <span className="inline-block bg-primary-green/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-green">
               Orientation 2026
             </span>
             <p className="mt-2 text-sm text-muted-text">
@@ -89,7 +89,7 @@ export function Hero() {
             interval={5000}
             showArrows
             showDots
-            className="overflow-hidden rounded-xl shadow-lg"
+            className="overflow-hidden shadow-lg"
           />
         </div>
       </div>
