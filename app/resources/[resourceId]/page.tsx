@@ -17,7 +17,6 @@ export default async function ResourceDetailPage({ params }: { params: { resourc
       id: resources.id,
       title: resources.title,
       description: resources.description,
-      type: resources.type,
       fileUrl: resources.fileUrl,
       fileName: resources.fileName,
       fileType: resources.fileType,
@@ -71,7 +70,6 @@ export default async function ResourceDetailPage({ params }: { params: { resourc
     .select({
       id: resources.id,
       title: resources.title,
-      type: resources.type,
       fileType: resources.fileType,
       downloads: resources.downloads,
       viewCount: resources.viewCount,
@@ -98,7 +96,7 @@ export default async function ResourceDetailPage({ params }: { params: { resourc
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="text-sm bg-gray-100 px-3 py-1">{resource.type}</span>
+                <span className="text-sm bg-gray-100 px-3 py-1">{resource.fileType.toUpperCase()}</span>
                 {resource.isVerified && (
                   <span className="text-sm bg-green-100 text-green-700 px-3 py-1">Verified</span>
                 )}
@@ -136,12 +134,12 @@ export default async function ResourceDetailPage({ params }: { params: { resourc
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-text">
-            <span>📄 {resource.fileType.toUpperCase()}</span>
-            <span>📊 {getFileSize(resource.fileSize)}</span>
-            <span>⬇️ {resource.downloads} downloads</span>
-            <span>👁️ {resource.viewCount} views</span>
-            {resource.academicYear && <span>📅 {resource.academicYear}</span>}
-            <span>📅 Added {new Date(resource.createdAt).toLocaleDateString()}</span>
+            <span>File: {resource.fileType.toUpperCase()}</span>
+            <span>Size: {getFileSize(resource.fileSize)}</span>
+            <span>Downloads: {resource.downloads}</span>
+            <span>Views: {resource.viewCount}</span>
+            {resource.academicYear && <span>Year: {resource.academicYear}</span>}
+            <span>Added: {new Date(resource.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
 
@@ -186,8 +184,8 @@ export default async function ResourceDetailPage({ params }: { params: { resourc
                     <div>
                       <h3 className="font-medium text-sm line-clamp-1">{r.title}</h3>
                       <div className="flex gap-3 mt-1 text-xs text-muted-text">
-                        <span>{r.type}</span>
-                        <span>⬇️ {r.downloads}</span>
+                        <span>{r.fileType.toUpperCase()}</span>
+                        <span>Downloads: {r.downloads}</span>
                       </div>
                     </div>
                     <span className="text-xs text-muted-text">
