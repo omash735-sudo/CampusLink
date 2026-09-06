@@ -19,11 +19,13 @@ export const users = pgTable('users', {
   isVerified: boolean('is_verified').default(false),
   isActive: boolean('is_active').default(true),
   lastActive: timestamp('last_active'),
+  isMentor: boolean('is_mentor').default(false),
+  mentorType: text('mentor_type'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== NEW: FACULTIES ====================
+// Faculties
 export const faculties = pgTable('faculties', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -61,7 +63,7 @@ export const cohorts = pgTable('cohorts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== NEW: INTERESTS ====================
+// Interests
 export const interests = pgTable('interests', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').unique().notNull(),
@@ -70,7 +72,7 @@ export const interests = pgTable('interests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// ==================== NEW: STUDENT INTERESTS ====================
+// Student Interests
 export const studentInterests = pgTable('student_interests', {
   id: uuid('id').primaryKey().defaultRandom(),
   studentId: uuid('student_id').references(() => users.id).notNull(),
@@ -78,7 +80,7 @@ export const studentInterests = pgTable('student_interests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// ==================== NEW: CONNECTIONS ====================
+// Connections
 export const connections = pgTable('connections', {
   id: uuid('id').primaryKey().defaultRandom(),
   requesterId: uuid('requester_id').references(() => users.id).notNull(),
@@ -95,13 +97,60 @@ export const mentors = pgTable('mentors', {
   status: text('status').default('pending').notNull(),
   expertise: text('expertise').array(),
   subjects: text('subjects').array(),
-  availability: jsonb('availability'),
+  availability: text('availability').default('available'),
   introduction: text('introduction'),
   experience: text('experience'),
   rating: integer('rating').default(0),
   reviewCount: integer('review_count').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Mentor Expertise
+export const mentorExpertise = pgTable('mentor_expertise', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
+  name: text('name').notNull(),
+  category: text('category'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Mentorship Requests
+export const mentorshipRequests = pgTable('mentorship_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
+  studentId: uuid('student_id').references(() => users.id).notNull(),
+  status: text('status').default('pending').notNull(),
+  message: text('message'),
+  introduction: text('introduction'),
+  helpNeeded: text('help_needed').array(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Mentorships
+export const mentorships = pgTable('mentorships', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
+  studentId: uuid('student_id').references(() => users.id).notNull(),
+  requestId: uuid('request_id').references(() => mentorshipRequests.id),
+  status: text('status').default('active').notNull(),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  endedAt: timestamp('ended_at'),
+  lastInteraction: timestamp('last_interaction'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Mentor Reviews
+export const mentorReviews = pgTable('mentor_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorshipId: uuid('mentorship_id').references(() => mentorships.id).notNull(),
+  studentId: uuid('student_id').references(() => users.id).notNull(),
+  rating: integer('rating'),
+  review: text('review'),
+  isPublic: boolean('is_public').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Resources
@@ -138,7 +187,7 @@ export const posts = pgTable('posts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Comments - Fixed circular reference
+// Comments
 export const comments = pgTable('comments', {
   id: uuid('id').primaryKey().defaultRandom(),
   postId: uuid('post_id').references(() => posts.id).notNull(),
@@ -175,7 +224,7 @@ export const groupMembers = pgTable('group_members', {
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
-// ==================== NEW: USER COMMUNITIES ====================
+// User Communities
 export const userCommunities = pgTable('user_communities', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id).notNull(),
@@ -323,6 +372,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   receivedConnections: many(connections, { relationName: 'receivedConnections' }),
   interests: many(studentInterests),
   communities: many(userCommunities),
+  mentorshipRequests: many(mentorshipRequests, { relationName: 'studentRequests' }),
+  receivedMentorshipRequests: many(mentorshipRequests, { relationName: 'mentorRequests' }),
+  mentorships: many(mentorships, { relationName: 'studentMentorships' }),
+  mentorMentorships: many(mentorships, { relationName: 'mentorMentorships' }),
+  mentorReviews: many(mentorReviews),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -337,7 +391,6 @@ export const cohortsRelations = relations(cohorts, ({ one }) => ({
   }),
 }));
 
-// ==================== NEW: CONNECTIONS RELATIONS ====================
 export const connectionsRelations = relations(connections, ({ one }) => ({
   requester: one(users, {
     fields: [connections.requesterId],
@@ -351,7 +404,6 @@ export const connectionsRelations = relations(connections, ({ one }) => ({
   }),
 }));
 
-// ==================== NEW: STUDENT INTERESTS RELATIONS ====================
 export const studentInterestsRelations = relations(studentInterests, ({ one }) => ({
   student: one(users, {
     fields: [studentInterests.studentId],
@@ -363,7 +415,6 @@ export const studentInterestsRelations = relations(studentInterests, ({ one }) =
   }),
 }));
 
-// ==================== NEW: USER COMMUNITIES RELATIONS ====================
 export const userCommunitiesRelations = relations(userCommunities, ({ one }) => ({
   user: one(users, {
     fields: [userCommunities.userId],
@@ -375,9 +426,61 @@ export const userCommunitiesRelations = relations(userCommunities, ({ one }) => 
   }),
 }));
 
-export const mentorsRelations = relations(mentors, ({ one }) => ({
+export const mentorsRelations = relations(mentors, ({ one, many }) => ({
   user: one(users, {
     fields: [mentors.userId],
+    references: [users.id],
+  }),
+  expertise: many(mentorExpertise),
+  requests: many(mentorshipRequests, { relationName: 'mentorRequests' }),
+  mentorships: many(mentorships, { relationName: 'mentorMentorships' }),
+}));
+
+export const mentorExpertiseRelations = relations(mentorExpertise, ({ one }) => ({
+  mentor: one(mentors, {
+    fields: [mentorExpertise.mentorId],
+    references: [mentors.id],
+  }),
+}));
+
+export const mentorshipRequestsRelations = relations(mentorshipRequests, ({ one }) => ({
+  mentor: one(mentors, {
+    fields: [mentorshipRequests.mentorId],
+    references: [mentors.id],
+    relationName: 'mentorRequests',
+  }),
+  student: one(users, {
+    fields: [mentorshipRequests.studentId],
+    references: [users.id],
+    relationName: 'studentRequests',
+  }),
+}));
+
+export const mentorshipsRelations = relations(mentorships, ({ one, many }) => ({
+  mentor: one(mentors, {
+    fields: [mentorships.mentorId],
+    references: [mentors.id],
+    relationName: 'mentorMentorships',
+  }),
+  student: one(users, {
+    fields: [mentorships.studentId],
+    references: [users.id],
+    relationName: 'studentMentorships',
+  }),
+  request: one(mentorshipRequests, {
+    fields: [mentorships.requestId],
+    references: [mentorshipRequests.id],
+  }),
+  reviews: many(mentorReviews),
+}));
+
+export const mentorReviewsRelations = relations(mentorReviews, ({ one }) => ({
+  mentorship: one(mentorships, {
+    fields: [mentorReviews.mentorshipId],
+    references: [mentorships.id],
+  }),
+  student: one(users, {
+    fields: [mentorReviews.studentId],
     references: [users.id],
   }),
 }));
