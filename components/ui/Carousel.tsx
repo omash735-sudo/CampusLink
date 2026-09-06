@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CarouselImage {
   src: string;
@@ -92,7 +91,7 @@ export function Carousel({
         ))}
       </div>
 
-      {/* Navigation arrows */}
+      {/* Navigation arrows - using inline SVGs */}
       {showArrows && images.length > 1 && (
         <>
           <button
@@ -100,14 +99,34 @@ export function Carousel({
             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:left-4 md:p-3"
             aria-label="Previous slide"
           >
-            <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+            <svg 
+              className="h-5 w-5 md:h-6 md:w-6" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
           <button
             onClick={goToNext}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:right-4 md:p-3"
             aria-label="Next slide"
           >
-            <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+            <svg 
+              className="h-5 w-5 md:h-6 md:w-6" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         </>
       )}
