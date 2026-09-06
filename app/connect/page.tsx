@@ -2,7 +2,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { users, programmes, interests, studentInterests, connections, groups } from '@/lib/db/schema';
-import { eq, desc, count, and, not, sql, inArray } from 'drizzle-orm';
+import { eq, desc, and, not, sql, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { StudentSearch } from '@/components/connect/StudentSearch';
 import { PeopleYouMayKnow } from '@/components/connect/PeopleYouMayKnow';
