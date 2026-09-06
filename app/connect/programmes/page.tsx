@@ -1,7 +1,7 @@
 // app/connect/programmes/page.tsx
 import { db } from '@/lib/db';
 import { programmes, users } from '@/lib/db/schema';
-import { eq, count, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import Link from 'next/link';
 import { BookOpenIcon } from '@/components/icons';
 
