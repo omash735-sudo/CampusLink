@@ -20,31 +20,8 @@ export default async function MentorsPage({
   const typeFilter = searchParams.type || '';
   const availabilityFilter = searchParams.availability || '';
 
-  // Build query conditions
-  const conditions = [eq(mentors.status, 'verified')];
-
-  if (search) {
-    conditions.push(
-      or(
-        like(users.fullName, `%${search}%`),
-        like(users.programme, `%${search}%`),
-        like(mentors.expertise, `%${search}%`)
-      )
-    );
-  }
-
-  if (typeFilter) {
-    conditions.push(eq(users.mentorType, typeFilter));
-  }
-
-  if (availabilityFilter === 'available') {
-    conditions.push(eq(mentors.availability, 'available'));
-  } else if (availabilityFilter === 'limited') {
-    conditions.push(eq(mentors.availability, 'limited'));
-  }
-
-  // Get mentors
-  const mentorsList = await db
+  // Build query using incremental approach to avoid TypeScript issues
+  let query = db
     .select({
       id: mentors.id,
       userId: mentors.userId,
@@ -67,9 +44,33 @@ export default async function MentorsPage({
     })
     .from(mentors)
     .leftJoin(users, eq(mentors.userId, users.id))
-    .where(and(...conditions))
-    .orderBy(desc(mentors.rating))
-    .limit(20);
+    .where(eq(mentors.status, 'verified'));
+
+  // Add search conditions
+  if (search) {
+    query = query.where(
+      or(
+        like(users.fullName, `%${search}%`),
+        like(users.programme, `%${search}%`),
+        like(mentors.expertise, `%${search}%`)
+      )
+    );
+  }
+
+  // Add type filter
+  if (typeFilter) {
+    query = query.where(eq(users.mentorType, typeFilter));
+  }
+
+  // Add availability filter
+  if (availabilityFilter === 'available') {
+    query = query.where(eq(mentors.availability, 'available'));
+  } else if (availabilityFilter === 'limited') {
+    query = query.where(eq(mentors.availability, 'limited'));
+  }
+
+  // Execute query
+  const mentorsList = await query.orderBy(desc(mentors.rating)).limit(20);
 
   // Get all expertise options for filters
   const expertiseOptions = await db
@@ -79,7 +80,6 @@ export default async function MentorsPage({
     .from(mentorExpertise)
     .orderBy(mentorExpertise.name);
 
-  // Get mentor types for filters
   const mentorTypes = ['Student', 'Alumni', 'Professional', 'Staff'];
 
   return (
