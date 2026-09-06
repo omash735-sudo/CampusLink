@@ -26,10 +26,17 @@ export default function AdminEvents() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
+    if (!confirm('Are you sure you want to delete this event?')) return;
     try {
-      await fetch(`/api/admin/events/${id}`, { method: 'DELETE' });
-      await fetchEvents();
+      const res = await fetch(`/api/admin/events/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        await fetchEvents();
+      } else {
+        console.error('Failed to delete event');
+      }
     } catch (error) {
       console.error('Failed to delete:', error);
     }
