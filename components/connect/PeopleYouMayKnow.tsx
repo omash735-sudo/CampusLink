@@ -17,6 +17,9 @@ export async function PeopleYouMayKnow({ currentUserId }: { currentUserId: strin
   .then(res => res[0]);
 
   if (!currentUser) return null;
+  
+  // Only show recommendations if user has a programme
+  if (!currentUser.programme) return null;
 
   const recommendedStudents = await db
     .select({
