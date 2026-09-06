@@ -4,7 +4,7 @@ import { UserIcon, AcademicIcon, BookOpenIcon } from '@/components/icons';
 
 interface StudentCardProps {
   id: string;
-  fullName: string;
+  fullName: string | null;
   username: string;
   avatar: string | null;
   programme: string | null;
@@ -31,9 +31,10 @@ export function StudentGrid({ students }: { students: StudentCardProps[] }) {
 }
 
 function StudentCard({ student }: { student: StudentCardProps }) {
-  const initials = student.fullName
+  const fullName = student.fullName || 'Unknown User';
+  const initials = fullName
     .split(' ')
-    .map(n => n[0])
+    .map((n: string) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -46,7 +47,7 @@ function StudentCard({ student }: { student: StudentCardProps }) {
       <div className="flex items-start gap-3">
         <div className="h-12 w-12 flex-shrink-0 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-lg overflow-hidden">
           {student.avatar ? (
-            <img src={student.avatar} alt={student.fullName} className="h-full w-full object-cover" />
+            <img src={student.avatar} alt={fullName} className="h-full w-full object-cover" />
           ) : (
             initials
           )}
@@ -54,7 +55,7 @@ function StudentCard({ student }: { student: StudentCardProps }) {
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-primary-text truncate flex items-center gap-1">
             <UserIcon className="h-3 w-3 text-muted-text flex-shrink-0" />
-            {student.fullName}
+            {fullName}
           </h3>
           {student.programme && (
             <p className="text-sm text-muted-text truncate flex items-center gap-1">
