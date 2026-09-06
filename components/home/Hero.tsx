@@ -1,5 +1,6 @@
 // components/home/Hero.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 import { Carousel } from '@/components/ui/Carousel';
 
 const heroImages = [
@@ -32,11 +33,18 @@ const heroImages = [
 
 export function Hero() {
   return (
-    <section className="section-padding bg-off-white">
-      <div className="container-custom">
+    <section className="py-12 md:py-16 lg:py-20 bg-off-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-6 flex justify-center">
-            <div className="h-16 w-16 border-2 border-primary-green bg-white"></div>
+            <Image
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+              alt="CampusLink"
+              width={64}
+              height={64}
+              className="h-16 w-16"
+              priority
+            />
           </div>
           
           <h1 className="mb-4 font-bold tracking-tight text-primary-text">
