@@ -6,27 +6,27 @@ import { Carousel } from '@/components/ui/Carousel';
 const heroImages = [
   {
     src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653525/DSC_8897_asrddb.jpg',
-    alt: 'First Year Orientation 2026 - Students gathering at LUANAR City Campus',
-    caption: 'New beginnings at LUANAR City Campus'
+    alt: 'First Year Orientation 2026 - Students gathering at City Campus',
+    caption: 'New beginnings at City Campus'
   },
   {
     src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653525/DSC_8046_trhauk.jpg',
-    alt: 'Orientation 2026 - Freshmen connecting at LUANAR',
+    alt: 'Orientation 2026 - Freshmen connecting',
     caption: 'Where lifelong connections begin'
   },
   {
     src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653529/DSC_8912_hb7vtt.jpg',
-    alt: 'LUANAR City Campus Orientation 2026 - Student community',
+    alt: 'City Campus Orientation 2026 - Student community',
     caption: 'Your journey starts here'
   },
   {
     src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653529/DSC_8890_wasu3m.jpg',
-    alt: 'Orientation Week 2026 - LUANAR students exploring campus',
+    alt: 'Orientation Week 2026 - Students exploring campus',
     caption: 'Discover your new home'
   },
   {
     src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653527/DSC_9060_fw33ed.jpg',
-    alt: 'LUANAR City Campus Orientation 2026 - Student life',
+    alt: 'City Campus Orientation 2026 - Student life',
     caption: 'Welcome to the CampusLink community'
   }
 ];
@@ -55,7 +55,7 @@ export function Hero() {
           </h1>
           
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-text md:text-xl">
-            Your digital community for LUANAR City Campus. Find your people, 
+            Your digital community for City Campus. Find your people, 
             discover opportunities, and make the most of your university experience.
           </p>
           
@@ -70,7 +70,7 @@ export function Hero() {
               href="/campus" 
               className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 hover:bg-primary-green hover:text-white transition-colors inline-flex items-center"
             >
-              Explore City Campus
+              Explore Campus
             </Link>
           </div>
           
@@ -88,7 +88,7 @@ export function Hero() {
               Orientation 2026
             </span>
             <p className="mt-2 text-sm text-muted-text">
-              Capturing the spirit of new beginnings at LUANAR City Campus
+              Capturing the spirit of new beginnings at City Campus
             </p>
           </div>
           <Carousel
