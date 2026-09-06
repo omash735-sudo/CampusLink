@@ -14,6 +14,7 @@ export default async function MentorsPage() {
       subjects: mentors.subjects,
       introduction: mentors.introduction,
       rating: mentors.rating,
+      reviewCount: mentors.reviewCount,
       user: {
         fullName: users.fullName,
         username: users.username,
@@ -41,17 +42,17 @@ export default async function MentorsPage() {
             {mentorsList.map((mentor) => (
               <div key={mentor.id} className="border border-gray-200 bg-white p-6">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-12 w-12 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-lg">
+                  <div className="h-12 w-12 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-lg overflow-hidden">
                     {mentor.user?.avatar ? (
                       <img src={mentor.user.avatar} alt={mentor.user.fullName} className="h-full w-full object-cover" />
                     ) : (
-                      mentor.user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                      mentor.user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold">{mentor.user?.fullName}</h3>
-                    <p className="text-sm text-muted-text">{mentor.user?.programme}</p>
-                    <p className="text-sm text-muted-text">Year {mentor.user?.year}</p>
+                    <h3 className="font-semibold">{mentor.user?.fullName || 'Unknown'}</h3>
+                    <p className="text-sm text-muted-text">{mentor.user?.programme || 'No programme'}</p>
+                    <p className="text-sm text-muted-text">Year {mentor.user?.year || '?'}</p>
                   </div>
                 </div>
                 {mentor.expertise && mentor.expertise.length > 0 && (
@@ -68,7 +69,7 @@ export default async function MentorsPage() {
                   <p className="text-sm text-muted-text mt-2 line-clamp-2">{mentor.introduction}</p>
                 )}
                 <div className="mt-3 flex items-center gap-4 text-sm text-muted-text">
-                  <span>⭐ {mentor.rating || 0}</span>
+                  <span>{mentor.rating || 0} rating</span>
                   <span>{mentor.reviewCount || 0} reviews</span>
                 </div>
                 <Link
