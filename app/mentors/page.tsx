@@ -1,10 +1,49 @@
 // app/mentors/page.tsx
+import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { mentors, users } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { mentors, users, mentorExpertise } from '@/lib/db/schema';
+import { eq, desc, and, like, or, sql } from 'drizzle-orm';
 import Link from 'next/link';
+import { MentorSearch } from '@/components/mentors/MentorSearch';
+import { MentorFilters } from '@/components/mentors/MentorFilters';
+import { MentorCard } from '@/components/mentors/MentorCard';
+import { RecommendedMentors } from '@/components/mentors/RecommendedMentors';
 
-export default async function MentorsPage() {
+export default async function MentorsPage({
+  searchParams,
+}: {
+  searchParams: { search?: string; expertise?: string; type?: string; availability?: string }
+}) {
+  const currentUser = await getCurrentUser();
+  const search = searchParams.search || '';
+  const expertiseFilter = searchParams.expertise || '';
+  const typeFilter = searchParams.type || '';
+  const availabilityFilter = searchParams.availability || '';
+
+  // Build query conditions
+  const conditions = [eq(mentors.status, 'verified')];
+
+  if (search) {
+    conditions.push(
+      or(
+        like(users.fullName, `%${search}%`),
+        like(users.programme, `%${search}%`),
+        like(mentors.expertise, `%${search}%`)
+      )
+    );
+  }
+
+  if (typeFilter) {
+    conditions.push(eq(users.mentorType, typeFilter));
+  }
+
+  if (availabilityFilter === 'available') {
+    conditions.push(eq(mentors.availability, 'available'));
+  } else if (availabilityFilter === 'limited') {
+    conditions.push(eq(mentors.availability, 'limited'));
+  }
+
+  // Get mentors
   const mentorsList = await db
     .select({
       id: mentors.id,
@@ -13,79 +52,119 @@ export default async function MentorsPage() {
       expertise: mentors.expertise,
       subjects: mentors.subjects,
       introduction: mentors.introduction,
+      experience: mentors.experience,
       rating: mentors.rating,
       reviewCount: mentors.reviewCount,
+      availability: mentors.availability,
       user: {
         fullName: users.fullName,
         username: users.username,
         programme: users.programme,
         year: users.year,
         avatar: users.avatar,
+        mentorType: users.mentorType,
       }
     })
     .from(mentors)
     .leftJoin(users, eq(mentors.userId, users.id))
-    .where(eq(mentors.status, 'verified'))
+    .where(and(...conditions))
     .orderBy(desc(mentors.rating))
     .limit(20);
 
-  return (
-    <div className="min-h-screen bg-off-white py-8">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-4">Find a Mentor</h1>
-        <p className="text-muted-text mb-8">
-          Learn from experienced students who have been where you are.
-        </p>
+  // Get all expertise options for filters
+  const expertiseOptions = await db
+    .selectDistinct({
+      name: mentorExpertise.name,
+    })
+    .from(mentorExpertise)
+    .orderBy(mentorExpertise.name);
 
-        {mentorsList.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mentorsList.map((mentor) => (
-              <div key={mentor.id} className="border border-gray-200 bg-white p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-12 w-12 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-lg overflow-hidden">
-                    {mentor.user?.avatar ? (
-                      <img src={mentor.user.avatar} alt={mentor.user.fullName} className="h-full w-full object-cover" />
-                    ) : (
-                      mentor.user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{mentor.user?.fullName || 'Unknown'}</h3>
-                    <p className="text-sm text-muted-text">{mentor.user?.programme || 'No programme'}</p>
-                    <p className="text-sm text-muted-text">Year {mentor.user?.year || '?'}</p>
-                  </div>
-                </div>
-                {mentor.expertise && mentor.expertise.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {mentor.expertise.slice(0, 3).map((exp) => (
-                      <span key={exp} className="text-xs bg-gray-100 px-2 py-0.5">{exp}</span>
-                    ))}
-                    {mentor.expertise.length > 3 && (
-                      <span className="text-xs text-muted-text">+{mentor.expertise.length - 3}</span>
-                    )}
-                  </div>
-                )}
-                {mentor.introduction && (
-                  <p className="text-sm text-muted-text mt-2 line-clamp-2">{mentor.introduction}</p>
-                )}
-                <div className="mt-3 flex items-center gap-4 text-sm text-muted-text">
-                  <span>{mentor.rating || 0} rating</span>
-                  <span>{mentor.reviewCount || 0} reviews</span>
-                </div>
-                <Link
-                  href={`/mentors/${mentor.id}`}
-                  className="mt-4 inline-block text-primary-green hover:underline text-sm font-medium"
-                >
-                  View Profile →
-                </Link>
-              </div>
-            ))}
+  // Get mentor types for filters
+  const mentorTypes = ['Student', 'Alumni', 'Professional', 'Staff'];
+
+  return (
+    <div className="min-h-screen bg-off-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-primary-text">Find a Mentor</h1>
+          <p className="text-lg text-muted-text mt-2">
+            Get guidance from someone who has been where you are and knows where you're going.
+          </p>
+          <div className="flex flex-wrap gap-4 mt-4">
+            <Link
+              href="/mentors"
+              className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
+            >
+              Find a Mentor
+            </Link>
+            {!currentUser?.isMentor && (
+              <Link
+                href="/mentors/become"
+                className="border-2 border-primary-green text-primary-green px-6 py-2 font-medium hover:bg-primary-green hover:text-white transition-colors"
+              >
+                Become a Mentor
+              </Link>
+            )}
           </div>
-        ) : (
-          <div className="border border-gray-200 bg-white p-8 text-center">
-            <p className="text-muted-text">No verified mentors available yet.</p>
+        </div>
+
+        {/* Recommended Mentors - Only for logged in users */}
+        {currentUser && (
+          <div className="mb-8">
+            <RecommendedMentors currentUserId={currentUser.id} />
           </div>
         )}
+
+        {/* Search and Filters */}
+        <div className="bg-white border border-gray-200 p-6 mb-8">
+          <div className="max-w-2xl">
+            <MentorSearch />
+          </div>
+          <div className="mt-4">
+            <MentorFilters
+              expertiseOptions={expertiseOptions}
+              mentorTypes={mentorTypes}
+            />
+          </div>
+        </div>
+
+        {/* Results */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">
+              {mentorsList.length} mentor{mentorsList.length !== 1 ? 's' : ''} available
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mentorsList.map((mentor) => (
+              <MentorCard
+                key={mentor.id}
+                mentor={mentor}
+                currentUserId={currentUser?.id}
+              />
+            ))}
+          </div>
+          {mentorsList.length === 0 && (
+            <div className="border border-gray-200 bg-white p-8 text-center">
+              <p className="text-muted-text">No mentors found matching your criteria.</p>
+              <div className="mt-4 flex gap-4 justify-center">
+                <Link
+                  href="/mentors"
+                  className="text-primary-green hover:underline text-sm"
+                >
+                  Clear Filters
+                </Link>
+                <Link
+                  href="/mentors/become"
+                  className="text-primary-green hover:underline text-sm"
+                >
+                  Become a Mentor
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
