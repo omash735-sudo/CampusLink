@@ -57,6 +57,13 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
 
   if (recommended.length === 0) return null;
 
+  // Map resources to ensure non-null values for ResourceCard
+  const mappedResources = recommended.map((resource) => ({
+    ...resource,
+    downloads: resource.downloads ?? 0,
+    viewCount: resource.viewCount ?? 0,
+  }));
+
   return (
     <div>
       <h2 className="text-lg font-semibold mb-2">Recommended for You</h2>
@@ -64,7 +71,7 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
         Based on your programme: {user.programme}
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recommended.map((resource) => (
+        {mappedResources.map((resource) => (
           <ResourceCard
             key={resource.id}
             resource={resource}
