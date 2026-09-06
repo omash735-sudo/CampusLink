@@ -5,7 +5,17 @@ import { sql } from '@vercel/postgres';
 export async function GET() {
   try {
     const { rows } = await sql`
-      SELECT id, name, code, faculty, degree, duration
+      SELECT 
+        id, 
+        name, 
+        code, 
+        faculty, 
+        department,
+        degree, 
+        duration,
+        slug,
+        description,
+        campus
       FROM programmes 
       ORDER BY faculty, name
     `;
