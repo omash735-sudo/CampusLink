@@ -116,7 +116,7 @@ export default async function ConnectPage() {
               <PeopleYouMayKnow currentUserId={currentUser.id} />
             )}
 
-            {currentUser && currentUser.programme && (
+            {currentUser && currentUser.programme && currentUser.year && (
               <MyCohort 
                 programme={currentUser.programme} 
                 year={currentUser.year} 
