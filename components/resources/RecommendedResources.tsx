@@ -23,6 +23,7 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
       id: resources.id,
       title: resources.title,
       description: resources.description,
+      fileUrl: resources.fileUrl,
       fileType: resources.fileType,
       fileSize: resources.fileSize,
       downloads: resources.downloads,
