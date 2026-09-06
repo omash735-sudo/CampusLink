@@ -9,7 +9,7 @@ import { PeopleYouMayKnow } from '@/components/connect/PeopleYouMayKnow';
 import { MyCohort } from '@/components/connect/MyCohort';
 import { StudentFilters } from '@/components/connect/StudentFilters';
 import { StudentGrid } from '@/components/connect/StudentGrid';
-import { UsersIcon, UserGroupIcon, BookOpenIcon, AcademicIcon, SearchIcon, FilterIcon } from '@/components/icons';
+import { UsersIcon, UserGroupIcon, BookOpenIcon, AcademicIcon, FilterIcon } from '@/components/icons';
 
 export default async function ConnectPage() {
   const currentUser = await getCurrentUser();
@@ -131,7 +131,7 @@ export default async function ConnectPage() {
                   View all →
                 </Link>
               </div>
-              <StudentGrid students={recentStudents} currentUserId={currentUser?.id} />
+              <StudentGrid students={recentStudents} />
             </div>
 
             <div>
