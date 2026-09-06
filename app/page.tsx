@@ -154,7 +154,7 @@ const features = [
   { title: 'Find Your People', description: 'Connect with students in your programme and cohort.', href: '/connect', icon: UsersIcon },
   { title: 'Find a Mentor', description: 'Learn from experienced students.', href: '/mentors', icon: AcademicIcon },
   { title: 'Academic Resources', description: 'Access notes, past papers, and study materials.', href: '/resources', icon: BookIcon },
-  { title: 'Discover Campus', description: 'Learn everything about LUANAR City Campus.', href: '/campus', icon: MapIcon },
+  { title: 'Discover Campus', description: 'Explore the campus and find your way around.', href: '/campus', icon: MapIcon },
 ];
 
 function UsersIcon(props: any) { return <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>; }
