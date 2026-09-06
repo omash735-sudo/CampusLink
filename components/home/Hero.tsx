@@ -1,6 +1,5 @@
 // components/home/Hero.tsx
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { Carousel } from '@/components/ui/Carousel';
 
 const heroImages = [
@@ -53,23 +52,28 @@ export function Hero() {
           </p>
           
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button href="/register" variant="primary" size="lg">
+            <Link 
+              href="/auth/register" 
+              className="bg-primary-green text-white font-medium px-8 py-3 rounded-lg hover:bg-deep-green transition-colors inline-flex items-center"
+            >
               Join CampusLink
-            </Button>
-            <Button href="/campus" variant="secondary" size="lg">
+            </Link>
+            <Link 
+              href="/campus" 
+              className="border-2 border-primary-green text-primary-green font-medium px-8 py-3 rounded-lg hover:bg-primary-green hover:text-white transition-colors inline-flex items-center"
+            >
               Explore City Campus
-            </Button>
+            </Link>
           </div>
           
           <p className="mt-6 text-sm text-muted-text">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary-green hover:underline">
+            <Link href="/auth/login" className="font-medium text-primary-green hover:underline">
               Sign in
             </Link>
           </p>
         </div>
 
-        {/* Carousel Section */}
         <div className="mt-16">
           <div className="mb-4 text-center">
             <span className="inline-block rounded-full bg-primary-green/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-green">
