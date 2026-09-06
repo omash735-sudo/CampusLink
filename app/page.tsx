@@ -1,5 +1,6 @@
 // app/page.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 import { db } from '@/lib/db';
 import { announcements, events } from '@/lib/db/schema';
 import { eq, desc, asc } from 'drizzle-orm';
@@ -55,13 +56,33 @@ export default async function HomePage() {
               recentAnnouncements.map((announcement) => (
                 <div 
                   key={announcement.id} 
-                  className="rounded-xl border border-gray-200 bg-white p-6 hover:shadow-xl transition-shadow duration-300"
+                  className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-xl transition-shadow duration-300"
                 >
-                  <span className="text-xs text-muted-text">
-                    {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
-                  </span>
-                  <h3 className="text-lg font-semibold mt-1">{announcement.title}</h3>
-                  <p className="text-muted-text text-sm mt-2 line-clamp-2">{announcement.content}</p>
+                  {announcement.imageUrl && (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={announcement.imageUrl}
+                        alt={announcement.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs text-muted-text">
+                        {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
+                      </span>
+                      {announcement.priority === 'urgent' && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Urgent</span>
+                      )}
+                      {announcement.priority === 'high' && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">High</span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold mt-1">{announcement.title}</h3>
+                    <p className="text-muted-text text-sm mt-2 line-clamp-2">{announcement.content}</p>
+                  </div>
                 </div>
               ))
             ) : (
@@ -91,7 +112,7 @@ export default async function HomePage() {
                   </span>
                   <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
                   {event.location && (
-                    <p className="text-sm text-muted-text mt-1">📍 {event.location}</p>
+                    <p className="text-sm text-muted-text mt-1">{event.location}</p>
                   )}
                   <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
                 </div>
