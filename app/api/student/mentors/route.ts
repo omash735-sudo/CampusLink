@@ -23,11 +23,11 @@ export async function POST(request: Request) {
   
   const [mentor] = await db.insert(mentors).values({
     userId: user.id,
-    expertise: validated.expertise,
-    subjects: validated.subjects,
-    introduction: validated.introduction,
-    experience: validated.experience,
-    availability: validated.availability,
+    expertise: validated.expertise || [],
+    subjects: validated.subjects || [],
+    introduction: validated.introduction || '',
+    experience: validated.experience || null,
+    availability: 'available', // Set default availability
     status: 'pending',
   }).returning();
   
