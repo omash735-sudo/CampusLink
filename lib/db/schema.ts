@@ -23,6 +23,16 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ==================== NEW: FACULTIES ====================
+export const faculties = pgTable('faculties', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').unique().notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Programmes
 export const programmes = pgTable('programmes', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -35,6 +45,7 @@ export const programmes = pgTable('programmes', {
   duration: integer('duration'),
   degree: text('degree'),
   campus: text('campus').notNull(),
+  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -46,6 +57,33 @@ export const cohorts = pgTable('cohorts', {
   year: integer('year').notNull(),
   academicYear: text('academic_year').notNull(),
   studentCount: integer('student_count').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ==================== NEW: INTERESTS ====================
+export const interests = pgTable('interests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').unique().notNull(),
+  slug: text('slug').unique().notNull(),
+  category: text('category'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== NEW: STUDENT INTERESTS ====================
+export const studentInterests = pgTable('student_interests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  studentId: uuid('student_id').references(() => users.id).notNull(),
+  interestId: uuid('interest_id').references(() => interests.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== NEW: CONNECTIONS ====================
+export const connections = pgTable('connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  requesterId: uuid('requester_id').references(() => users.id).notNull(),
+  receiverId: uuid('receiver_id').references(() => users.id).notNull(),
+  status: text('status').default('pending').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -137,6 +175,15 @@ export const groupMembers = pgTable('group_members', {
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
+// ==================== NEW: USER COMMUNITIES ====================
+export const userCommunities = pgTable('user_communities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  communityId: uuid('community_id').references(() => groups.id).notNull(),
+  role: text('role').default('member').notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
 // Events
 export const events = pgTable('events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -179,7 +226,7 @@ export const opportunities = pgTable('opportunities', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== ANNOUNCEMENTS (UPDATED WITH imageUrl) ====================
+// Announcements
 export const announcements = pgTable('announcements', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -188,7 +235,7 @@ export const announcements = pgTable('announcements', {
   type: text('type').default('general').notNull(),
   priority: text('priority').default('normal').notNull(),
   isPublished: boolean('is_published').default(false),
-  imageUrl: text('image_url'), // <-- ADDED THIS
+  imageUrl: text('image_url'),
   publishedAt: timestamp('published_at'),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -272,6 +319,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   conversations: many(conversationMembers),
   notifications: many(notifications),
   announcements: many(announcements),
+  sentConnections: many(connections, { relationName: 'sentConnections' }),
+  receivedConnections: many(connections, { relationName: 'receivedConnections' }),
+  interests: many(studentInterests),
+  communities: many(userCommunities),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -283,6 +334,44 @@ export const cohortsRelations = relations(cohorts, ({ one }) => ({
   programme: one(programmes, {
     fields: [cohorts.programmeId],
     references: [programmes.id],
+  }),
+}));
+
+// ==================== NEW: CONNECTIONS RELATIONS ====================
+export const connectionsRelations = relations(connections, ({ one }) => ({
+  requester: one(users, {
+    fields: [connections.requesterId],
+    references: [users.id],
+    relationName: 'sentConnections',
+  }),
+  receiver: one(users, {
+    fields: [connections.receiverId],
+    references: [users.id],
+    relationName: 'receivedConnections',
+  }),
+}));
+
+// ==================== NEW: STUDENT INTERESTS RELATIONS ====================
+export const studentInterestsRelations = relations(studentInterests, ({ one }) => ({
+  student: one(users, {
+    fields: [studentInterests.studentId],
+    references: [users.id],
+  }),
+  interest: one(interests, {
+    fields: [studentInterests.interestId],
+    references: [interests.id],
+  }),
+}));
+
+// ==================== NEW: USER COMMUNITIES RELATIONS ====================
+export const userCommunitiesRelations = relations(userCommunities, ({ one }) => ({
+  user: one(users, {
+    fields: [userCommunities.userId],
+    references: [users.id],
+  }),
+  community: one(groups, {
+    fields: [userCommunities.communityId],
+    references: [groups.id],
   }),
 }));
 
