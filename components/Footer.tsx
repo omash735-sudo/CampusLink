@@ -1,5 +1,6 @@
 // components/Footer.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Footer() {
   return (
@@ -7,7 +8,13 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 border-2 border-primary-green bg-white"></div>
+            <Image
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+              alt="CampusLink"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+            />
             <span className="text-sm font-semibold text-primary-green">CampusLink</span>
             <span className="text-sm text-muted-text hidden sm:inline">Connect. Discover. Belong.</span>
           </div>
