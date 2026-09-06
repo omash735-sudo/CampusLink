@@ -10,6 +10,7 @@ interface ResourceCardProps {
     id: string;
     title: string;
     description: string | null;
+    fileUrl: string;
     fileType: string;
     fileSize: number;
     downloads: number;
