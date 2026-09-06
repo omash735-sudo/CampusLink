@@ -19,8 +19,13 @@ export default async function StudentsPage({
 
   const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
 
-  const conditions = [eq(users.isActive, true)];
+  // Build conditions array
+  const conditions = [];
   
+  // Always add active condition
+  conditions.push(eq(users.isActive, true));
+  
+  // Add search conditions if search exists
   if (search) {
     conditions.push(
       or(
@@ -31,14 +36,17 @@ export default async function StudentsPage({
     );
   }
 
+  // Add programme filter if exists
   if (programmeFilter) {
     conditions.push(eq(users.programme, programmeFilter));
   }
 
+  // Add year filter if exists
   if (yearFilter) {
     conditions.push(eq(users.year, parseInt(yearFilter)));
   }
 
+  // Execute query with all conditions
   const students = await db
     .select({
       id: users.id,
