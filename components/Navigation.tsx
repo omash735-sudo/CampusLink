@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export function Navigation() {
@@ -34,7 +35,14 @@ export function Navigation() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 border-2 border-primary-green bg-white"></div>
+            <Image
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+              alt="CampusLink"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+              priority
+            />
             <span className="text-xl font-semibold text-primary-green">CampusLink</span>
           </Link>
 
