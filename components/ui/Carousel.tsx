@@ -61,7 +61,6 @@ export function Carousel({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Images container */}
       <div
         className="flex transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -79,7 +78,6 @@ export function Carousel({
               priority={index === 0}
               sizes="(max-width: 768px) 100vw, 1200px"
             />
-            {/* Caption overlay */}
             {image.caption && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-4 pt-12">
                 <p className="text-center text-sm font-medium text-white drop-shadow-lg md:text-base">
@@ -91,12 +89,11 @@ export function Carousel({
         ))}
       </div>
 
-      {/* Navigation arrows - using inline SVGs */}
       {showArrows && images.length > 1 && (
         <>
           <button
             onClick={goToPrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:left-4 md:p-3"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:left-4 md:p-3"
             aria-label="Previous slide"
           >
             <svg 
@@ -113,7 +110,7 @@ export function Carousel({
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:right-4 md:p-3"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 p-2 text-white backdrop-blur-sm transition hover:bg-black/60 md:right-4 md:p-3"
             aria-label="Next slide"
           >
             <svg 
@@ -131,14 +128,13 @@ export function Carousel({
         </>
       )}
 
-      {/* Dots indicator */}
       {showDots && images.length > 1 && (
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
           {images.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all md:h-2.5 ${
+              className={`h-2 transition-all md:h-2.5 ${
                 index === currentIndex
                   ? 'w-8 bg-primary-green md:w-10'
                   : 'w-2 bg-white/60 hover:bg-white/80'
@@ -149,8 +145,7 @@ export function Carousel({
         </div>
       )}
 
-      {/* Slide counter */}
-      <div className="absolute right-4 top-4 rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+      <div className="absolute right-4 top-4 bg-black/40 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
         {currentIndex + 1} / {images.length}
       </div>
     </div>
