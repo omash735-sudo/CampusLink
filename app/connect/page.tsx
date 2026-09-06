@@ -15,20 +15,29 @@ export default async function ConnectPage() {
   try {
     const currentUser = await getCurrentUser();
     
+    // Get programmes for filter
     const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
     
-    const popularInterests = await db.select({
-      id: interests.id,
-      name: interests.name,
-      slug: interests.slug,
-      count: sql<number>`count(${studentInterests.studentId})`
-    })
-    .from(interests)
-    .leftJoin(studentInterests, eq(interests.id, studentInterests.interestId))
-    .groupBy(interests.id, interests.name, interests.slug)
-    .orderBy(sql`count(${studentInterests.studentId}) DESC`)
-    .limit(12);
+    // Get popular interests - with fallback if table doesn't exist
+    let popularInterests = [];
+    try {
+      popularInterests = await db.select({
+        id: interests.id,
+        name: interests.name,
+        slug: interests.slug,
+        count: sql<number>`count(${studentInterests.studentId})`
+      })
+      .from(interests)
+      .leftJoin(studentInterests, eq(interests.id, studentInterests.interestId))
+      .groupBy(interests.id, interests.name, interests.slug)
+      .orderBy(sql`count(${studentInterests.studentId}) DESC`)
+      .limit(12);
+    } catch (error) {
+      console.log('Interests table not ready yet');
+      popularInterests = [];
+    }
 
+    // Get recent students
     const recentStudents = await db.select({
       id: users.id,
       fullName: users.fullName,
@@ -43,6 +52,7 @@ export default async function ConnectPage() {
     .orderBy(desc(users.createdAt))
     .limit(12);
 
+    // Get communities
     const communities = await db.select({
       id: groups.id,
       name: groups.name,
@@ -143,24 +153,28 @@ export default async function ConnectPage() {
                   </Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {communities.map((community) => (
-                    <Link
-                      key={community.id}
-                      href={`/groups/${community.slug}`}
-                      className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
-                    >
-                      <h3 className="font-semibold">{community.name}</h3>
-                      <p className="text-sm text-muted-text line-clamp-1">{community.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-muted-text">{community.memberCount} members</span>
-                        {community.category && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5">
-                            {community.category}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                  {communities.length > 0 ? (
+                    communities.map((community) => (
+                      <Link
+                        key={community.id}
+                        href={`/groups/${community.slug}`}
+                        className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
+                      >
+                        <h3 className="font-semibold">{community.name}</h3>
+                        <p className="text-sm text-muted-text line-clamp-1">{community.description}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-muted-text">{community.memberCount} members</span>
+                          {community.category && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5">
+                              {community.category}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-muted-text col-span-2">No active communities yet.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -175,20 +189,22 @@ export default async function ConnectPage() {
                 <StudentFilters programmes={programmesList} />
               </div>
 
-              <div className="border border-gray-200 bg-white p-4">
-                <h3 className="font-semibold mb-3">Popular Interests</h3>
-                <div className="flex flex-wrap gap-2">
-                  {popularInterests.map((interest) => (
-                    <Link
-                      key={interest.id}
-                      href={`/connect/interests/${interest.slug}`}
-                      className="text-xs bg-gray-100 px-3 py-1.5 hover:bg-primary-green hover:text-white transition-colors"
-                    >
-                      {interest.name} ({interest.count})
-                    </Link>
-                  ))}
+              {popularInterests.length > 0 && (
+                <div className="border border-gray-200 bg-white p-4">
+                  <h3 className="font-semibold mb-3">Popular Interests</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {popularInterests.map((interest) => (
+                      <Link
+                        key={interest.id}
+                        href={`/connect/interests/${interest.slug}`}
+                        className="text-xs bg-gray-100 px-3 py-1.5 hover:bg-primary-green hover:text-white transition-colors"
+                      >
+                        {interest.name} ({interest.count})
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -197,9 +213,10 @@ export default async function ConnectPage() {
   } catch (error) {
     console.error('Error loading connect page:', error);
     return (
-      <div className="min-h-screen bg-off-white flex items-center justify-center">
+      <div className="min-h-screen bg-off-white flex items-center justify-center px-4">
         <div className="border border-gray-200 bg-white p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
+          <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-primary-text mb-4">Something went wrong</h2>
           <p className="text-muted-text">Unable to load the connect page. Please try again later.</p>
           <Link href="/" className="text-primary-green hover:underline mt-4 inline-block">
             Return home →
