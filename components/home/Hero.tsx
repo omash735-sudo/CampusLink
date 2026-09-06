@@ -1,6 +1,35 @@
 // components/home/Hero.tsx
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { Carousel } from '@/components/ui/Carousel';
+
+const heroImages = [
+  {
+    src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653525/DSC_8897_asrddb.jpg',
+    alt: 'First Year Orientation 2026 - Students gathering at LUANAR City Campus',
+    caption: 'New beginnings at LUANAR City Campus'
+  },
+  {
+    src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653525/DSC_8046_trhauk.jpg',
+    alt: 'Orientation 2026 - Freshmen connecting at LUANAR',
+    caption: 'Where lifelong connections begin'
+  },
+  {
+    src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653529/DSC_8912_hb7vtt.jpg',
+    alt: 'LUANAR City Campus Orientation 2026 - Student community',
+    caption: 'Your journey starts here'
+  },
+  {
+    src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653529/DSC_8890_wasu3m.jpg',
+    alt: 'Orientation Week 2026 - LUANAR students exploring campus',
+    caption: 'Discover your new home'
+  },
+  {
+    src: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653527/DSC_9060_fw33ed.jpg',
+    alt: 'LUANAR City Campus Orientation 2026 - Student life',
+    caption: 'Welcome to the CampusLink community'
+  }
+];
 
 export function Hero() {
   return (
@@ -38,6 +67,26 @@ export function Hero() {
               Sign in
             </Link>
           </p>
+        </div>
+
+        {/* Carousel Section */}
+        <div className="mt-16">
+          <div className="mb-4 text-center">
+            <span className="inline-block rounded-full bg-primary-green/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-green">
+              Orientation 2026
+            </span>
+            <p className="mt-2 text-sm text-muted-text">
+              Capturing the spirit of new beginnings at LUANAR City Campus
+            </p>
+          </div>
+          <Carousel
+            images={heroImages}
+            autoPlay
+            interval={5000}
+            showArrows
+            showDots
+            className="overflow-hidden rounded-xl shadow-lg"
+          />
         </div>
       </div>
     </section>
