@@ -17,8 +17,16 @@ export async function GET() {
         description,
         campus
       FROM programmes 
+      WHERE deleted_at IS NULL  -- Only show active programmes
       ORDER BY faculty, name
     `;
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: 'No programmes found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(rows);
   } catch (error) {
