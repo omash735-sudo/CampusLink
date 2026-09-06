@@ -4,7 +4,21 @@ const nextConfig = {
     serverActions: true,
   },
   images: {
-    domains: ['localhost', 'campuslink.vercel.app'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'campuslink.vercel.app',
+      },
+    ],
   },
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
