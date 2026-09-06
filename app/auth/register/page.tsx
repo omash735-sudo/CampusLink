@@ -1,22 +1,55 @@
 // app/auth/register/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+interface Programme {
+  id: string;
+  name: string;
+  code: string;
+  faculty: string;
+  degree: string;
+  duration: number;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingProgrammes, setLoadingProgrammes] = useState(true);
   const [error, setError] = useState('');
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [form, setForm] = useState({
     email: '',
     password: '',
     fullName: '',
     username: '',
-    programme: '',
+    programmeId: '',
     year: '',
   });
+
+  // Fetch programmes on component mount
+  useEffect(() => {
+    const fetchProgrammes = async () => {
+      try {
+        const res = await fetch('/api/programmes');
+        const data = await res.json();
+        
+        if (res.ok) {
+          setProgrammes(data);
+        } else {
+          console.error('Failed to fetch programmes:', data.error);
+        }
+      } catch (err) {
+        console.error('Error fetching programmes:', err);
+      } finally {
+        setLoadingProgrammes(false);
+      }
+    };
+
+    fetchProgrammes();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +61,11 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
+          email: form.email,
+          password: form.password,
+          fullName: form.fullName,
+          username: form.username,
+          programmeId: form.programmeId,
           year: parseInt(form.year),
         }),
       });
@@ -44,6 +81,16 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  // Group programmes by faculty
+  const groupedProgrammes = programmes.reduce((acc, programme) => {
+    const faculty = programme.faculty || 'Other';
+    if (!acc[faculty]) {
+      acc[faculty] = [];
+    }
+    acc[faculty].push(programme);
+    return acc;
+  }, {} as Record<string, Programme[]>);
 
   return (
     <div className="min-h-screen bg-off-white flex items-center justify-center px-4 py-12">
@@ -63,7 +110,7 @@ export default function RegisterPage() {
               className="input-field"
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              placeholder="John Doe"
+              placeholder="frank banda"
             />
           </div>
 
@@ -75,7 +122,7 @@ export default function RegisterPage() {
               className="input-field"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              placeholder="john.doe"
+              placeholder="frank.banda"
             />
           </div>
 
@@ -87,7 +134,7 @@ export default function RegisterPage() {
               className="input-field"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="john@example.com"
+              placeholder="frankbanda@gmail.com"
             />
           </div>
 
@@ -107,18 +154,31 @@ export default function RegisterPage() {
             <label className="label-text">Programme</label>
             <select
               className="input-field"
-              value={form.programme}
-              onChange={(e) => setForm({ ...form, programme: e.target.value })}
+              value={form.programmeId}
+              onChange={(e) => setForm({ ...form, programmeId: e.target.value })}
               required
+              disabled={loadingProgrammes}
             >
-              <option value="">Select your programme</option>
-              <option value="BSc Agricultural Economics">BSc Agricultural Economics</option>
-              <option value="BSc Animal Science">BSc Animal Science</option>
-              <option value="BSc Food Science & Technology">BSc Food Science & Technology</option>
-              <option value="BSc Social Work & Youth Development">BSc Social Work & Youth Development</option>
-              <option value="BSc Environmental Science">BSc Environmental Science</option>
-              <option value="BSc Engineering">BSc Engineering</option>
+              <option value="">
+                {loadingProgrammes ? 'Loading programmes...' : 'Select your programme'}
+              </option>
+              
+              {/* Option 1: Grouped by faculty */}
+              {Object.entries(groupedProgrammes).map(([faculty, programmes]) => (
+                <optgroup key={faculty} label={faculty}>
+                  {programmes.map((programme) => (
+                    <option key={programme.id} value={programme.id}>
+                      {programme.name} ({programme.code})
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
+            {!loadingProgrammes && programmes.length === 0 && (
+              <p className="text-sm text-red-500 mt-1">
+                No programmes available. Please contact support.
+              </p>
+            )}
           </div>
 
           <div>
