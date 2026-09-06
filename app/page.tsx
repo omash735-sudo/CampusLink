@@ -18,10 +18,8 @@ export default async function HomePage() {
 
   return (
     <div className="bg-white">
-      {/* Hero Section with Carousel */}
       <Hero />
 
-      {/* Features */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -30,8 +28,11 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature) => (
-              <Link key={feature.title} href={feature.href} 
-                className="border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white transition-colors group">
+              <Link 
+                key={feature.title} 
+                href={feature.href} 
+                className="rounded-xl border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white hover:shadow-lg transition-all duration-300 group"
+              >
                 <feature.icon className="h-8 w-8 text-primary-green mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-text">{feature.description}</p>
@@ -41,7 +42,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Announcements */}
       <section className="bg-off-white py-16">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -53,7 +53,10 @@ export default async function HomePage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {recentAnnouncements.length > 0 ? (
               recentAnnouncements.map((announcement) => (
-                <div key={announcement.id} className="border border-gray-200 bg-white p-6 hover:shadow-md transition-shadow">
+                <div 
+                  key={announcement.id} 
+                  className="rounded-xl border border-gray-200 bg-white p-6 hover:shadow-xl transition-shadow duration-300"
+                >
                   <span className="text-xs text-muted-text">
                     {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
                   </span>
@@ -68,7 +71,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Events */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -80,7 +82,10 @@ export default async function HomePage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {upcomingEvents.length > 0 ? (
               upcomingEvents.map((event) => (
-                <div key={event.id} className="border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div 
+                  key={event.id} 
+                  className="rounded-xl border border-gray-200 p-6 hover:shadow-xl transition-shadow duration-300"
+                >
                   <span className="text-xs text-muted-text">
                     {new Date(event.startDate).toLocaleDateString()}
                   </span>
