@@ -19,7 +19,6 @@ export default async function ResourcesPage({
 }) {
   const currentUser = await getCurrentUser();
   const search = searchParams.search || '';
-  const typeFilter = searchParams.type || '';
   const programmeFilter = searchParams.programme || '';
   const yearFilter = searchParams.year || '';
   const sort = searchParams.sort || 'recent';
@@ -30,7 +29,6 @@ export default async function ResourcesPage({
       id: resources.id,
       title: resources.title,
       description: resources.description,
-      type: resources.type,
       fileType: resources.fileType,
       fileSize: resources.fileSize,
       downloads: resources.downloads,
@@ -71,9 +69,6 @@ export default async function ResourcesPage({
   }
 
   // Add filters
-  if (typeFilter) {
-    query = query.where(eq(resources.type, typeFilter));
-  }
   if (programmeFilter) {
     query = query.where(eq(resources.programmeId, programmeFilter));
   }
@@ -106,7 +101,6 @@ export default async function ResourcesPage({
       id: resources.id,
       title: resources.title,
       description: resources.description,
-      type: resources.type,
       downloads: resources.downloads,
       viewCount: resources.viewCount,
       createdAt: resources.createdAt,
@@ -127,7 +121,6 @@ export default async function ResourcesPage({
       id: resources.id,
       title: resources.title,
       description: resources.description,
-      type: resources.type,
       fileType: resources.fileType,
       createdAt: resources.createdAt,
       programme: {
