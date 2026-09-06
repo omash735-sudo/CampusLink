@@ -12,22 +12,26 @@ export async function POST(request: Request) {
     const [resource] = await db.insert(resources).values({
       title: body.title,
       description: body.description,
-      type: body.type,
-      course: body.course,
-      programmeId: body.programmeId,
-      year: body.year,
-      semester: body.semester,
-      academicYear: body.academicYear,
+      programmeId: body.programmeId || null,
+      courseId: body.courseId || null,
+      year: body.year || null,
+      semester: body.semester || null,
+      academicYear: body.academicYear || null,
+      course: body.course || null,
       uploadedBy: user.id,
       fileUrl: body.fileUrl,
       fileName: body.fileName,
       fileType: body.fileType,
       fileSize: body.fileSize,
       status: 'pending',
+      downloads: 0,
+      viewCount: 0,
+      isVerified: false,
     }).returning();
 
     return NextResponse.json({ resource });
   } catch (error: any) {
+    console.error('Error creating resource:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create resource' },
       { status: 500 }
