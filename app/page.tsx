@@ -32,7 +32,7 @@ export default async function HomePage() {
               <Link 
                 key={feature.title} 
                 href={feature.href} 
-                className="rounded-xl border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white hover:shadow-lg transition-all duration-300 group"
+                className="border border-gray-200 p-6 hover:border-primary-green hover:bg-off-white hover:shadow-lg transition-all duration-300 group"
               >
                 <feature.icon className="h-8 w-8 text-primary-green mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
@@ -56,7 +56,7 @@ export default async function HomePage() {
               recentAnnouncements.map((announcement) => (
                 <div 
                   key={announcement.id} 
-                  className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  className="border border-gray-200 bg-white overflow-hidden hover:shadow-xl transition-shadow duration-300"
                 >
                   {announcement.imageUrl && (
                     <div className="relative h-48 w-full">
@@ -74,10 +74,10 @@ export default async function HomePage() {
                         {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : ''}
                       </span>
                       {announcement.priority === 'urgent' && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Urgent</span>
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5">Urgent</span>
                       )}
                       {announcement.priority === 'high' && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">High</span>
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5">High</span>
                       )}
                     </div>
                     <h3 className="text-lg font-semibold mt-1">{announcement.title}</h3>
@@ -105,16 +105,24 @@ export default async function HomePage() {
               upcomingEvents.map((event) => (
                 <div 
                   key={event.id} 
-                  className="rounded-xl border border-gray-200 p-6 hover:shadow-xl transition-shadow duration-300"
+                  className="border border-gray-200 p-6 hover:shadow-xl transition-shadow duration-300"
                 >
-                  <span className="text-xs text-muted-text">
-                    {new Date(event.startDate).toLocaleDateString()}
-                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-muted-text">
+                      {new Date(event.startDate).toLocaleDateString()}
+                    </span>
+                    {event.isVerified && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5">Verified</span>
+                    )}
+                  </div>
                   <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
                   {event.location && (
                     <p className="text-sm text-muted-text mt-1">{event.location}</p>
                   )}
                   <p className="text-muted-text text-sm mt-2 line-clamp-2">{event.description}</p>
+                  {event.organizer && (
+                    <p className="text-xs text-muted-text mt-2">Organized by: {event.organizer}</p>
+                  )}
                 </div>
               ))
             ) : (
