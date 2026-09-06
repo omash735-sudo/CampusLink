@@ -10,7 +10,6 @@ interface ResourceCardProps {
     id: string;
     title: string;
     description: string | null;
-    type: string;
     fileType: string;
     fileSize: number;
     downloads: number;
@@ -67,18 +66,18 @@ export function ResourceCard({ resource, currentUserId, isSaved = false, onSave 
     }
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (fileType: string) => {
     const colors: Record<string, string> = {
-      'Past Paper': 'bg-blue-100 text-blue-700',
-      'Lecture Notes': 'bg-green-100 text-green-700',
-      'Study Guide': 'bg-purple-100 text-purple-700',
-      'Handout': 'bg-yellow-100 text-yellow-700',
-      'Course Outline': 'bg-orange-100 text-orange-700',
-      'Research': 'bg-red-100 text-red-700',
-      'Assignment': 'bg-pink-100 text-pink-700',
-      'Textbook': 'bg-indigo-100 text-indigo-700',
+      'pdf': 'bg-red-100 text-red-700',
+      'doc': 'bg-blue-100 text-blue-700',
+      'docx': 'bg-blue-100 text-blue-700',
+      'ppt': 'bg-orange-100 text-orange-700',
+      'pptx': 'bg-orange-100 text-orange-700',
+      'xls': 'bg-green-100 text-green-700',
+      'xlsx': 'bg-green-100 text-green-700',
+      'txt': 'bg-gray-100 text-gray-700',
     };
-    return colors[type] || 'bg-gray-100 text-gray-700';
+    return colors[fileType.toLowerCase()] || 'bg-gray-100 text-gray-700';
   };
 
   return (
@@ -87,8 +86,8 @@ export function ResourceCard({ resource, currentUserId, isSaved = false, onSave 
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-xs px-2 py-0.5 ${getTypeColor(resource.type)}`}>
-                {resource.type}
+              <span className={`text-xs px-2 py-0.5 ${getTypeColor(resource.fileType)}`}>
+                {resource.fileType.toUpperCase()}
               </span>
               {resource.isVerified && (
                 <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5">Verified</span>
@@ -124,10 +123,10 @@ export function ResourceCard({ resource, currentUserId, isSaved = false, onSave 
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-text">
           <span>{resource.fileType.toUpperCase()}</span>
           <span>{getFileSize(resource.fileSize)}</span>
-          <span> {resource.downloads}</span>
-          <span> {resource.viewCount}</span>
-          {resource.academicYear && <span> {resource.academicYear}</span>}
-          <span> {new Date(resource.createdAt).toLocaleDateString()}</span>
+          <span>Downloads: {resource.downloads}</span>
+          <span>Views: {resource.viewCount}</span>
+          {resource.academicYear && <span>Year: {resource.academicYear}</span>}
+          <span>Added: {new Date(resource.createdAt).toLocaleDateString()}</span>
         </div>
 
         <div className="mt-3 flex gap-2">
