@@ -426,7 +426,90 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// ==================== RELATIONS ====================
+// ==================== CAMPUS TABLES ====================
+export const campusLocations = pgTable('campus_locations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').unique().notNull(),
+  category: text('category').notNull(),
+  description: text('description'),
+  shortDescription: text('short_description'),
+  address: text('address'),
+  coordinates: jsonb('coordinates'),
+  openingHours: text('opening_hours'),
+  contactInfo: text('contact_info'),
+  accessibilityInfo: text('accessibility_info'),
+  imageUrl: text('image_url'),
+  galleryImages: text('gallery_images').array(),
+  isFeatured: boolean('is_featured').default(false),
+  isPublished: boolean('is_published').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const campusLocationNearby = pgTable('campus_location_nearby', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  locationId: uuid('location_id').references(() => campusLocations.id).notNull(),
+  nearbyLocationId: uuid('nearby_location_id').references(() => campusLocations.id).notNull(),
+  distance: text('distance'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const campusTimeline = pgTable('campus_timeline', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  year: integer('year').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  imageUrl: text('image_url'),
+  source: text('source'),
+  isPublished: boolean('is_published').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const campusGallery = pgTable('campus_gallery', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title'),
+  imageUrl: text('image_url').notNull(),
+  category: text('category'),
+  description: text('description'),
+  locationId: uuid('location_id').references(() => campusLocations.id),
+  isPublished: boolean('is_published').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ==================== CAMPUS RELATIONS ====================
+export const campusLocationsRelations = relations(campusLocations, ({ many }) => ({
+  nearby: many(campusLocationNearby, { relationName: 'locationNearby' }),
+  nearbyOf: many(campusLocationNearby, { relationName: 'nearbyLocation' }),
+  gallery: many(campusGallery),
+}));
+
+export const campusLocationNearbyRelations = relations(campusLocationNearby, ({ one }) => ({
+  location: one(campusLocations, {
+    fields: [campusLocationNearby.locationId],
+    references: [campusLocations.id],
+    relationName: 'locationNearby',
+  }),
+  nearbyLocation: one(campusLocations, {
+    fields: [campusLocationNearby.nearbyLocationId],
+    references: [campusLocations.id],
+    relationName: 'nearbyLocation',
+  }),
+}));
+
+export const campusGalleryRelations = relations(campusGallery, ({ one }) => ({
+  location: one(campusLocations, {
+    fields: [campusGallery.locationId],
+    references: [campusLocations.id],
+  }),
+}));
+
+// ==================== MAIN RELATIONS ====================
 export const usersRelations = relations(users, ({ many }) => ({
   mentors: many(mentors),
   resources: many(resources),
