@@ -11,15 +11,27 @@ import { StudentFilters } from '@/components/connect/StudentFilters';
 import { StudentGrid } from '@/components/connect/StudentGrid';
 import { UsersIcon, UserGroupIcon, BookOpenIcon, AcademicIcon, FilterIcon } from '@/components/icons';
 
+interface InterestWithCount {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+}
+
 export default async function ConnectPage() {
   try {
+    console.log('1. Starting ConnectPage');
+    
     const currentUser = await getCurrentUser();
+    console.log('2. Current user:', currentUser?.id || 'Not logged in');
     
-    // Get programmes for filter
+    console.log('3. Fetching programmes...');
     const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
+    console.log('4. Programmes fetched:', programmesList.length);
     
-    // Get popular interests - with fallback if table doesn't exist
-    let popularInterests = [];
+    // Get popular interests with proper typing
+    console.log('5. Fetching interests...');
+    let popularInterests: InterestWithCount[] = [];
     try {
       popularInterests = await db.select({
         id: interests.id,
@@ -32,12 +44,13 @@ export default async function ConnectPage() {
       .groupBy(interests.id, interests.name, interests.slug)
       .orderBy(sql`count(${studentInterests.studentId}) DESC`)
       .limit(12);
-    } catch (error) {
-      console.log('Interests table not ready yet');
+      console.log('6. Interests fetched:', popularInterests.length);
+    } catch (interestError) {
+      console.error('7. Interests error:', interestError);
       popularInterests = [];
     }
 
-    // Get recent students
+    console.log('8. Fetching recent students...');
     const recentStudents = await db.select({
       id: users.id,
       fullName: users.fullName,
@@ -51,8 +64,9 @@ export default async function ConnectPage() {
     .where(eq(users.isActive, true))
     .orderBy(desc(users.createdAt))
     .limit(12);
+    console.log('9. Recent students fetched:', recentStudents.length);
 
-    // Get communities
+    console.log('10. Fetching communities...');
     const communities = await db.select({
       id: groups.id,
       name: groups.name,
@@ -65,7 +79,10 @@ export default async function ConnectPage() {
     .where(eq(groups.type, 'open'))
     .orderBy(desc(groups.memberCount))
     .limit(8);
+    console.log('11. Communities fetched:', communities.length);
 
+    console.log('12. Rendering page...');
+    
     return (
       <div className="min-h-screen bg-off-white">
         <div className="container mx-auto px-4 py-8">
@@ -211,13 +228,24 @@ export default async function ConnectPage() {
       </div>
     );
   } catch (error) {
-    console.error('Error loading connect page:', error);
+    console.error(' ConnectPage Error:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return (
       <div className="min-h-screen bg-off-white flex items-center justify-center px-4">
         <div className="border border-gray-200 bg-white p-8 max-w-md text-center">
           <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4"></div>
           <h2 className="text-2xl font-bold text-primary-text mb-4">Something went wrong</h2>
           <p className="text-muted-text">Unable to load the connect page. Please try again later.</p>
+          <details className="mt-4 text-left text-sm text-muted-text">
+            <summary>Error details</summary>
+            <pre className="mt-2 p-2 bg-gray-100 overflow-auto whitespace-pre-wrap">
+              {error instanceof Error ? error.message : String(error)}
+            </pre>
+          </details>
           <Link href="/" className="text-primary-green hover:underline mt-4 inline-block">
             Return home →
           </Link>
