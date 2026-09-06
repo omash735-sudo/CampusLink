@@ -63,6 +63,10 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
     downloads: resource.downloads ?? 0,
     viewCount: resource.viewCount ?? 0,
     isVerified: resource.isVerified ?? false,
+    courseInfo: resource.courseInfo ? {
+      ...resource.courseInfo,
+      code: resource.courseInfo.code ?? '',
+    } : null,
   }));
 
   return (
