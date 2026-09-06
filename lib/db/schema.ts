@@ -52,6 +52,22 @@ export const programmes = pgTable('programmes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Courses
+export const courses = pgTable('courses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').unique().notNull(),
+  code: text('code'),
+  description: text('description'),
+  programmeId: uuid('programme_id').references(() => programmes.id),
+  year: integer('year'),
+  semester: integer('semester'),
+  credits: integer('credits'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Cohorts
 export const cohorts = pgTable('cohorts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -153,13 +169,26 @@ export const mentorReviews = pgTable('mentor_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Resource Categories
+export const resourceCategories = pgTable('resource_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').unique().notNull(),
+  slug: text('slug').unique().notNull(),
+  description: text('description'),
+  icon: text('icon'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Resources
 export const resources = pgTable('resources', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   description: text('description'),
   programmeId: uuid('programme_id').references(() => programmes.id),
+  courseId: uuid('course_id').references(() => courses.id),
   year: integer('year'),
+  semester: text('semester'),
+  academicYear: text('academic_year'),
   course: text('course'),
   uploadedBy: uuid('uploaded_by').references(() => users.id).notNull(),
   fileUrl: text('file_url').notNull(),
@@ -167,6 +196,46 @@ export const resources = pgTable('resources', {
   fileType: text('file_type').notNull(),
   fileSize: integer('file_size').notNull(),
   downloads: integer('downloads').default(0),
+  viewCount: integer('view_count').default(0),
+  status: text('status').default('pending').notNull(),
+  isVerified: boolean('is_verified').default(false),
+  verifiedBy: uuid('verified_by').references(() => users.id),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Saved Resources
+export const savedResources = pgTable('saved_resources', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  resourceId: uuid('resource_id').references(() => resources.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Resource Downloads
+export const resourceDownloads = pgTable('resource_downloads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  resourceId: uuid('resource_id').references(() => resources.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Resource Views
+export const resourceViews = pgTable('resource_views', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id),
+  resourceId: uuid('resource_id').references(() => resources.id).notNull(),
+  viewedAt: timestamp('viewed_at').defaultNow().notNull(),
+});
+
+// Resource Reports
+export const resourceReports = pgTable('resource_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  resourceId: uuid('resource_id').references(() => resources.id).notNull(),
+  reporterId: uuid('reporter_id').references(() => users.id).notNull(),
+  reason: text('reason').notNull(),
+  description: text('description'),
   status: text('status').default('pending').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -377,10 +446,23 @@ export const usersRelations = relations(users, ({ many }) => ({
   mentorships: many(mentorships, { relationName: 'studentMentorships' }),
   mentorMentorships: many(mentorships, { relationName: 'mentorMentorships' }),
   mentorReviews: many(mentorReviews),
+  savedResources: many(savedResources),
+  resourceDownloads: many(resourceDownloads),
+  resourceViews: many(resourceViews),
+  resourceReports: many(resourceReports),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
   cohorts: many(cohorts),
+  resources: many(resources),
+  courses: many(courses),
+}));
+
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  programme: one(programmes, {
+    fields: [courses.programmeId],
+    references: [programmes.id],
+  }),
   resources: many(resources),
 }));
 
@@ -481,6 +563,69 @@ export const mentorReviewsRelations = relations(mentorReviews, ({ one }) => ({
   }),
   student: one(users, {
     fields: [mentorReviews.studentId],
+    references: [users.id],
+  }),
+}));
+
+export const resourcesRelations = relations(resources, ({ one, many }) => ({
+  programme: one(programmes, {
+    fields: [resources.programmeId],
+    references: [programmes.id],
+  }),
+  course: one(courses, {
+    fields: [resources.courseId],
+    references: [courses.id],
+  }),
+  uploader: one(users, {
+    fields: [resources.uploadedBy],
+    references: [users.id],
+  }),
+  savedBy: many(savedResources),
+  downloads: many(resourceDownloads),
+  views: many(resourceViews),
+  reports: many(resourceReports),
+}));
+
+export const savedResourcesRelations = relations(savedResources, ({ one }) => ({
+  user: one(users, {
+    fields: [savedResources.userId],
+    references: [users.id],
+  }),
+  resource: one(resources, {
+    fields: [savedResources.resourceId],
+    references: [resources.id],
+  }),
+}));
+
+export const resourceDownloadsRelations = relations(resourceDownloads, ({ one }) => ({
+  user: one(users, {
+    fields: [resourceDownloads.userId],
+    references: [users.id],
+  }),
+  resource: one(resources, {
+    fields: [resourceDownloads.resourceId],
+    references: [resources.id],
+  }),
+}));
+
+export const resourceViewsRelations = relations(resourceViews, ({ one }) => ({
+  user: one(users, {
+    fields: [resourceViews.userId],
+    references: [users.id],
+  }),
+  resource: one(resources, {
+    fields: [resourceViews.resourceId],
+    references: [resources.id],
+  }),
+}));
+
+export const resourceReportsRelations = relations(resourceReports, ({ one }) => ({
+  resource: one(resources, {
+    fields: [resourceReports.resourceId],
+    references: [resources.id],
+  }),
+  reporter: one(users, {
+    fields: [resourceReports.reporterId],
     references: [users.id],
   }),
 }));
