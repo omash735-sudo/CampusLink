@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +40,16 @@ export default function LoginPage() {
     <div className="min-h-screen bg-off-white flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md border border-gray-200 bg-white p-8">
         <div className="text-center mb-8">
-          <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4"></div>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+              alt="CampusLink"
+              width={48}
+              height={48}
+              className="h-12 w-12"
+              priority
+            />
+          </div>
           <h1 className="text-2xl font-bold">Welcome Back</h1>
           <p className="text-muted-text mt-2">Sign in to your CampusLink account</p>
         </div>
@@ -75,7 +85,11 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
+          <button 
+            type="submit" 
+            className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors" 
+            disabled={loading}
+          >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
