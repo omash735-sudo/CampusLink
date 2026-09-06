@@ -1,8 +1,9 @@
 // app/events/page.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 import { db } from '@/lib/db';
 import { events } from '@/lib/db/schema';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 
 export default async function EventsPage() {
   const allEvents = await db.select().from(events)
@@ -30,10 +31,10 @@ export default async function EventsPage() {
                 key={event.id} 
                 className="border border-gray-200 bg-white overflow-hidden hover:shadow-xl transition-shadow duration-300"
               >
-                {event.imageUrl && (
+                {event.image && (
                   <div className="relative h-56 w-full">
                     <Image
-                      src={event.imageUrl}
+                      src={event.image}
                       alt={event.title}
                       fill
                       className="object-cover"
@@ -45,12 +46,12 @@ export default async function EventsPage() {
                     <span className="text-xs text-muted-text">
                       {new Date(event.startDate).toLocaleDateString()}
                     </span>
-                    {event.isVerified && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5">Verified</span>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5">Verified</span>
+                    {event.category && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 capitalize">
+                        {event.category}
+                      </span>
                     )}
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 capitalize">
-                      {event.eventType}
-                    </span>
                   </div>
                   <h2 className="text-xl font-semibold mt-1">{event.title}</h2>
                   {event.location && (
