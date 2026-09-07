@@ -9,17 +9,22 @@ export default function NewResourcePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
     course: '',
     programme: '',
     year: '',
-    fileUrl: '',
-    fileName: '',
-    fileType: '',
-    fileSize: '',
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +32,46 @@ export default function NewResourcePage() {
     setError('');
 
     try {
+      let fileUrl = '';
+      let fileName = '';
+      let fileType = '';
+      let fileSize = 0;
+
+      // Upload file first
+      if (file) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'resource');
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const uploadData = await uploadRes.json();
+        fileUrl = uploadData.url;
+        fileName = file.name;
+        fileType = file.type;
+        fileSize = file.size;
+        setUploading(false);
+      }
+
+      // Create resource
       const res = await fetch('/api/admin/resources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           year: parseInt(form.year) || null,
-          fileSize: parseInt(form.fileSize) || 0,
+          fileUrl,
+          fileName,
+          fileType,
+          fileSize,
         }),
       });
 
@@ -46,6 +84,7 @@ export default function NewResourcePage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -105,73 +144,37 @@ export default function NewResourcePage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-text">Year</label>
-              <select
-                className="input-field"
-                value={form.year}
-                onChange={(e) => setForm({ ...form, year: e.target.value })}
-              >
-                <option value="">Select year</option>
-                <option value="1">Year 1</option>
-                <option value="2">Year 2</option>
-                <option value="3">Year 3</option>
-                <option value="4">Year 4</option>
-              </select>
-            </div>
-            <div>
-              <label className="label-text">File Type</label>
-              <select
-                className="input-field"
-                value={form.fileType}
-                onChange={(e) => setForm({ ...form, fileType: e.target.value })}
-              >
-                <option value="">Select file type</option>
-                <option value="pdf">PDF</option>
-                <option value="doc">DOC</option>
-                <option value="docx">DOCX</option>
-                <option value="ppt">PPT</option>
-                <option value="pptx">PPTX</option>
-                <option value="xls">XLS</option>
-                <option value="xlsx">XLSX</option>
-                <option value="txt">TXT</option>
-              </select>
-            </div>
+          <div>
+            <label className="label-text">Year</label>
+            <select
+              className="input-field"
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
+            >
+              <option value="">Select year</option>
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
           </div>
 
           <div>
-            <label className="label-text">File URL</label>
+            <label className="label-text">File *</label>
             <input
-              type="url"
+              type="file"
+              onChange={handleFileChange}
               className="input-field"
-              value={form.fileUrl}
-              onChange={(e) => setForm({ ...form, fileUrl: e.target.value })}
-              placeholder="https://example.com/file.pdf"
+              required
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-text">File Name</label>
-              <input
-                type="text"
-                className="input-field"
-                value={form.fileName}
-                onChange={(e) => setForm({ ...form, fileName: e.target.value })}
-                placeholder="research_methods.pdf"
-              />
-            </div>
-            <div>
-              <label className="label-text">File Size (KB)</label>
-              <input
-                type="number"
-                className="input-field"
-                value={form.fileSize}
-                onChange={(e) => setForm({ ...form, fileSize: e.target.value })}
-                placeholder="2450"
-              />
-            </div>
+            {file && (
+              <p className="text-sm text-muted-text mt-1">
+                Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
+            {uploading && (
+              <p className="text-sm text-blue-600 mt-1">Uploading file...</p>
+            )}
           </div>
 
           {error && (
@@ -183,7 +186,7 @@ export default function NewResourcePage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create Resource'}
