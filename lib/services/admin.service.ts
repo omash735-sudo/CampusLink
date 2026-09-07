@@ -1,819 +1,457 @@
 // lib/services/admin.service.ts
-// This service manages all admin data with clear separation between demo and real data
+import { db } from '@/lib/db';
+import { 
+  campuslinkUsers, 
+  programmes, 
+  courses, 
+  mentors, 
+  mentorshipRequests, 
+  mentorships,
+  resources,
+  events,
+  announcements,
+  campusLocations,
+  reports,
+  feedback,
+  auditLogs,
+  faculties,
+  cohorts,
+  interests,
+  studentInterests,
+  connections,
+  mentorExpertise,
+  mentorReviews,
+  savedResources,
+  resourceDownloads,
+  resourceViews,
+  resourceReports,
+  groups,
+  groupMembers,
+  userCommunities,
+  notifications,
+  conversations,
+  conversationMembers,
+  messages,
+  campusLocationNearby,
+  campusTimeline,
+  campusGallery
+} from '@/lib/db/schema';
+import { eq, desc, asc, and, or, like, count, sql } from 'drizzle-orm';
 
-export interface AdminData {
-  id: string;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
+// ==================== USERS ====================
+export async function getUsers() {
+  return await db.select().from(campuslinkUsers).orderBy(desc(campuslinkUsers.createdAt));
 }
 
-export interface Student extends AdminData {
-  name: string;
-  username: string;
-  email: string;
-  programme: string;
-  year: number;
-  faculty: string;
-  status: 'Active' | 'Inactive' | 'Suspended';
-  joinedDate: string;
-  lastActive: string;
-  avatar?: string;
-  bio?: string;
-  interests?: string[];
-  isMentor?: boolean;
+export async function getUserById(id: string) {
+  return await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.id, id)).then(res => res[0]);
 }
 
-export interface Mentor extends AdminData {
-  name: string;
-  username: string;
-  email: string;
-  programme: string;
-  year: number;
-  faculty: string;
-  expertise: string[];
-  subjects: string[];
-  status: 'Active' | 'Inactive' | 'Suspended';
-  mentees: number;
-  joinedDate: string;
-  rating?: number;
-  availability?: 'available' | 'limited' | 'unavailable';
-  introduction?: string;
-  experience?: string;
+export async function getUserByEmail(email: string) {
+  return await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.email, email)).then(res => res[0]);
 }
 
-export interface MentorApplication extends AdminData {
-  applicant: string;
-  applicantId: string;
-  programme: string;
-  year: number;
-  faculty: string;
-  expertise: string[];
-  subjects: string[];
-  introduction: string;
-  experience: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Suspended';
-  appliedDate: string;
-  reviewedBy?: string;
-  reviewedDate?: string;
-  reviewNotes?: string;
+export async function getUserByUsername(username: string) {
+  return await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.username, username)).then(res => res[0]);
 }
 
-export interface Mentorship extends AdminData {
-  mentor: string;
-  mentorId: string;
-  mentee: string;
-  menteeId: string;
-  topic: string;
-  startDate: string;
-  status: 'Pending' | 'Active' | 'Completed' | 'Cancelled' | 'Suspended';
-  lastActivity: string;
-  sessions?: number;
+export async function createUser(data: any) {
+  const [user] = await db.insert(campuslinkUsers).values(data).returning();
+  return user;
 }
 
-export interface Programme extends AdminData {
-  name: string;
-  slug: string;
-  code: string;
-  faculty: string;
-  description: string;
-  duration: number;
-  degree: string;
-  status: 'Active' | 'Archived';
-  department?: string;
-  campus?: string;
+export async function updateUser(id: string, data: any) {
+  const [updated] = await db.update(campuslinkUsers)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(campuslinkUsers.id, id))
+    .returning();
+  return updated;
 }
 
-export interface Faculty extends AdminData {
-  name: string;
-  slug: string;
-  description: string;
-  programmes: number;
-  status: 'Active' | 'Archived';
+export async function deleteUser(id: string) {
+  await db.delete(campuslinkUsers).where(eq(campuslinkUsers.id, id));
 }
 
-export interface Course extends AdminData {
-  name: string;
-  slug: string;
-  code: string;
-  programme: string;
-  programmeId: string;
-  year: number;
-  semester: number;
-  description: string;
-  credits: number;
-  status: 'Active' | 'Archived';
+export async function getUserStats() {
+  const total = await db.select({ count: sql<number>`count(*)` }).from(campuslinkUsers);
+  const active = await db.select({ count: sql<number>`count(*)` }).from(campuslinkUsers).where(eq(campuslinkUsers.isActive, true));
+  const mentors = await db.select({ count: sql<number>`count(*)` }).from(campuslinkUsers).where(eq(campuslinkUsers.isMentor, true));
+  const pendingMentors = await db.select({ count: sql<number>`count(*)` }).from(campuslinkUsers).where(eq(campuslinkUsers.mentorStatus, 'pending'));
+  
+  return {
+    total: total[0]?.count || 0,
+    active: active[0]?.count || 0,
+    mentors: mentors[0]?.count || 0,
+    pendingMentors: pendingMentors[0]?.count || 0,
+  };
 }
 
-export interface Resource extends AdminData {
-  title: string;
-  description: string;
-  course: string;
-  courseId: string;
-  programme: string;
-  programmeId: string;
-  type: 'Notes' | 'Past Paper' | 'Assignment' | 'Study Guide' | 'Presentation' | 'Other';
-  uploadedBy: string;
-  uploadedById: string;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-  downloads: number;
-  views: number;
-  status: 'Pending Review' | 'Published' | 'Rejected' | 'Archived';
-  isVerified: boolean;
+// ==================== PROGRAMMES ====================
+export async function getProgrammes() {
+  return await db.select().from(programmes).where(eq(programmes.isActive, true)).orderBy(programmes.name);
 }
 
-export interface Event extends AdminData {
-  title: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  organizer: string;
-  organizerId: string;
-  category: string;
-  image?: string;
-  maxAttendees?: number;
-  registeredCount: number;
-  status: 'Draft' | 'Published' | 'Cancelled' | 'Completed';
+export async function getProgrammeById(id: string) {
+  return await db.select().from(programmes).where(eq(programmes.id, id)).then(res => res[0]);
 }
 
-export interface Announcement extends AdminData {
-  title: string;
-  content: string;
-  image?: string;
-  category: string;
-  priority: 'Normal' | 'High' | 'Urgent';
-  author: string;
-  authorId: string;
-  publishDate: string;
-  status: 'Draft' | 'Published' | 'Archived';
-  expiresAt?: string;
+export async function createProgramme(data: any) {
+  const [programme] = await db.insert(programmes).values(data).returning();
+  return programme;
 }
 
-export interface CampusLocation extends AdminData {
-  name: string;
-  slug: string;
-  description: string;
-  shortDescription: string;
-  category: string;
-  address: string;
-  openingHours: string;
-  contactInfo: string;
-  accessibilityInfo: string;
-  imageUrl: string;
-  galleryImages: string[];
-  isFeatured: boolean;
-  status: 'Published' | 'Draft' | 'Archived';
-  coordinates?: { lat: number; lng: number };
+export async function updateProgramme(id: string, data: any) {
+  const [updated] = await db.update(programmes)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(programmes.id, id))
+    .returning();
+  return updated;
 }
 
-export interface CampusGalleryImage extends AdminData {
-  title: string;
-  imageUrl: string;
-  category: string;
-  description: string;
-  locationId?: string;
-  isPublished: boolean;
+export async function deleteProgramme(id: string) {
+  await db.delete(programmes).where(eq(programmes.id, id));
 }
 
-export interface CampusHistoryEntry extends AdminData {
-  year: number;
-  title: string;
-  description: string;
-  imageUrl?: string;
-  source?: string;
-  isPublished: boolean;
-  sortOrder: number;
+// ==================== COURSES ====================
+export async function getCourses() {
+  return await db.select().from(courses).where(eq(courses.isActive, true)).orderBy(courses.name);
 }
 
-export interface Report extends AdminData {
-  type: 'Student' | 'Mentor' | 'Resource' | 'Event' | 'Announcement' | 'Other';
-  itemId: string;
-  itemTitle: string;
-  reporter: string;
-  reporterId: string;
-  description: string;
-  status: 'Open' | 'Under Review' | 'Resolved' | 'Dismissed';
-  resolvedBy?: string;
-  resolvedDate?: string;
-  resolution?: string;
+export async function getCourseById(id: string) {
+  return await db.select().from(courses).where(eq(courses.id, id)).then(res => res[0]);
 }
 
-export interface Feedback extends AdminData {
-  content: string;
-  category: string;
-  user: string;
-  userId: string;
-  status: 'New' | 'Reviewing' | 'Resolved' | 'Archived';
-  response?: string;
-  respondedBy?: string;
-  respondedDate?: string;
+export async function createCourse(data: any) {
+  const [course] = await db.insert(courses).values(data).returning();
+  return course;
 }
 
-export interface PlatformNotification extends AdminData {
-  title: string;
-  message: string;
-  target: 'All Users' | 'Students' | 'Mentors';
-  scheduledFor?: string;
-  status: 'Draft' | 'Scheduled' | 'Sent';
-  sentAt?: string;
+export async function updateCourse(id: string, data: any) {
+  const [updated] = await db.update(courses)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(courses.id, id))
+    .returning();
+  return updated;
 }
 
-export interface AdminAuditLog extends AdminData {
-  admin: string;
-  adminId: string;
-  action: string;
-  entity: string;
-  entityId: string;
-  details: string;
-  ipAddress?: string;
+export async function deleteCourse(id: string) {
+  await db.delete(courses).where(eq(courses.id, id));
 }
 
-class AdminService {
-  private static instance: AdminService;
-  private isUsingRealData = false;
-  private defaultData: any = {};
-
-  private constructor() {}
-
-  static getInstance(): AdminService {
-    if (!AdminService.instance) {
-      AdminService.instance = new AdminService();
-    }
-    return AdminService.instance;
-  }
-
-  setRealDataMode(enabled: boolean) {
-    this.isUsingRealData = enabled;
-  }
-
-  getDataMode(): string {
-    return this.isUsingRealData ? 'Real Data' : 'Default/Demo Data';
-  }
-
-  // MARK: - Students
-  async getStudents(): Promise<Student[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultStudents();
-  }
-
-  async getStudent(id: string): Promise<Student | null> {
-    const students = await this.getStudents();
-    return students.find(s => s.id === id) || null;
-  }
-
-  async createStudent(data: Partial<Student>): Promise<Student> {
-    return {
-      id: `student_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data,
-    } as Student;
-  }
-
-  async updateStudent(id: string, data: Partial<Student>): Promise<Student> {
-    const student = await this.getStudent(id);
-    if (!student) throw new Error('Student not found');
-    return { ...student, ...data, updatedAt: new Date().toISOString() };
-  }
-
-  async deleteStudent(id: string): Promise<void> {
-    // In production, DELETE to API
-  }
-
-  private getDefaultStudents(): Student[] {
-    return [
-      {
-        id: 'default_1',
-        isDefault: true,
-        createdAt: '2026-08-15T00:00:00Z',
-        updatedAt: '2026-09-07T00:00:00Z',
-        name: 'Omash Mashiri',
-        username: 'omash.mashiri',
-        email: 'omash@example.com',
-        programme: 'Social Work',
-        year: 3,
-        faculty: 'Social Sciences',
-        status: 'Active',
-        joinedDate: '2026-08-15',
-        lastActive: '2026-09-07',
-        bio: 'Social Work student passionate about community development.',
-        interests: ['Technology', 'Research', 'Social Work'],
-        isMentor: true,
-      },
-    ];
-  }
-
-  // MARK: - Mentors
-  async getMentors(): Promise<Mentor[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultMentors();
-  }
-
-  async getMentor(id: string): Promise<Mentor | null> {
-    const mentors = await this.getMentors();
-    return mentors.find(m => m.id === id) || null;
-  }
-
-  async updateMentor(id: string, data: Partial<Mentor>): Promise<Mentor> {
-    const mentor = await this.getMentor(id);
-    if (!mentor) throw new Error('Mentor not found');
-    return { ...mentor, ...data, updatedAt: new Date().toISOString() };
-  }
-
-  private getDefaultMentors(): Mentor[] {
-    return [
-      {
-        id: 'mentor_1',
-        isDefault: true,
-        createdAt: '2026-08-15T00:00:00Z',
-        updatedAt: '2026-09-07T00:00:00Z',
-        name: 'Omash Mashiri',
-        username: 'omash.mashiri',
-        email: 'omash@example.com',
-        programme: 'Social Work',
-        year: 3,
-        faculty: 'Social Sciences',
-        expertise: ['Academic Support', 'Career Guidance', 'Research'],
-        subjects: ['Research Methods', 'Social Work Practice'],
-        status: 'Active',
-        mentees: 4,
-        joinedDate: '2026-08-15',
-        rating: 4.8,
-        availability: 'available',
-        introduction: 'I am a passionate mentor with experience in social work and youth development.',
-      },
-    ];
-  }
-
-  // MARK: - Mentor Applications
-  async getMentorApplications(): Promise<MentorApplication[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultMentorApplications();
-  }
-
-  async getMentorApplication(id: string): Promise<MentorApplication | null> {
-    const apps = await this.getMentorApplications();
-    return apps.find(a => a.id === id) || null;
-  }
-
-  async approveMentorApplication(id: string, notes?: string): Promise<MentorApplication> {
-    const app = await this.getMentorApplication(id);
-    if (!app) throw new Error('Application not found');
-    return {
-      ...app,
-      status: 'Approved',
-      reviewedBy: 'admin',
-      reviewedDate: new Date().toISOString(),
-      reviewNotes: notes,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  async rejectMentorApplication(id: string, notes?: string): Promise<MentorApplication> {
-    const app = await this.getMentorApplication(id);
-    if (!app) throw new Error('Application not found');
-    return {
-      ...app,
-      status: 'Rejected',
-      reviewedBy: 'admin',
-      reviewedDate: new Date().toISOString(),
-      reviewNotes: notes,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultMentorApplications(): MentorApplication[] {
-    return [
-      {
-        id: 'app_1',
-        isDefault: true,
-        createdAt: '2026-09-05T00:00:00Z',
-        updatedAt: '2026-09-05T00:00:00Z',
-        applicant: 'Sarah Phiri',
-        applicantId: 'user_123',
-        programme: 'Environmental Science',
-        year: 3,
-        faculty: 'Natural Sciences',
-        expertise: ['Academic Support', 'Research'],
-        subjects: ['Environmental Science', 'Research Methods'],
-        introduction: 'I want to help students succeed in their studies.',
-        experience: 'Peer tutor for 2 years',
-        status: 'Pending',
-        appliedDate: '2026-09-05',
-      },
-    ];
-  }
-
-  // MARK: - Programmes
-  async getProgrammes(): Promise<Programme[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultProgrammes();
-  }
-
-  async getProgramme(id: string): Promise<Programme | null> {
-    const programmes = await this.getProgrammes();
-    return programmes.find(p => p.id === id) || null;
-  }
-
-  async createProgramme(data: Partial<Programme>): Promise<Programme> {
-    return {
-      id: `prog_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Active',
-      ...data,
-    } as Programme;
-  }
-
-  async updateProgramme(id: string, data: Partial<Programme>): Promise<Programme> {
-    const programme = await this.getProgramme(id);
-    if (!programme) throw new Error('Programme not found');
-    return { ...programme, ...data, updatedAt: new Date().toISOString() };
-  }
-
-  private getDefaultProgrammes(): Programme[] {
-    return [
-      {
-        id: 'prog_1',
-        isDefault: true,
-        createdAt: '2026-08-01T00:00:00Z',
-        updatedAt: '2026-08-01T00:00:00Z',
-        name: 'Social Work & Youth Development',
-        slug: 'social-work-youth-development',
-        code: 'SWYD',
-        faculty: 'Social Sciences',
-        description: 'Study of social welfare, community development, and youth empowerment.',
-        duration: 4,
-        degree: 'Bachelor of Science',
-        status: 'Active',
-        department: 'Social Work',
-        campus: 'City Campus',
-      },
-    ];
-  }
-
-  // MARK: - Resources
-  async getResources(): Promise<Resource[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultResources();
-  }
-
-  async getResource(id: string): Promise<Resource | null> {
-    const resources = await this.getResources();
-    return resources.find(r => r.id === id) || null;
-  }
-
-  async createResource(data: Partial<Resource>): Promise<Resource> {
-    return {
-      id: `res_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Pending Review',
-      downloads: 0,
-      views: 0,
-      isVerified: false,
-      ...data,
-    } as Resource;
-  }
-
-  async approveResource(id: string): Promise<Resource> {
-    const resource = await this.getResource(id);
-    if (!resource) throw new Error('Resource not found');
-    return {
-      ...resource,
-      status: 'Published',
-      isVerified: true,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  async rejectResource(id: string): Promise<Resource> {
-    const resource = await this.getResource(id);
-    if (!resource) throw new Error('Resource not found');
-    return {
-      ...resource,
-      status: 'Rejected',
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultResources(): Resource[] {
-    return [
-      {
-        id: 'res_1',
-        isDefault: true,
-        createdAt: '2026-09-05T00:00:00Z',
-        updatedAt: '2026-09-05T00:00:00Z',
-        title: 'Research Methods Guide',
-        description: 'Comprehensive guide to research methods in social sciences.',
-        course: 'Research Methods',
-        courseId: 'course_1',
-        programme: 'Social Work',
-        programmeId: 'prog_1',
-        type: 'Study Guide',
-        uploadedBy: 'Jane Mwale',
-        uploadedById: 'user_456',
-        fileName: 'research_methods_guide.pdf',
-        fileType: 'pdf',
-        fileSize: 2450000,
-        downloads: 45,
-        views: 120,
-        status: 'Published',
-        isVerified: true,
-      },
-    ];
-  }
-
-  // MARK: - Events
-  async getEvents(): Promise<Event[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultEvents();
-  }
-
-  async getEvent(id: string): Promise<Event | null> {
-    const events = await this.getEvents();
-    return events.find(e => e.id === id) || null;
-  }
-
-  async createEvent(data: Partial<Event>): Promise<Event> {
-    return {
-      id: `evt_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Draft',
-      registeredCount: 0,
-      ...data,
-    } as Event;
-  }
-
-  async publishEvent(id: string): Promise<Event> {
-    const event = await this.getEvent(id);
-    if (!event) throw new Error('Event not found');
-    return {
-      ...event,
-      status: 'Published',
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultEvents(): Event[] {
-    return [
-      {
-        id: 'evt_1',
-        isDefault: true,
-        createdAt: '2026-09-01T00:00:00Z',
-        updatedAt: '2026-09-01T00:00:00Z',
-        title: 'Orientation Week 2026',
-        description: 'Welcome new students to campus with a week of activities.',
-        date: '2026-09-15',
-        startTime: '09:00',
-        endTime: '17:00',
-        location: 'Main Hall',
-        organizer: 'Student Union',
-        organizerId: 'org_1',
-        category: 'Orientation',
-        registeredCount: 120,
-        status: 'Published',
-      },
-    ];
-  }
-
-  // MARK: - Announcements
-  async getAnnouncements(): Promise<Announcement[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultAnnouncements();
-  }
-
-  async getAnnouncement(id: string): Promise<Announcement | null> {
-    const announcements = await this.getAnnouncements();
-    return announcements.find(a => a.id === id) || null;
-  }
-
-  async createAnnouncement(data: Partial<Announcement>): Promise<Announcement> {
-    return {
-      id: `ann_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Draft',
-      priority: 'Normal',
-      ...data,
-    } as Announcement;
-  }
-
-  async publishAnnouncement(id: string): Promise<Announcement> {
-    const announcement = await this.getAnnouncement(id);
-    if (!announcement) throw new Error('Announcement not found');
-    return {
-      ...announcement,
-      status: 'Published',
-      publishDate: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultAnnouncements(): Announcement[] {
-    return [
-      {
-        id: 'ann_1',
-        isDefault: true,
-        createdAt: '2026-09-01T00:00:00Z',
-        updatedAt: '2026-09-01T00:00:00Z',
-        title: 'Library Extended Hours',
-        content: 'The library will be open until midnight during exam period.',
-        category: 'Academic',
-        priority: 'Urgent',
-        author: 'Administrator',
-        authorId: 'admin_1',
-        publishDate: '2026-09-01',
-        status: 'Published',
-      },
-    ];
-  }
-
-  // MARK: - Campus Locations
-  async getCampusLocations(): Promise<CampusLocation[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultCampusLocations();
-  }
-
-  async getCampusLocation(id: string): Promise<CampusLocation | null> {
-    const locations = await this.getCampusLocations();
-    return locations.find(l => l.id === id) || null;
-  }
-
-  async createCampusLocation(data: Partial<CampusLocation>): Promise<CampusLocation> {
-    return {
-      id: `loc_${Date.now()}`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Draft',
-      galleryImages: [],
-      isFeatured: false,
-      ...data,
-    } as CampusLocation;
-  }
-
-  private getDefaultCampusLocations(): CampusLocation[] {
-    return [
-      {
-        id: 'loc_1',
-        isDefault: true,
-        createdAt: '2026-08-01T00:00:00Z',
-        updatedAt: '2026-08-01T00:00:00Z',
-        name: 'Main Hall',
-        slug: 'main-hall',
-        description: 'Central lecture hall for large classes and events.',
-        shortDescription: 'Primary lecture venue on campus.',
-        category: 'Academic',
-        address: 'City Campus, Lilongwe',
-        openingHours: '08:00 - 18:00',
-        contactInfo: '+265 123 456 789',
-        accessibilityInfo: 'Wheelchair accessible',
-        imageUrl: '',
-        galleryImages: [],
-        isFeatured: true,
-        status: 'Published',
-        coordinates: { lat: -13.9636, lng: 33.7741 },
-      },
-    ];
-  }
-
-  // MARK: - Reports
-  async getReports(): Promise<Report[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultReports();
-  }
-
-  async getReport(id: string): Promise<Report | null> {
-    const reports = await this.getReports();
-    return reports.find(r => r.id === id) || null;
-  }
-
-  async resolveReport(id: string, resolution?: string): Promise<Report> {
-    const report = await this.getReport(id);
-    if (!report) throw new Error('Report not found');
-    return {
-      ...report,
-      status: 'Resolved',
-      resolvedBy: 'admin',
-      resolvedDate: new Date().toISOString(),
-      resolution,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultReports(): Report[] {
-    return [
-      {
-        id: 'rep_1',
-        isDefault: true,
-        createdAt: '2026-09-06T00:00:00Z',
-        updatedAt: '2026-09-06T00:00:00Z',
-        type: 'Resource',
-        itemId: 'res_2',
-        itemTitle: 'Case Study Notes',
-        reporter: 'John Banda',
-        reporterId: 'user_789',
-        description: 'This resource appears to be a duplicate of another existing resource.',
-        status: 'Open',
-      },
-    ];
-  }
-
-  // MARK: - Feedback
-  async getFeedback(): Promise<Feedback[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultFeedback();
-  }
-
-  async getFeedbackItem(id: string): Promise<Feedback | null> {
-    const feedback = await this.getFeedback();
-    return feedback.find(f => f.id === id) || null;
-  }
-
-  async resolveFeedback(id: string, response?: string): Promise<Feedback> {
-    const feedback = await this.getFeedbackItem(id);
-    if (!feedback) throw new Error('Feedback not found');
-    return {
-      ...feedback,
-      status: 'Resolved',
-      response,
-      respondedBy: 'admin',
-      respondedDate: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultFeedback(): Feedback[] {
-    return [
-      {
-        id: 'fb_1',
-        isDefault: true,
-        createdAt: '2026-09-06T00:00:00Z',
-        updatedAt: '2026-09-06T00:00:00Z',
-        content: 'The platform is great! I would love to see more resources for Social Work courses.',
-        category: 'Suggestion',
-        user: 'Jane Mwale',
-        userId: 'user_456',
-        status: 'New',
-      },
-    ];
-  }
-
-  // MARK: - Admin Audit Log
-  async getAuditLog(): Promise<AdminAuditLog[]> {
-    if (this.isUsingRealData) {
-      return [];
-    }
-    return this.getDefaultAuditLog();
-  }
-
-  private getDefaultAuditLog(): AdminAuditLog[] {
-    return [
-      {
-        id: 'audit_1',
-        isDefault: true,
-        createdAt: '2026-09-07T10:30:00Z',
-        updatedAt: '2026-09-07T10:30:00Z',
-        admin: 'Administrator',
-        adminId: 'admin_1',
-        action: 'Approved mentor application',
-        entity: 'Mentor Application',
-        entityId: 'app_1',
-        details: 'Approved Sarah Phiri\'s mentor application',
-      },
-    ];
-  }
+// ==================== MENTORS ====================
+export async function getMentors() {
+  return await db.select().from(mentors).orderBy(desc(mentors.createdAt));
 }
 
-export const adminService = AdminService.getInstance();
+export async function getMentorById(id: string) {
+  return await db.select().from(mentors).where(eq(mentors.id, id)).then(res => res[0]);
+}
+
+export async function getMentorByUserId(userId: string) {
+  return await db.select().from(mentors).where(eq(mentors.userId, userId)).then(res => res[0]);
+}
+
+export async function createMentor(data: any) {
+  const [mentor] = await db.insert(mentors).values(data).returning();
+  return mentor;
+}
+
+export async function updateMentor(id: string, data: any) {
+  const [updated] = await db.update(mentors)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(mentors.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteMentor(id: string) {
+  await db.delete(mentors).where(eq(mentors.id, id));
+}
+
+export async function getMentorStats() {
+  const total = await db.select({ count: sql<number>`count(*)` }).from(mentors);
+  const approved = await db.select({ count: sql<number>`count(*)` }).from(mentors).where(eq(mentors.status, 'approved'));
+  const pending = await db.select({ count: sql<number>`count(*)` }).from(mentors).where(eq(mentors.status, 'pending'));
+  const rejected = await db.select({ count: sql<number>`count(*)` }).from(mentors).where(eq(mentors.status, 'rejected'));
+  
+  return {
+    total: total[0]?.count || 0,
+    approved: approved[0]?.count || 0,
+    pending: pending[0]?.count || 0,
+    rejected: rejected[0]?.count || 0,
+  };
+}
+
+// ==================== MENTOR APPLICATIONS ====================
+export async function getMentorApplications() {
+  return await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.mentorStatus, 'pending')).orderBy(desc(campuslinkUsers.createdAt));
+}
+
+export async function getMentorApplicationById(id: string) {
+  return await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.id, id)).then(res => res[0]);
+}
+
+export async function approveMentorApplication(id: string) {
+  const [updated] = await db.update(campuslinkUsers)
+    .set({ 
+      isMentor: true, 
+      mentorStatus: 'approved',
+      updatedAt: new Date()
+    })
+    .where(eq(campuslinkUsers.id, id))
+    .returning();
+  return updated;
+}
+
+export async function rejectMentorApplication(id: string) {
+  const [updated] = await db.update(campuslinkUsers)
+    .set({ 
+      mentorStatus: 'rejected',
+      updatedAt: new Date()
+    })
+    .where(eq(campuslinkUsers.id, id))
+    .returning();
+  return updated;
+}
+
+// ==================== MENTORSHIPS ====================
+export async function getMentorships() {
+  return await db.select().from(mentorships).orderBy(desc(mentorships.createdAt));
+}
+
+export async function getMentorshipById(id: string) {
+  return await db.select().from(mentorships).where(eq(mentorships.id, id)).then(res => res[0]);
+}
+
+export async function createMentorship(data: any) {
+  const [mentorship] = await db.insert(mentorships).values(data).returning();
+  return mentorship;
+}
+
+export async function updateMentorship(id: string, data: any) {
+  const [updated] = await db.update(mentorships)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(mentorships.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteMentorship(id: string) {
+  await db.delete(mentorships).where(eq(mentorships.id, id));
+}
+
+export async function getMentorshipStats() {
+  const total = await db.select({ count: sql<number>`count(*)` }).from(mentorships);
+  const active = await db.select({ count: sql<number>`count(*)` }).from(mentorships).where(eq(mentorships.status, 'active'));
+  const pending = await db.select({ count: sql<number>`count(*)` }).from(mentorships).where(eq(mentorships.status, 'pending'));
+  const completed = await db.select({ count: sql<number>`count(*)` }).from(mentorships).where(eq(mentorships.status, 'completed'));
+  
+  return {
+    total: total[0]?.count || 0,
+    active: active[0]?.count || 0,
+    pending: pending[0]?.count || 0,
+    completed: completed[0]?.count || 0,
+  };
+}
+
+// ==================== RESOURCES ====================
+export async function getResources() {
+  return await db.select().from(resources).orderBy(desc(resources.createdAt));
+}
+
+export async function getResourceById(id: string) {
+  return await db.select().from(resources).where(eq(resources.id, id)).then(res => res[0]);
+}
+
+export async function createResource(data: any) {
+  const [resource] = await db.insert(resources).values(data).returning();
+  return resource;
+}
+
+export async function updateResource(id: string, data: any) {
+  const [updated] = await db.update(resources)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(resources.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteResource(id: string) {
+  await db.delete(resources).where(eq(resources.id, id));
+}
+
+export async function approveResource(id: string) {
+  const [updated] = await db.update(resources)
+    .set({ status: 'approved', isVerified: true, updatedAt: new Date() })
+    .where(eq(resources.id, id))
+    .returning();
+  return updated;
+}
+
+export async function rejectResource(id: string) {
+  const [updated] = await db.update(resources)
+    .set({ status: 'rejected', updatedAt: new Date() })
+    .where(eq(resources.id, id))
+    .returning();
+  return updated;
+}
+
+export async function getResourceStats() {
+  const total = await db.select({ count: sql<number>`count(*)` }).from(resources);
+  const approved = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'approved'));
+  const pending = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'pending'));
+  const rejected = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'rejected'));
+  
+  return {
+    total: total[0]?.count || 0,
+    approved: approved[0]?.count || 0,
+    pending: pending[0]?.count || 0,
+    rejected: rejected[0]?.count || 0,
+  };
+}
+
+// ==================== EVENTS ====================
+export async function getEvents() {
+  return await db.select().from(events).orderBy(desc(events.createdAt));
+}
+
+export async function getEventById(id: string) {
+  return await db.select().from(events).where(eq(events.id, id)).then(res => res[0]);
+}
+
+export async function createEvent(data: any) {
+  const [event] = await db.insert(events).values(data).returning();
+  return event;
+}
+
+export async function updateEvent(id: string, data: any) {
+  const [updated] = await db.update(events)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(events.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteEvent(id: string) {
+  await db.delete(events).where(eq(events.id, id));
+}
+
+export async function publishEvent(id: string) {
+  const [updated] = await db.update(events)
+    .set({ status: 'published', updatedAt: new Date() })
+    .where(eq(events.id, id))
+    .returning();
+  return updated;
+}
+
+// ==================== ANNOUNCEMENTS ====================
+export async function getAnnouncements() {
+  return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+}
+
+export async function getAnnouncementById(id: string) {
+  return await db.select().from(announcements).where(eq(announcements.id, id)).then(res => res[0]);
+}
+
+export async function createAnnouncement(data: any) {
+  const [announcement] = await db.insert(announcements).values(data).returning();
+  return announcement;
+}
+
+export async function updateAnnouncement(id: string, data: any) {
+  const [updated] = await db.update(announcements)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(announcements.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteAnnouncement(id: string) {
+  await db.delete(announcements).where(eq(announcements.id, id));
+}
+
+export async function publishAnnouncement(id: string) {
+  const [updated] = await db.update(announcements)
+    .set({ isPublished: true, publishedAt: new Date(), updatedAt: new Date() })
+    .where(eq(announcements.id, id))
+    .returning();
+  return updated;
+}
+
+// ==================== REPORTS ====================
+export async function getReports() {
+  return await db.select().from(reports).orderBy(desc(reports.createdAt));
+}
+
+export async function getReportById(id: string) {
+  return await db.select().from(reports).where(eq(reports.id, id)).then(res => res[0]);
+}
+
+export async function createReport(data: any) {
+  const [report] = await db.insert(reports).values(data).returning();
+  return report;
+}
+
+export async function updateReport(id: string, data: any) {
+  const [updated] = await db.update(reports)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(reports.id, id))
+    .returning();
+  return updated;
+}
+
+export async function resolveReport(id: string) {
+  const [updated] = await db.update(reports)
+    .set({ status: 'resolved', updatedAt: new Date() })
+    .where(eq(reports.id, id))
+    .returning();
+  return updated;
+}
+
+// ==================== DASHBOARD STATS ====================
+export async function getDashboardStats() {
+  const userStats = await getUserStats();
+  const mentorStats = await getMentorStats();
+  const mentorshipStats = await getMentorshipStats();
+  const resourceStats = await getResourceStats();
+  
+  const eventCount = await db.select({ count: sql<number>`count(*)` }).from(events).where(eq(events.status, 'published'));
+  const announcementCount = await db.select({ count: sql<number>`count(*)` }).from(announcements).where(eq(announcements.isPublished, true));
+  const reportCount = await db.select({ count: sql<number>`count(*)` }).from(reports).where(eq(reports.status, 'pending'));
+  
+  return {
+    users: userStats,
+    mentors: mentorStats,
+    mentorships: mentorshipStats,
+    resources: resourceStats,
+    events: eventCount[0]?.count || 0,
+    announcements: announcementCount[0]?.count || 0,
+    reports: reportCount[0]?.count || 0,
+  };
+}
+
+// ==================== CAMPUS LOCATIONS ====================
+export async function getCampusLocations() {
+  return await db.select().from(campusLocations).orderBy(campusLocations.name);
+}
+
+export async function getCampusLocationById(id: string) {
+  return await db.select().from(campusLocations).where(eq(campusLocations.id, id)).then(res => res[0]);
+}
+
+export async function createCampusLocation(data: any) {
+  const [location] = await db.insert(campusLocations).values(data).returning();
+  return location;
+}
+
+export async function updateCampusLocation(id: string, data: any) {
+  const [updated] = await db.update(campusLocations)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(campusLocations.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteCampusLocation(id: string) {
+  await db.delete(campusLocations).where(eq(campusLocations.id, id));
+}
