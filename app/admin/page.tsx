@@ -1,4 +1,5 @@
 // app/admin/page.tsx
+import { adminService } from '@/lib/services/admin.service';
 import Link from 'next/link';
 import { 
   UsersIcon, 
@@ -7,70 +8,72 @@ import {
   CalendarIcon, 
   BellIcon,
   FlagIcon,
-  PlusIcon,
   AcademicIcon,
   BriefcaseIcon,
   MapPinIcon
 } from '@/components/icons';
 
-// Demo data clearly labeled
-const DEMO_STATS = {
-  totalStudents: 156,
-  activeStudents: 142,
-  totalMentors: 12,
-  pendingMentorApplications: 5,
-  activeMentorships: 8,
-  totalResources: 67,
-  pendingResources: 3,
-  upcomingEvents: 4,
-  publishedAnnouncements: 9,
-  unresolvedReports: 2,
-};
+export default async function AdminDashboard() {
+  const students = await adminService.getStudents();
+  const mentors = await adminService.getMentors();
+  const applications = await adminService.getMentorApplications();
+  const resources = await adminService.getResources();
+  const events = await adminService.getEvents();
+  const announcements = await adminService.getAnnouncements();
+  const reports = await adminService.getReports();
 
-const DEMO_ACTIVITY = [
-  { id: '1', action: 'New mentor application submitted', time: '2 minutes ago', type: 'application' },
-  { id: '2', action: 'New resource awaiting approval', time: '15 minutes ago', type: 'resource' },
-  { id: '3', action: 'Announcement published', time: '1 hour ago', type: 'announcement' },
-  { id: '4', action: 'Campus location updated', time: '2 hours ago', type: 'campus' },
-  { id: '5', action: 'Student account activated', time: '3 hours ago', type: 'user' },
-];
+  const stats = {
+    totalStudents: students.length,
+    activeStudents: students.filter(s => s.status === 'Active').length,
+    totalMentors: mentors.length,
+    pendingMentorApplications: applications.filter(a => a.status === 'Pending').length,
+    activeMentorships: 8,
+    totalResources: resources.length,
+    pendingResources: resources.filter(r => r.status === 'Pending Review').length,
+    upcomingEvents: events.filter(e => e.status === 'Published' && new Date(e.date) > new Date()).length,
+    publishedAnnouncements: announcements.filter(a => a.status === 'Published').length,
+    unresolvedReports: reports.filter(r => r.status === 'Open' || r.status === 'Under Review').length,
+  };
 
-const DEMO_QUICK_ACTIONS = [
-  { name: 'Add Announcement', href: '/admin/announcements/new', icon: BellIcon },
-  { name: 'Add Event', href: '/admin/events/new', icon: CalendarIcon },
-  { name: 'Add Campus Location', href: '/admin/campus/locations/new', icon: MapPinIcon },
-  { name: 'Add Resource', href: '/admin/resources/new', icon: BookOpenIcon },
-  { name: 'Review Applications', href: '/admin/mentors/applications', icon: UserGroupIcon },
-  { name: 'Manage Users', href: '/admin/students', icon: UsersIcon },
-];
+  const recentActivity = [
+    { id: '1', action: 'New mentor application submitted', time: '2 minutes ago', type: 'application' },
+    { id: '2', action: 'New resource awaiting approval', time: '15 minutes ago', type: 'resource' },
+    { id: '3', action: 'Announcement published', time: '1 hour ago', type: 'announcement' },
+    { id: '4', action: 'Campus location updated', time: '2 hours ago', type: 'campus' },
+  ];
 
-export default function AdminDashboard() {
+  const quickActions = [
+    { name: 'Add Announcement', href: '/admin/announcements/new', icon: BellIcon },
+    { name: 'Add Event', href: '/admin/events/new', icon: CalendarIcon },
+    { name: 'Add Campus Location', href: '/admin/campus/locations/new', icon: MapPinIcon },
+    { name: 'Add Resource', href: '/admin/resources/new', icon: BookOpenIcon },
+    { name: 'Review Applications', href: '/admin/mentors/applications', icon: UserGroupIcon },
+    { name: 'Manage Users', href: '/admin/students', icon: UsersIcon },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
           <p className="text-gray-500 text-sm">Welcome back, Administrator</p>
         </div>
         <div className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 border border-yellow-200">
-          Demo Data – Replace with real information
+          Using Demo Data – Replace with real information
         </div>
       </div>
 
-      {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <StatCard title="Students" value={DEMO_STATS.totalStudents} icon={UsersIcon} href="/admin/students" />
-        <StatCard title="Active" value={DEMO_STATS.activeStudents} icon={UsersIcon} href="/admin/students" />
-        <StatCard title="Mentors" value={DEMO_STATS.totalMentors} icon={UserGroupIcon} href="/admin/mentors" />
-        <StatCard title="Applications" value={DEMO_STATS.pendingMentorApplications} icon={AcademicIcon} href="/admin/mentors/applications" />
-        <StatCard title="Resources" value={DEMO_STATS.totalResources} icon={BookOpenIcon} href="/admin/resources" />
-        <StatCard title="Reports" value={DEMO_STATS.unresolvedReports} icon={FlagIcon} href="/admin/reports" />
+        <StatCard title="Students" value={stats.totalStudents} icon={UsersIcon} href="/admin/students" />
+        <StatCard title="Active" value={stats.activeStudents} icon={UsersIcon} href="/admin/students" />
+        <StatCard title="Mentors" value={stats.totalMentors} icon={UserGroupIcon} href="/admin/mentors" />
+        <StatCard title="Applications" value={stats.pendingMentorApplications} icon={AcademicIcon} href="/admin/mentors/applications" />
+        <StatCard title="Resources" value={stats.totalResources} icon={BookOpenIcon} href="/admin/resources" />
+        <StatCard title="Reports" value={stats.unresolvedReports} icon={FlagIcon} href="/admin/reports" />
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {DEMO_QUICK_ACTIONS.map((action) => (
+        {quickActions.map((action) => (
           <Link
             key={action.name}
             href={action.href}
@@ -82,11 +85,10 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent Activity */}
       <div className="bg-white border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
         <div className="space-y-3">
-          {DEMO_ACTIVITY.map((activity) => (
+          {recentActivity.map((activity) => (
             <div key={activity.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
               <div className="flex items-center gap-3">
                 <span className={`text-xs px-2 py-0.5 ${
