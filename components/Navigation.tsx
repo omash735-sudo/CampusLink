@@ -4,34 +4,59 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = document.cookie.includes('auth_token');
-    setIsLoggedIn(token);
-    
-    // Get user role from cookie or localStorage (mock for now)
-    // In production, this would come from the auth context
-    const role = localStorage.getItem('userRole') || 'student';
-    setUserRole(role);
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        // User not logged in
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
   }, []);
 
-  // Determine nav links based on role
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    localStorage.removeItem('userRole');
+    router.push('/');
+    router.refresh();
+  };
+
   let navLinks = [];
-  
-  if (isLoggedIn) {
-    if (userRole === 'mentor') {
+
+  if (loading) {
+    navLinks = [{ name: 'Home', href: '/' }];
+  } else if (user) {
+    if (user.role === 'admin') {
+      navLinks = [
+        { name: 'Dashboard', href: '/admin' },
+        { name: 'Students', href: '/admin/students' },
+        { name: 'Resources', href: '/admin/resources' },
+        { name: 'Events', href: '/admin/events' },
+        { name: 'Announcements', href: '/admin/announcements' },
+        { name: 'About', href: '/about' },
+      ];
+    } else if (user.isMentor && user.mentorStatus === 'approved') {
       navLinks = [
         { name: 'Dashboard', href: '/mentor' },
-        { name: 'Requests', href: '/mentor/requests' },
+        { name: 'Connect', href: '/connect' },
         { name: 'Mentees', href: '/mentor/mentees' },
-        { name: 'Schedule', href: '/mentor/schedule' },
         { name: 'Resources', href: '/resources' },
         { name: 'About', href: '/about' },
       ];
@@ -39,8 +64,8 @@ export function Navigation() {
       navLinks = [
         { name: 'Dashboard', href: '/student/dashboard' },
         { name: 'Connect', href: '/connect' },
-        { name: 'Community', href: '/community' },
         { name: 'Resources', href: '/resources' },
+        { name: 'Events', href: '/events' },
         { name: 'About', href: '/about' },
       ];
     }
@@ -83,7 +108,7 @@ export function Navigation() {
                 {link.name}
               </Link>
             ))}
-            {isLoggedIn ? (
+            {user ? (
               <div className="flex items-center gap-4">
                 <Link
                   href="/settings"
@@ -92,11 +117,7 @@ export function Navigation() {
                   Settings
                 </Link>
                 <button
-                  onClick={() => {
-                    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                    localStorage.removeItem('userRole');
-                    window.location.href = '/';
-                  }}
+                  onClick={handleLogout}
                   className="text-sm font-medium text-red-600 hover:text-red-700"
                 >
                   Logout
@@ -140,7 +161,7 @@ export function Navigation() {
                   {link.name}
                 </Link>
               ))}
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <Link
                     href="/settings"
@@ -151,9 +172,8 @@ export function Navigation() {
                   </Link>
                   <button
                     onClick={() => {
-                      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                      localStorage.removeItem('userRole');
-                      window.location.href = '/';
+                      handleLogout();
+                      setIsMenuOpen(false);
                     }}
                     className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-off-white text-left"
                   >
