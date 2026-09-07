@@ -1,0 +1,116 @@
+// app/profile/page.tsx
+import { getCurrentUser } from '@/lib/auth';
+import Link from 'next/link';
+import Image from 'next/image';
+import { UserIcon, BookOpenIcon, CalendarIcon, SettingsIcon } from '@/components/icons';
+
+export default async function ProfilePage() {
+  const user = await getCurrentUser();
+  
+  const mockInterests = ['Technology', 'Research', 'Entrepreneurship', 'Social Work'];
+  const mockCommunities = ['Social Work Students', 'Debate Society', 'Entrepreneurship Club'];
+  
+  return (
+    <div className="min-h-screen bg-off-white py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Profile</h1>
+          <div className="flex gap-3">
+            <Link 
+              href="/profile/edit" 
+              className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
+            >
+              Edit Profile
+            </Link>
+            <Link 
+              href="/settings" 
+              className="border border-gray-200 bg-white px-4 py-2 text-sm font-medium hover:border-primary-green transition-colors flex items-center gap-2"
+            >
+              <SettingsIcon className="h-4 w-4" />
+              Settings
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 overflow-hidden">
+          {/* Cover */}
+          <div className="h-32 bg-primary-green/10"></div>
+          
+          {/* Profile Info */}
+          <div className="px-6 pb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 -mt-12">
+              <div className="h-24 w-24 rounded-full border-4 border-white bg-primary-green/10 flex items-center justify-center text-3xl font-bold text-primary-green overflow-hidden">
+                {user?.avatar ? (
+                  <Image src={user.avatar} alt={user.fullName} width={96} height={96} className="object-cover" />
+                ) : (
+                  user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+                )}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{user?.fullName || 'Student'}</h2>
+                <p className="text-muted-text">@{user?.username || 'username'}</p>
+                <p className="text-muted-text mt-1">{user?.programme || 'No programme'} • Year {user?.year || '?'}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* About */}
+              <div>
+                <h3 className="font-semibold mb-2">About</h3>
+                <p className="text-sm text-muted-text">
+                  {user?.bio || 'No bio yet. Tell other students about yourself.'}
+                </p>
+              </div>
+
+              {/* Interests */}
+              <div>
+                <h3 className="font-semibold mb-2">Interests</h3>
+                <div className="flex flex-wrap gap-2">
+                  {mockInterests.map((interest) => (
+                    <span key={interest} className="text-xs bg-gray-100 px-3 py-1">{interest}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Communities */}
+              <div>
+                <h3 className="font-semibold mb-2">Communities</h3>
+                <div className="flex flex-wrap gap-2">
+                  {mockCommunities.map((community) => (
+                    <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
+                      {community}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Academic */}
+              <div>
+                <h3 className="font-semibold mb-2">Academic</h3>
+                <div className="space-y-1 text-sm text-muted-text">
+                  <p>Programme: {user?.programme || 'Not set'}</p>
+                  <p>Year: {user?.year || 'Not set'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap gap-4">
+              <Link 
+                href={`/profile/${user?.username}`} 
+                className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
+              >
+                View Public Profile
+              </Link>
+              <Link 
+                href="/settings/privacy" 
+                className="border border-gray-200 px-6 py-2 text-sm font-medium hover:border-primary-green transition-colors"
+              >
+                Privacy Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
