@@ -1,70 +1,61 @@
 // app/saved/page.tsx
+import { requireAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { savedResources, resources } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import Link from 'next/link';
 import { BookOpenIcon, CalendarIcon } from '@/components/icons';
 
-const mockSavedResources = [
-  { id: '1', title: 'Case Management Notes', type: 'resource', course: 'Social Work' },
-  { id: '2', title: 'Research Methods Guide', type: 'resource', course: 'Research' },
-];
+export default async function SavedPage() {
+  const user = await requireAuth();
 
-const mockSavedEvents = [
-  { id: '3', title: 'Career Fair 2026', type: 'event', date: '2026-09-20' },
-];
+  const saved = await db
+    .select({
+      id: savedResources.id,
+      resourceId: savedResources.resourceId,
+      createdAt: savedResources.createdAt,
+      resource: {
+        id: resources.id,
+        title: resources.title,
+        description: resources.description,
+        course: resources.course,
+        fileType: resources.fileType,
+      }
+    })
+    .from(savedResources)
+    .leftJoin(resources, eq(savedResources.resourceId, resources.id))
+    .where(eq(savedResources.userId, user.id))
+    .orderBy(desc(savedResources.createdAt));
 
-export default function SavedPage() {
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Saved Items</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Resources */}
-          <div className="bg-white border border-gray-200 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <BookOpenIcon className="h-5 w-5 text-primary-green" />
-              Resources
-            </h2>
-            {mockSavedResources.length > 0 ? (
-              <div className="space-y-3">
-                {mockSavedResources.map((item) => (
-                  <Link 
-                    key={item.id} 
-                    href={`/resources/${item.id}`}
-                    className="block border-b border-gray-100 pb-3 last:border-0 hover:text-primary-green transition-colors"
-                  >
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-muted-text">{item.course}</p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-text">No saved resources.</p>
-            )}
-          </div>
-
-          {/* Events */}
-          <div className="bg-white border border-gray-200 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-primary-green" />
-              Events
-            </h2>
-            {mockSavedEvents.length > 0 ? (
-              <div className="space-y-3">
-                {mockSavedEvents.map((item) => (
-                  <Link 
-                    key={item.id} 
-                    href={`/events/${item.id}`}
-                    className="block border-b border-gray-100 pb-3 last:border-0 hover:text-primary-green transition-colors"
-                  >
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-muted-text">{new Date(item.date).toLocaleDateString()}</p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-text">No saved events.</p>
-            )}
-          </div>
+        <div className="bg-white border border-gray-200 p-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <BookOpenIcon className="h-5 w-5 text-primary-green" />
+            Resources
+          </h2>
+          {saved.length > 0 ? (
+            <div className="space-y-3">
+              {saved.map((item) => (
+                <Link 
+                  key={item.id} 
+                  href={`/resources/${item.resourceId}`}
+                  className="block border-b border-gray-100 pb-3 last:border-0 hover:text-primary-green transition-colors"
+                >
+                  <p className="font-medium">{item.resource?.title || 'Deleted resource'}</p>
+                  <p className="text-sm text-muted-text">{item.resource?.course || 'No course'}</p>
+                  <p className="text-xs text-muted-text">
+                    Saved {new Date(item.createdAt).toLocaleDateString()}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-text">You haven't saved any resources yet.</p>
+          )}
         </div>
       </div>
     </div>
