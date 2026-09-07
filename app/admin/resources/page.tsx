@@ -1,49 +1,121 @@
 // app/admin/resources/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
+import { getResources, approveResource, rejectResource, deleteResource } from '@/lib/services/admin.service';
 
-const DEMO_RESOURCES = [
-  { id: '1', title: 'Research Methods Guide', course: 'Social Work', programme: 'Social Work', type: 'Study Guide', uploadedBy: 'Jane Mwale', date: '2026-09-05', status: 'Published' },
-  { id: '2', title: 'Case Study Notes', course: 'Agricultural Economics', programme: 'Agricultural Economics', type: 'Notes', uploadedBy: 'John Banda', date: '2026-09-03', status: 'Pending Review' },
-  { id: '3', title: 'Past Paper 2024', course: 'Environmental Science', programme: 'Environmental Science', type: 'Past Paper', uploadedBy: 'Sarah Phiri', date: '2026-09-01', status: 'Published' },
-  { id: '4', title: 'Assignment Template', course: 'Engineering', programme: 'Engineering', type: 'Assignment', uploadedBy: 'David Nkhoma', date: '2026-08-28', status: 'Rejected' },
-];
-
-const statusColors: Record<string, string> = {
-  'Published': 'bg-green-100 text-green-700',
-  'Pending Review': 'bg-yellow-100 text-yellow-700',
-  'Rejected': 'bg-red-100 text-red-700',
-  'Archived': 'bg-gray-100 text-gray-600',
-};
+interface Resource {
+  id: string;
+  title: string;
+  description: string;
+  course: string;
+  programme: string;
+  fileType: string;
+  fileSize: number;
+  downloads: number;
+  viewCount: number;
+  status: string;
+  isVerified: boolean;
+  createdAt: string;
+}
 
 export default function AdminResourcesPage() {
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
-  const filtered = DEMO_RESOURCES.filter((r) => filter === 'All' || r.status === filter);
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  const loadResources = async () => {
+    setLoading(true);
+    try {
+      const data = await getResources();
+      setResources(data as Resource[]);
+    } catch (error) {
+      console.error('Failed to load resources:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    if (!confirm('Approve this resource?')) return;
+    try {
+      await approveResource(id);
+      await loadResources();
+    } catch (error) {
+      console.error('Failed to approve:', error);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (!confirm('Reject this resource?')) return;
+    try {
+      await rejectResource(id);
+      await loadResources();
+    } catch (error) {
+      console.error('Failed to reject:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this resource? This cannot be undone.')) return;
+    try {
+      await deleteResource(id);
+      await loadResources();
+    } catch (error) {
+      console.error('Failed to delete:', error);
+    }
+  };
+
+  const filtered = resources.filter((r) => filter === 'All' || r.status === filter);
+
+  const statusColors: Record<string, string> = {
+    'approved': 'bg-green-100 text-green-700',
+    'pending': 'bg-yellow-100 text-yellow-700',
+    'rejected': 'bg-red-100 text-red-700',
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+          <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 p-4">
+              <div className="flex justify-between">
+                <div className="h-5 w-32 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-5 w-24 bg-gray-200 animate-pulse rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Resources</h1>
-          <p className="text-sm text-gray-500">{DEMO_RESOURCES.length} total resources (demo data)</p>
+          <p className="text-sm text-gray-500">{resources.length} total resources</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 border border-yellow-200">
-            Default Data
-          </span>
-          <Link href="/admin/resources/new" className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1">
-            <PlusIcon className="h-4 w-4" />
-            Add Resource
-          </Link>
-        </div>
+        <Link href="/admin/resources/new" className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1">
+          <PlusIcon className="h-4 w-4" />
+          Add Resource
+        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {['All', 'Published', 'Pending Review', 'Rejected', 'Archived'].map((status) => (
+        {['All', 'approved', 'pending', 'rejected'].map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -53,52 +125,64 @@ export default function AdminResourcesPage() {
                 : 'border-gray-200 hover:border-primary-green'
             }`}
           >
-            {status}
+            {status.charAt(0).toUpperCase() + status.slice(1)}
           </button>
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 overflow-x-auto">
-        <table className="w-full">
-          <thead className="border-b border-gray-200 bg-gray-50">
-            <tr className="text-left">
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase">Title</th>
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Course</th>
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Type</th>
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Uploaded</th>
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="p-3 text-xs font-medium text-gray-500 uppercase text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((resource) => (
-              <tr key={resource.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="p-3 font-medium text-sm">{resource.title}</td>
-                <td className="p-3 text-sm hidden md:table-cell">{resource.course}</td>
-                <td className="p-3 text-sm hidden lg:table-cell">{resource.type}</td>
-                <td className="p-3 text-sm hidden sm:table-cell">{new Date(resource.date).toLocaleDateString()}</td>
-                <td className="p-3">
-                  <span className={`text-xs px-2 py-0.5 ${statusColors[resource.status]}`}>
-                    {resource.status}
+      <div className="space-y-3">
+        {filtered.map((resource) => (
+          <div key={resource.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold">{resource.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 ${statusColors[resource.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {resource.status.charAt(0).toUpperCase() + resource.status.slice(1)}
                   </span>
-                </td>
-                <td className="p-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button className="text-primary-green hover:underline text-sm">Preview</button>
-                    <button className="text-sm text-gray-500 hover:text-gray-700">Edit</button>
-                    {resource.status === 'Pending Review' && (
-                      <>
-                        <button className="text-sm text-green-600 hover:text-green-700">Approve</button>
-                        <button className="text-sm text-red-600 hover:text-red-700">Reject</button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  {resource.isVerified && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5">Verified</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">{resource.course || 'No course'} • {resource.programme || 'No programme'}</p>
+                <p className="text-sm text-gray-500">{resource.fileType.toUpperCase()} • {(resource.fileSize / 1024).toFixed(1)} KB</p>
+                <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
+                  <span>Downloads: {resource.downloads}</span>
+                  <span>Views: {resource.viewCount}</span>
+                  <span>Added: {new Date(resource.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                <Link href={`/admin/resources/${resource.id}`} className="text-primary-green hover:underline text-sm">
+                  View
+                </Link>
+                <Link href={`/admin/resources/${resource.id}/edit`} className="text-sm text-gray-500 hover:text-gray-700">
+                  Edit
+                </Link>
+                {resource.status === 'pending' && (
+                  <>
+                    <button onClick={() => handleApprove(resource.id)} className="text-sm text-green-600 hover:text-green-700">
+                      Approve
+                    </button>
+                    <button onClick={() => handleReject(resource.id)} className="text-sm text-red-600 hover:text-red-700">
+                      Reject
+                    </button>
+                  </>
+                )}
+                <button onClick={() => handleDelete(resource.id)} className="text-sm text-red-500 hover:text-red-700">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {filtered.length === 0 && (
+        <div className="bg-white border border-gray-200 p-8 text-center">
+          <p className="text-gray-500">No resources found.</p>
+        </div>
+      )}
     </div>
   );
 }
