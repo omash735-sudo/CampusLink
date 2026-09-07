@@ -120,4 +120,98 @@ export default function IndividualMenteePage() {
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-text">Sessions Completed</span>
-                <span>{mockMenteeData
+                <span>{mockMenteeData.sessions.filter(s => s.status === 'completed').length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-text">Resources Shared</span>
+                <span>{mockMenteeData.resources.length}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sessions */}
+        <div className="bg-white border border-gray-200 p-6 mt-4">
+          <h3 className="font-semibold mb-4">Sessions</h3>
+          <div className="space-y-2">
+            {mockMenteeData.sessions.map((session) => (
+              <div key={session.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <div>
+                  <p className="text-sm font-medium">{session.topic}</p>
+                  <p className="text-xs text-muted-text">{new Date(session.date).toLocaleDateString()}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 ${
+                  session.status === 'completed' ? 'bg-green-100 text-green-700' :
+                  'bg-blue-100 text-blue-700'
+                }`}>
+                  {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Shared Resources */}
+        <div className="bg-white border border-gray-200 p-6 mt-4">
+          <h3 className="font-semibold mb-4">Shared Resources</h3>
+          {mockMenteeData.resources.length > 0 ? (
+            <div className="space-y-2">
+              {mockMenteeData.resources.map((resource) => (
+                <div key={resource.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
+                  <div>
+                    <p className="text-sm font-medium">{resource.title}</p>
+                    <p className="text-xs text-muted-text">{resource.type} • Shared {new Date(resource.shared).toLocaleDateString()}</p>
+                  </div>
+                  <button className="text-sm text-primary-green hover:underline">View</button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-text">No resources shared yet.</p>
+          )}
+          <button className="mt-3 text-sm text-primary-green hover:underline">Share Resource</button>
+        </div>
+
+        {/* Private Notes */}
+        <div className="bg-white border border-gray-200 p-6 mt-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Private Notes</h3>
+            <button 
+              onClick={() => setShowAddNote(true)}
+              className="text-sm text-primary-green hover:underline"
+            >
+              Add Note
+            </button>
+          </div>
+          {showAddNote && (
+            <div className="mb-4 p-4 border border-gray-200">
+              <textarea
+                rows={3}
+                className="input-field"
+                placeholder="Add private note..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+              />
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleAddNote} className="bg-primary-green text-white px-4 py-1 text-sm hover:bg-deep-green transition-colors">
+                  Save Note
+                </button>
+                <button onClick={() => setShowAddNote(false)} className="border border-gray-300 px-4 py-1 text-sm hover:bg-gray-50 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="space-y-3">
+            {notes.map((note) => (
+              <div key={note.id} className="border-l-4 border-primary-green pl-3 py-2 bg-off-white">
+                <p className="text-sm">{note.content}</p>
+                <p className="text-xs text-muted-text mt-1">{new Date(note.date).toLocaleDateString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
