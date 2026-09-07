@@ -11,7 +11,6 @@ import { PopularResources } from '@/components/resources/PopularResources';
 import { RecentResources } from '@/components/resources/RecentResources';
 import { RecommendedResources } from '@/components/resources/RecommendedResources';
 import { ResourceCategories } from '@/components/resources/ResourceCategories';
-import { ResourceSort } from '@/components/resources/ResourceSort';
 
 export default async function ResourcesPage({
   searchParams,
@@ -128,7 +127,7 @@ export default async function ResourcesPage({
     .orderBy(desc(resources.createdAt))
     .limit(6);
 
-  const resourceTypes = ['Past Paper', 'Lecture Notes', 'Study Guide', 'Handout', 'Course Outline', 'Research', 'Assignment', 'Textbook', 'Other'];
+  const resourceTypes = ['Notes', 'Past Paper', 'Assignment', 'Study Guide', 'Presentation', 'Other'];
 
   return (
     <div className="min-h-screen bg-off-white">
@@ -161,11 +160,23 @@ export default async function ResourcesPage({
         <div className="bg-white border border-gray-200 p-6 mb-8">
           <div className="flex flex-wrap gap-4 items-center justify-between">
             <h2 className="text-lg font-semibold">Browse Resources</h2>
-            {/* Use the client component for sorting */}
-            <ResourceSort 
-              currentSort={sort} 
-              searchParams={searchParams as Record<string, string>}
-            />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-text">Sort by:</span>
+              <select
+                className="border border-gray-300 bg-white px-3 py-1 text-sm focus:border-primary-green focus:outline-none"
+                onChange={(e) => {
+                  const params = new URLSearchParams(searchParams);
+                  params.set('sort', e.target.value);
+                  window.location.href = `/resources?${params.toString()}`;
+                }}
+                defaultValue={sort}
+              >
+                <option value="recent">Most Recent</option>
+                <option value="downloads">Most Downloaded</option>
+                <option value="views">Most Viewed</option>
+                <option value="title">Alphabetical</option>
+              </select>
+            </div>
           </div>
           <div className="mt-4">
             <ResourceFilters
