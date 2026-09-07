@@ -1,12 +1,106 @@
 // app/settings/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserIcon, SettingsIcon, BellIcon, LockIcon, GlobeIcon, LogOutIcon } from '@/components/icons';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [section, setSection] = useState('account');
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    bio: '',
+    programme: '',
+    year: '',
+    interests: '',
+  });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setUser(data.user);
+        setForm({
+          fullName: data.user.fullName || '',
+          username: data.user.username || '',
+          email: data.user.email || '',
+          bio: data.user.bio || '',
+          programme: data.user.programme || '',
+          year: data.user.year || '',
+          interests: data.user.interests?.join(', ') || '',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          year: parseInt(form.year) || null,
+          interests: form.interests.split(',').map((s: string) => s.trim()).filter(Boolean),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update');
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    localStorage.removeItem('userRole');
+    router.push('/');
+    router.refresh();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-off-white py-8">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-4">
+            <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
+            <div className="md:col-span-3 h-64 bg-gray-200 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-off-white py-8">
@@ -63,7 +157,10 @@ export default function SettingsPage() {
                 Appearance
               </button>
               <div className="border-t border-gray-200 my-2"></div>
-              <button className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+              <button 
+                onClick={handleLogout}
+                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              >
                 <LogOutIcon className="inline h-4 w-4 mr-2" />
                 Sign Out
               </button>
@@ -78,59 +175,105 @@ export default function SettingsPage() {
                   <h2 className="text-xl font-bold">Account Settings</h2>
                   <div>
                     <label className="label-text">Full Name</label>
-                    <input type="text" className="input-field" value="Omash Mashiri" />
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={form.fullName}
+                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="label-text">Username</label>
-                    <input type="text" className="input-field" value="omash.mashiri" />
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={form.username}
+                      onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="label-text">Email</label>
-                    <input type="email" className="input-field" value="omash@example.com" />
-                  </div>
-                  <div>
-                    <label className="label-text">Password</label>
-                    <input type="password" className="input-field" placeholder="••••••••" />
-                    <button className="text-sm text-primary-green hover:underline mt-1">Change Password</button>
+                    <input
+                      type="email"
+                      className="input-field"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      disabled
+                    />
+                    <p className="text-xs text-muted-text mt-1">Email cannot be changed</p>
                   </div>
                   <button className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors">
-                    Save Changes
+                    Change Password
                   </button>
                 </div>
               )}
 
               {section === 'profile' && (
-                <div className="space-y-4">
+                <form onSubmit={handleSave} className="space-y-4">
                   <h2 className="text-xl font-bold">Profile Settings</h2>
                   <div>
                     <label className="label-text">Bio</label>
-                    <textarea rows={4} className="input-field" placeholder="Tell students about yourself..." />
+                    <textarea
+                      rows={4}
+                      className="input-field"
+                      value={form.bio}
+                      onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                      placeholder="Tell students about yourself..."
+                    />
                   </div>
                   <div>
                     <label className="label-text">Programme</label>
-                    <select className="input-field">
-                      <option>Social Work & Youth Development</option>
-                      <option>Agricultural Economics</option>
-                      <option>Food Science</option>
-                    </select>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={form.programme}
+                      onChange={(e) => setForm({ ...form, programme: e.target.value })}
+                      placeholder="e.g. Social Work & Youth Development"
+                    />
                   </div>
                   <div>
                     <label className="label-text">Year</label>
-                    <select className="input-field">
-                      <option>Year 1</option>
-                      <option>Year 2</option>
-                      <option selected>Year 3</option>
-                      <option>Year 4</option>
+                    <select
+                      className="input-field"
+                      value={form.year}
+                      onChange={(e) => setForm({ ...form, year: e.target.value })}
+                    >
+                      <option value="">Select year</option>
+                      <option value="1">Year 1</option>
+                      <option value="2">Year 2</option>
+                      <option value="3">Year 3</option>
+                      <option value="4">Year 4</option>
                     </select>
                   </div>
                   <div>
                     <label className="label-text">Interests</label>
-                    <input type="text" className="input-field" placeholder="Technology, Research, Entrepreneurship" />
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={form.interests}
+                      onChange={(e) => setForm({ ...form, interests: e.target.value })}
+                      placeholder="e.g. Technology, Research, Sports"
+                    />
+                    <p className="text-xs text-muted-text mt-1">Separate multiple interests with commas</p>
                   </div>
-                  <button className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors">
-                    Save Changes
+                  {error && (
+                    <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="border border-green-400 bg-green-50 p-3 text-sm text-green-700">
+                      Settings updated successfully!
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
-                </div>
+                </form>
               )}
 
               {section === 'privacy' && (
