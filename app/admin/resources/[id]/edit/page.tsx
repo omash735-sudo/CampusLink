@@ -11,6 +11,8 @@ export default function EditResourcePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -53,12 +55,48 @@ export default function EditResourcePage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
 
     try {
+      let fileUrl = form.fileUrl;
+      let fileName = form.fileName;
+      let fileType = form.fileType;
+      let fileSize = form.fileSize;
+
+      // Upload new file if selected
+      if (file) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'resource');
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const uploadData = await uploadRes.json();
+        fileUrl = uploadData.url;
+        fileName = file.name;
+        fileType = file.type;
+        fileSize = file.size;
+        setUploading(false);
+      }
+
       const res = await fetch(`/api/admin/resources`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +104,10 @@ export default function EditResourcePage() {
           id: params.id,
           ...form,
           year: parseInt(form.year) || null,
-          fileSize: parseInt(form.fileSize) || 0,
+          fileUrl,
+          fileName,
+          fileType,
+          fileSize: parseInt(fileSize) || 0,
         }),
       });
 
@@ -79,6 +120,7 @@ export default function EditResourcePage() {
       setError(err.message);
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -154,36 +196,47 @@ export default function EditResourcePage() {
               </select>
             </div>
             <div>
-              <label className="label-text">File Type</label>
+              <label className="label-text">Status</label>
               <select
                 className="input-field"
-                value={form.fileType}
-                onChange={(e) => setForm({ ...form, fileType: e.target.value })}
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                <option value="">Select file type</option>
-                <option value="pdf">PDF</option>
-                <option value="doc">DOC</option>
-                <option value="docx">DOCX</option>
-                <option value="ppt">PPT</option>
-                <option value="pptx">PPTX</option>
-                <option value="xls">XLS</option>
-                <option value="xlsx">XLSX</option>
-                <option value="txt">TXT</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="label-text">Status</label>
-            <select
+            <label className="label-text">Current File</label>
+            {form.fileName ? (
+              <div className="border border-gray-200 p-3 text-sm">
+                <p>File: {form.fileName}</p>
+                <p>Type: {form.fileType}</p>
+                <p>Size: {(parseInt(form.fileSize) / 1024).toFixed(1)} KB</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-text">No file uploaded</p>
+            )}
+          </div>
+
+          <div>
+            <label className="label-text">Replace File</label>
+            <input
+              type="file"
+              onChange={handleFileChange}
               className="input-field"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+            />
+            {file && (
+              <p className="text-sm text-muted-text mt-1">
+                Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
+            {uploading && (
+              <p className="text-sm text-blue-600 mt-1">Uploading file...</p>
+            )}
           </div>
 
           {error && (
@@ -195,7 +248,7 @@ export default function EditResourcePage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
