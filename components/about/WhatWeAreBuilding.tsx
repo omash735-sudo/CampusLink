@@ -1,6 +1,6 @@
 // components/about/WhatWeAreBuilding.tsx
 import Link from 'next/link';
-import { UsersIcon, AcademicIcon, BookIcon, MapIcon, UserGroupIcon } from '@/components/icons';
+import { UsersIcon, AcademicIcon, BookOpenIcon, MapPinIcon, UserGroupIcon } from '@/components/icons';
 
 export function WhatWeAreBuilding() {
   return (
@@ -14,12 +14,12 @@ export function WhatWeAreBuilding() {
             <p className="text-muted-text text-sm">Find people, cohorts, and communities.</p>
           </Link>
           <Link href="/resources" className="border border-gray-200 p-6 hover:border-primary-green transition-colors group">
-            <BookIcon className="h-8 w-8 text-primary-green mb-3 group-hover:scale-110 transition-transform" />
+            <BookOpenIcon className="h-8 w-8 text-primary-green mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="text-xl font-bold mb-2">Learn</h3>
             <p className="text-muted-text text-sm">Access academic resources and find mentors.</p>
           </Link>
           <Link href="/campus" className="border border-gray-200 p-6 hover:border-primary-green transition-colors group">
-            <MapIcon className="h-8 w-8 text-primary-green mb-3 group-hover:scale-110 transition-transform" />
+            <MapPinIcon className="h-8 w-8 text-primary-green mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="text-xl font-bold mb-2">Discover</h3>
             <p className="text-muted-text text-sm">Explore campus, events, announcements, and opportunities.</p>
           </Link>
