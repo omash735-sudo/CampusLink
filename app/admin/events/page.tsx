@@ -2,119 +2,135 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { PlusIcon } from '@/components/icons';
+import { getEvents, publishEvent, deleteEvent } from '@/lib/services/admin.service';
 
-export default function AdminEvents() {
-  const router = useRouter();
-  const [events, setEvents] = useState([]);
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  startTime: string;
+  location: string;
+  category: string;
+  status: string;
+  createdAt: string;
+}
+
+export default function AdminEventsPage() {
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchEvents();
+    loadEvents();
   }, []);
 
-  const fetchEvents = async () => {
+  const loadEvents = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/events');
-      const data = await res.json();
-      setEvents(data);
+      const data = await getEvents();
+      setEvents(data as Event[]);
     } catch (error) {
-      console.error('Failed to fetch events:', error);
+      console.error('Failed to load events:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+  const handlePublish = async (id: string) => {
+    if (!confirm('Publish this event?')) return;
     try {
-      const res = await fetch(`/api/admin/events/${id}`, {
-        method: 'DELETE',
-      });
+      await publishEvent(id);
+      await loadEvents();
+    } catch (error) {
+      console.error('Failed to publish:', error);
+    }
+  };
 
-      if (res.ok) {
-        await fetchEvents();
-      } else {
-        console.error('Failed to delete event');
-      }
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this event? This cannot be undone.')) return;
+    try {
+      await deleteEvent(id);
+      await loadEvents();
     } catch (error) {
       console.error('Failed to delete:', error);
     }
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
-
-  return (
-    <div className="min-h-screen bg-off-white py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Events</h1>
-          <button
-            onClick={() => router.push('/admin/events/new')}
-            className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
-          >
-            New Event
-          </button>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+          <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
         </div>
-
-        <div className="bg-white border border-gray-200 overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-gray-200">
-              <tr className="text-left">
-                <th className="p-4">Image</th>
-                <th className="p-4">Title</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Date</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event: any) => (
-                <tr key={event.id} className="border-b border-gray-100 hover:bg-off-white">
-                  <td className="p-4">
-                    {event.image ? (
-                      <img 
-                        src={event.image} 
-                        alt={event.title}
-                        className="w-12 h-12 object-cover border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">
-                        No img
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-4 font-medium">{event.title}</td>
-                  <td className="p-4 text-sm text-muted-text capitalize">{event.category}</td>
-                  <td className="p-4 text-sm text-muted-text">
-                    {new Date(event.startDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-sm ${event.status === 'published' ? 'text-green-600' : 'text-muted-text'}`}>
-                      {event.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => router.push(`/admin/events/${event.id}`)}
-                      className="text-primary-green hover:underline mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(event.id)}
-                      className="text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 p-4">
+              <div className="flex justify-between">
+                <div className="h-5 w-32 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-5 w-24 bg-gray-200 animate-pulse rounded"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Events</h1>
+          <p className="text-sm text-gray-500">{events.length} total events</p>
+        </div>
+        <Link href="/admin/events/new" className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1">
+          <PlusIcon className="h-4 w-4" />
+          Add Event
+        </Link>
+      </div>
+
+      <div className="space-y-3">
+        {events.map((event) => (
+          <div key={event.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold">{event.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 ${
+                    event.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500">{event.category || 'No category'} • {event.location}</p>
+                <p className="text-sm text-gray-500">{new Date(event.date).toLocaleDateString()} at {event.startTime}</p>
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                <Link href={`/admin/events/${event.id}`} className="text-primary-green hover:underline text-sm">
+                  Edit
+                </Link>
+                {event.status === 'draft' && (
+                  <button onClick={() => handlePublish(event.id)} className="text-sm text-green-600 hover:text-green-700">
+                    Publish
+                  </button>
+                )}
+                <button onClick={() => handleDelete(event.id)} className="text-sm text-red-500 hover:text-red-700">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {events.length === 0 && (
+        <div className="bg-white border border-gray-200 p-8 text-center">
+          <p className="text-gray-500">No events found.</p>
+        </div>
+      )}
     </div>
   );
 }
