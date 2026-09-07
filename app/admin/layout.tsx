@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { 
   HomeIcon, 
   UsersIcon, 
@@ -18,7 +18,8 @@ import {
   BriefcaseIcon,
   AcademicIcon,
   MenuIcon,
-  XIcon
+  XIcon,
+  LogOutIcon
 } from '@/components/icons';
 
 const navItems = [
@@ -27,8 +28,9 @@ const navItems = [
   { name: 'Mentors', href: '/admin/mentors', icon: UserGroupIcon },
   { name: 'Mentor Applications', href: '/admin/mentors/applications', icon: AcademicIcon },
   { name: 'Mentorships', href: '/admin/mentorships', icon: BriefcaseIcon },
-  { name: 'Resources', href: '/admin/resources', icon: BookOpenIcon },
+  { name: 'Programmes', href: '/admin/programmes', icon: BookOpenIcon },
   { name: 'Courses', href: '/admin/courses', icon: BookOpenIcon },
+  { name: 'Resources', href: '/admin/resources', icon: BookOpenIcon },
   { name: 'Events', href: '/admin/events', icon: CalendarIcon },
   { name: 'Announcements', href: '/admin/announcements', icon: BellIcon },
   { name: 'Campus', href: '/admin/campus', icon: MapPinIcon },
@@ -43,9 +45,12 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -62,6 +67,39 @@ export default function AdminLayout({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const token = document.cookie.includes('auth_token');
+    const role = localStorage.getItem('userRole');
+    
+    if (!token || role !== 'admin') {
+      router.push('/auth/login?redirect=/admin');
+    } else {
+      setIsAuthenticated(true);
+    }
+    setLoading(false);
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 border-2 border-primary-green animate-spin rounded-full mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const handleLogout = () => {
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    localStorage.removeItem('userRole');
+    router.push('/auth/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -74,7 +112,7 @@ export default function AdminLayout({
           <span className="text-xs bg-gray-100 px-2 py-0.5">Admin</span>
         </div>
 
-        <nav className="p-3 overflow-y-auto h-[calc(100vh-4rem)]">
+        <nav className="p-3 overflow-y-auto h-[calc(100vh-8rem)]">
           {navItems.map((item) => (
             <Link
               key={item.name}
@@ -90,6 +128,16 @@ export default function AdminLayout({
             </Link>
           ))}
         </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full transition-colors"
+          >
+            <LogOutIcon className="h-4 w-4" />
+            Sign Out
+          </button>
+        </div>
       </aside>
 
       {/* Overlay */}
@@ -99,7 +147,6 @@ export default function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 min-w-0">
-        {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
