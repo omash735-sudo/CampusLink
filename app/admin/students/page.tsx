@@ -4,10 +4,25 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SearchIcon, FilterIcon } from '@/components/icons';
-import { adminService, Student } from '@/lib/services/admin.service';
+import { getUsers, updateUser, deleteUser } from '@/lib/services/admin.service';
+
+interface User {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  programme: string;
+  year: number;
+  role: string;
+  isActive: boolean;
+  isMentor: boolean;
+  mentorStatus: string;
+  createdAt: string;
+  lastActive: string;
+}
 
 export default function AdminStudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [programmeFilter, setProgrammeFilter] = useState('All');
@@ -15,40 +30,48 @@ export default function AdminStudentsPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    loadStudents();
+    loadUsers();
   }, []);
 
-  const loadStudents = async () => {
+  const loadUsers = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getStudents();
-      setStudents(data);
+      const data = await getUsers();
+      setUsers(data as User[]);
     } catch (error) {
-      console.error('Failed to load students:', error);
+      console.error('Failed to load users:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const programmes = ['All', ...new Set(students.map(s => s.programme))];
-  const statuses = ['All', 'Active', 'Inactive', 'Suspended'];
+  const handleStatusChange = async (id: string, isActive: boolean) => {
+    if (!confirm(`Change user status to ${isActive ? 'Active' : 'Inactive'}?`)) return;
+    try {
+      await updateUser(id, { isActive });
+      await loadUsers();
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
 
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch = student.name.toLowerCase().includes(search.toLowerCase()) ||
-                          student.username.toLowerCase().includes(search.toLowerCase()) ||
-                          student.email.toLowerCase().includes(search.toLowerCase());
-    const matchesProgramme = programmeFilter === 'All' || student.programme === programmeFilter;
-    const matchesStatus = statusFilter === 'All' || student.status === statusFilter;
+  const programmes = ['All', ...new Set(users.map(u => u.programme).filter(Boolean))];
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.fullName.toLowerCase().includes(search.toLowerCase()) ||
+                          user.username.toLowerCase().includes(search.toLowerCase()) ||
+                          user.email.toLowerCase().includes(search.toLowerCase());
+    const matchesProgramme = programmeFilter === 'All' || user.programme === programmeFilter;
+    const matchesStatus = statusFilter === 'All' || 
+                          (statusFilter === 'Active' && user.isActive) ||
+                          (statusFilter === 'Inactive' && !user.isActive);
     return matchesSearch && matchesProgramme && matchesStatus;
   });
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-start">
-          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-6 w-24 bg-gray-200 animate-pulse rounded"></div>
-        </div>
+        <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
         <div className="bg-white border border-gray-200 p-4">
           <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
         </div>
@@ -71,13 +94,8 @@ export default function AdminStudentsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Students</h1>
-          <p className="text-sm text-gray-500">{students.length} total students</p>
+          <p className="text-sm text-gray-500">{users.length} total users</p>
         </div>
-        {students.some(s => s.isDefault) && (
-          <div className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 border border-yellow-200">
-            Contains Default Data
-          </div>
-        )}
       </div>
 
       <div className="bg-white border border-gray-200 p-4">
@@ -111,7 +129,7 @@ export default function AdminStudentsPage() {
                 className="w-full border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-primary-green focus:outline-none"
               >
                 {programmes.map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p}>{p || 'None'}</option>
                 ))}
               </select>
             </div>
@@ -122,9 +140,9 @@ export default function AdminStudentsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-primary-green focus:outline-none"
               >
-                {statuses.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                <option value="All">All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
               </select>
             </div>
           </div>
@@ -132,55 +150,55 @@ export default function AdminStudentsPage() {
       </div>
 
       <div className="space-y-3">
-        {filteredStudents.map((student) => (
-          <div key={student.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
+        {filteredUsers.map((user) => (
+          <div key={user.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
             <div className="flex flex-col md:flex-row justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="h-12 w-12 rounded-full bg-primary-green/10 flex items-center justify-center text-sm font-semibold text-primary-green flex-shrink-0">
-                  {student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold">{student.name}</h3>
-                    {student.isDefault && (
-                      <span className="text-[10px] bg-yellow-200 text-yellow-800 px-1.5 py-0.5">Default</span>
-                    )}
+                    <h3 className="font-semibold">{user.fullName}</h3>
                     <span className={`text-xs px-2 py-0.5 ${
-                      student.status === 'Active' ? 'bg-green-100 text-green-700' :
-                      student.status === 'Inactive' ? 'bg-gray-100 text-gray-600' :
-                      'bg-red-100 text-red-700'
+                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {student.status}
+                      {user.isActive ? 'Active' : 'Inactive'}
                     </span>
+                    {user.isMentor && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5">Mentor</span>
+                    )}
+                    {user.mentorStatus === 'pending' && (
+                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5">Mentor Pending</span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500">@{student.username}</p>
-                  <p className="text-sm text-gray-500">{student.programme} • Year {student.year}</p>
-                  <p className="text-sm text-gray-500">{student.faculty}</p>
+                  <p className="text-sm text-gray-500">@{user.username}</p>
+                  <p className="text-sm text-gray-500">{user.programme || 'No programme'} • Year {user.year || '?'}</p>
                   <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
-                    <span>Joined: {new Date(student.joinedDate).toLocaleDateString()}</span>
-                    <span>Last active: {new Date(student.lastActive).toLocaleDateString()}</span>
+                    <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
+                    <span>Role: {user.role}</span>
                   </div>
                 </div>
               </div>
               <div className="flex flex-wrap items-start gap-2">
-                <Link href={`/admin/students/${student.id}`} className="text-primary-green hover:underline text-sm">
-                  View Details
+                <Link href={`/admin/students/${user.id}`} className="text-primary-green hover:underline text-sm">
+                  View
                 </Link>
-                <button className="text-sm text-gray-500 hover:text-gray-700">Edit</button>
-                {student.status === 'Active' ? (
-                  <button className="text-sm text-orange-500 hover:text-orange-700">Suspend</button>
-                ) : (
-                  <button className="text-sm text-green-500 hover:text-green-700">Activate</button>
-                )}
+                <button
+                  onClick={() => handleStatusChange(user.id, !user.isActive)}
+                  className={`text-sm ${user.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
+                >
+                  {user.isActive ? 'Deactivate' : 'Activate'}
+                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredStudents.length === 0 && (
+      {filteredUsers.length === 0 && (
         <div className="bg-white border border-gray-200 p-8 text-center">
-          <p className="text-gray-500">No students found matching your criteria.</p>
+          <p className="text-gray-500">No users found matching your criteria.</p>
         </div>
       )}
     </div>
