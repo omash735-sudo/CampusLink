@@ -1,24 +1,33 @@
 // app/api/admin/users/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { campuslinkUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
-  const body = await request.json();
-  
-  const [updated] = await db.update(users)
-    .set({ ...body, updatedAt: new Date() })
-    .where(eq(users.id, params.id))
-    .returning();
-  
-  return NextResponse.json(updated);
-}
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await requireAdmin();
+    const [user] = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.id, params.id));
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
-  await db.delete(users).where(eq(users.id, params.id));
-  return NextResponse.json({ success: true });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(user);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch user' },
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
+    );
+  }
 }
