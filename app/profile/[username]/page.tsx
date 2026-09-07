@@ -1,23 +1,40 @@
 // app/profile/[username]/page.tsx
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { campuslinkUsers, userCommunities, groups } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { UsersIcon, AcademicIcon, BookOpenIcon } from '@/components/icons';
+import { getCurrentUser } from '@/lib/auth';
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
+  const currentUser = await getCurrentUser();
+  
   const user = await db
     .select()
-    .from(users)
-    .where(eq(users.username, params.username))
+    .from(campuslinkUsers)
+    .where(and(
+      eq(campuslinkUsers.username, params.username),
+      eq(campuslinkUsers.isActive, true)
+    ))
     .then(res => res[0]);
 
   if (!user) notFound();
 
-  const mockInterests = ['Technology', 'Research', 'Entrepreneurship'];
-  const mockCommunities = ['Social Work Students', 'Debate Society'];
+  const userCommunitiesData = await db
+    .select({
+      name: groups.name,
+      slug: groups.slug,
+    })
+    .from(userCommunities)
+    .leftJoin(groups, eq(userCommunities.communityId, groups.id))
+    .where(eq(userCommunities.userId, user.id))
+    .limit(10);
+
+  const communities = userCommunitiesData.map(c => c.name).filter(Boolean);
+  const mockInterests = user.interests || ['Technology', 'Research', 'Social Work'];
+
+  const isOwnProfile = currentUser?.id === user.id;
 
   return (
     <div className="min-h-screen bg-off-white py-8">
@@ -27,10 +44,8 @@ export default async function PublicProfilePage({ params }: { params: { username
         </Link>
 
         <div className="bg-white border border-gray-200 mt-4 overflow-hidden">
-          {/* Cover */}
           <div className="h-24 bg-primary-green/10" />
 
-          {/* Profile Info */}
           <div className="px-6 pb-6">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 -mt-12">
               <div className="h-20 w-20 rounded-full border-4 border-white bg-primary-green/10 flex items-center justify-center text-2xl font-bold text-primary-green overflow-hidden">
@@ -44,6 +59,9 @@ export default async function PublicProfilePage({ params }: { params: { username
                 <h2 className="text-2xl font-bold">{user.fullName}</h2>
                 <p className="text-muted-text">@{user.username}</p>
                 <p className="text-muted-text mt-1">{user.programme || 'No programme'} • Year {user.year || '?'}</p>
+                {user.isMentor && user.mentorStatus === 'approved' && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 mt-1 inline-block">Mentor</span>
+                )}
               </div>
             </div>
 
@@ -64,16 +82,18 @@ export default async function PublicProfilePage({ params }: { params: { username
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Communities</h3>
-                <div className="flex flex-wrap gap-2">
-                  {mockCommunities.map((community: string) => (
-                    <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
-                      {community}
-                    </span>
-                  ))}
+              {communities.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Communities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {communities.map((community: string) => (
+                      <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
+                        {community}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <h3 className="font-semibold mb-2">Academic</h3>
@@ -85,18 +105,24 @@ export default async function PublicProfilePage({ params }: { params: { username
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap gap-3">
-              <Link 
-                href="/connect" 
-                className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
-              >
-                Connect
-              </Link>
-              <Link 
-                href="/mentors" 
-                className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
-              >
-                Request Mentorship
-              </Link>
+              {!isOwnProfile && (
+                <>
+                  <Link 
+                    href="/connect" 
+                    className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
+                  >
+                    Connect
+                  </Link>
+                  {user.isMentor && user.mentorStatus === 'approved' && (
+                    <Link 
+                      href={`/mentors/${user.username}`} 
+                      className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
+                    >
+                      Request Mentorship
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
