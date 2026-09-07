@@ -1,5 +1,8 @@
 // app/student/dashboard/page.tsx
-import { getCurrentUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { announcements, events, resources, campuslinkUsers } from '@/lib/db/schema';
+import { eq, desc, asc, and } from 'drizzle-orm';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -8,32 +11,61 @@ import {
   BookOpenIcon, 
   MapPinIcon, 
   CalendarIcon,
-  UserGroupIcon,
-  BriefcaseIcon,
-  HomeIcon
+  UserGroupIcon
 } from '@/components/icons';
 
-// Mock data for dashboard
-const mockEvents = [
-  { id: '1', title: 'Orientation Week', date: '2026-09-15', location: 'Main Hall' },
-  { id: '2', title: 'Career Fair', date: '2026-09-20', location: 'Student Center' },
-];
-
-const mockAnnouncements = [
-  { id: '1', title: 'Library Extended Hours', content: 'The library will be open until midnight during exam period.' },
-  { id: '2', title: 'Student Union Elections', content: 'Nominations are now open for Student Union positions.' },
-];
-
-const mockRecommendations = [
-  { id: '1', name: 'John Banda', programme: 'Agricultural Economics', year: 3, type: 'student' },
-  { id: '2', name: 'Dr. Jane Mwale', programme: 'Social Work', type: 'mentor' },
-  { id: '3', title: 'Introduction to Research Methods', type: 'resource' },
-  { id: '4', title: 'Career Development Workshop', type: 'event' },
-];
-
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
+export default async function StudentDashboard() {
+  const user = await requireAuth();
   
+  // Get announcements
+  const recentAnnouncements = await db
+    .select()
+    .from(announcements)
+    .where(eq(announcements.isPublished, true))
+    .orderBy(desc(announcements.publishedAt))
+    .limit(5);
+  
+  // Get upcoming events
+  const upcomingEvents = await db
+    .select()
+    .from(events)
+    .where(and(
+      eq(events.status, 'published'),
+      // Only future events
+      // In production, add date filter
+    ))
+    .orderBy(asc(events.startDate))
+    .limit(5);
+  
+  // Get recommended resources based on user's programme
+  const recommendedResources = await db
+    .select()
+    .from(resources)
+    .where(and(
+      eq(resources.status, 'approved'),
+      user.programme ? eq(resources.programme, user.programme) : undefined
+    ))
+    .orderBy(desc(resources.downloads))
+    .limit(4);
+  
+  // Get students from same programme
+  const cohortStudents = await db
+    .select({
+      id: campuslinkUsers.id,
+      fullName: campuslinkUsers.fullName,
+      username: campuslinkUsers.username,
+      avatar: campuslinkUsers.avatar,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
+    })
+    .from(campuslinkUsers)
+    .where(and(
+      eq(campuslinkUsers.isActive, true),
+      user.programme ? eq(campuslinkUsers.programme, user.programme) : undefined,
+      campuslinkUsers.id !== user.id
+    ))
+    .limit(6);
+
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4">
@@ -41,17 +73,16 @@ export default async function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="h-16 w-16 rounded-full border-2 border-primary-green bg-primary-green/10 flex items-center justify-center text-2xl font-bold text-primary-green overflow-hidden">
-              {user?.avatar ? (
+              {user.avatar ? (
                 <Image src={user.avatar} alt={user.fullName} width={64} height={64} className="object-cover" />
               ) : (
-                user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+                user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
               )}
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold">Good morning, {user?.fullName || 'Student'}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">Good morning, {user.fullName}</h1>
               <p className="text-muted-text">
-                {user?.programme || 'No programme'} • Year {user?.year || '?'} 
-                <span className="ml-2 text-sm bg-green-100 text-green-700 px-2 py-0.5">Profile 60% complete</span>
+                {user.programme || 'No programme'} • Year {user.year || '?'}
               </p>
             </div>
             <Link 
@@ -64,94 +95,116 @@ export default async function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <QuickAction href="/connect" icon={UsersIcon} label="Find Students" />
           <QuickAction href="/mentors" icon={AcademicIcon} label="Find a Mentor" />
           <QuickAction href="/resources" icon={BookOpenIcon} label="Academic Resources" />
           <QuickAction href="/campus" icon={MapPinIcon} label="Explore Campus" />
-          <QuickAction href="/events" icon={CalendarIcon} label="View Events" />
         </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Upcoming */}
+            {/* Announcements */}
             <div className="bg-white border border-gray-200 p-6">
-              <h2 className="text-xl font-bold mb-4">Upcoming</h2>
-              <div className="space-y-4">
-                {mockEvents.map((event) => (
-                  <div key={event.id} className="border-b border-gray-100 pb-3 last:border-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{event.title}</h3>
-                        <p className="text-sm text-muted-text">{event.location}</p>
-                      </div>
-                      <span className="text-sm text-muted-text">
-                        {new Date(event.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Announcements</h2>
+                <Link href="/announcements" className="text-primary-green hover:underline text-sm">
+                  View all →
+                </Link>
               </div>
+              {recentAnnouncements.length > 0 ? (
+                <div className="space-y-3">
+                  {recentAnnouncements.map((ann) => (
+                    <div key={ann.id} className="border-b border-gray-100 pb-3 last:border-0">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{ann.title}</h3>
+                          <p className="text-sm text-muted-text line-clamp-1">{ann.content}</p>
+                        </div>
+                        <span className="text-xs text-muted-text">
+                          {ann.publishedAt ? new Date(ann.publishedAt).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-text">No announcements yet.</p>
+              )}
             </div>
 
-            {/* Recommended for You */}
+            {/* Upcoming Events */}
             <div className="bg-white border border-gray-200 p-6">
-              <h2 className="text-xl font-bold mb-4">Recommended for You</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {mockRecommendations.map((item) => (
-                  <div key={item.id} className="border border-gray-100 p-4 hover:border-primary-green transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 bg-primary-green/10 rounded-full flex items-center justify-center text-primary-green">
-                        {item.type === 'student' && <UsersIcon className="h-5 w-5" />}
-                        {item.type === 'mentor' && <AcademicIcon className="h-5 w-5" />}
-                        {item.type === 'resource' && <BookOpenIcon className="h-5 w-5" />}
-                        {item.type === 'event' && <CalendarIcon className="h-5 w-5" />}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm">{item.name || item.title}</h4>
-                        <p className="text-xs text-muted-text">
-                          {item.programme || item.type === 'resource' ? 'Academic Resource' : ''}
-                          {item.type === 'event' ? 'Upcoming Event' : ''}
-                        </p>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Upcoming Events</h2>
+                <Link href="/events" className="text-primary-green hover:underline text-sm">
+                  View all →
+                </Link>
+              </div>
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingEvents.map((event) => (
+                    <div key={event.id} className="border-b border-gray-100 pb-3 last:border-0">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{event.title}</h3>
+                          <p className="text-sm text-muted-text">{event.location}</p>
+                        </div>
+                        <span className="text-xs text-muted-text">
+                          {new Date(event.startDate).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-text">No upcoming events.</p>
+              )}
             </div>
           </div>
 
-          {/* Right Column */}
           <div className="space-y-6">
-            {/* Announcements */}
-            <div className="bg-white border border-gray-200 p-6">
-              <h2 className="text-xl font-bold mb-4">Announcements</h2>
-              <div className="space-y-3">
-                {mockAnnouncements.map((ann) => (
-                  <div key={ann.id} className="border-b border-gray-100 pb-3 last:border-0">
-                    <h4 className="font-medium text-sm">{ann.title}</h4>
-                    <p className="text-xs text-muted-text line-clamp-2">{ann.content}</p>
-                  </div>
-                ))}
+            {/* Your Cohort */}
+            {cohortStudents.length > 0 && (
+              <div className="bg-white border border-gray-200 p-6">
+                <h2 className="text-xl font-bold mb-4">Your Cohort</h2>
+                <div className="space-y-3">
+                  {cohortStudents.map((student) => (
+                    <Link key={student.id} href={`/profile/${student.username}`} className="flex items-center gap-3 hover:text-primary-green transition-colors">
+                      <div className="h-8 w-8 rounded-full bg-primary-green/10 flex items-center justify-center text-xs font-semibold text-primary-green">
+                        {student.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{student.fullName}</p>
+                        <p className="text-xs text-muted-text">{student.programme} • Year {student.year}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <Link href="/connect" className="text-sm text-primary-green hover:underline mt-3 inline-block">
+                  View all →
+                </Link>
               </div>
-            </div>
+            )}
 
-            {/* Continue Where You Left Off */}
-            <div className="bg-white border border-gray-200 p-6">
-              <h2 className="text-xl font-bold mb-4">Continue Where You Left Off</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                  <BookOpenIcon className="h-4 w-4 text-primary-green" />
-                  <span className="text-sm">Case Management Notes</span>
+            {/* Recommended Resources */}
+            {recommendedResources.length > 0 && (
+              <div className="bg-white border border-gray-200 p-6">
+                <h2 className="text-xl font-bold mb-4">Recommended Resources</h2>
+                <div className="space-y-3">
+                  {recommendedResources.map((resource) => (
+                    <Link key={resource.id} href={`/resources/${resource.id}`} className="block hover:text-primary-green transition-colors">
+                      <p className="font-medium text-sm">{resource.title}</p>
+                      <p className="text-xs text-muted-text">{resource.course}</p>
+                    </Link>
+                  ))}
                 </div>
-                <div className="flex items-center gap-3">
-                  <MapPinIcon className="h-4 w-4 text-primary-green" />
-                  <span className="text-sm">Library Location</span>
-                </div>
+                <Link href="/resources" className="text-sm text-primary-green hover:underline mt-3 inline-block">
+                  Browse all →
+                </Link>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
