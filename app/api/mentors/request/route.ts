@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { mentorshipRequests, mentors, campuslinkUsers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
+import { notifyMentorshipRequestReceived } from '@/lib/services/notification.service';
+import { sendMentorshipRequestEmail } from '@/lib/services/email.service';
 
 export async function POST(request: Request) {
   try {
@@ -75,6 +77,10 @@ export async function POST(request: Request) {
       helpNeeded: helpNeeded || [],
       status: 'pending',
     }).returning();
+
+    // Send notifications
+    await notifyMentorshipRequestReceived(mentor.id, user.id, user.fullName);
+    await sendMentorshipRequestEmail(mentorUser.email, mentorUser.fullName, user.fullName);
 
     return NextResponse.json({ request });
   } catch (error: any) {
