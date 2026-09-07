@@ -9,12 +9,26 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     const body = await request.json();
-    const { mentorId, message, helpNeeded } = body;
+    const { mentorUsername, message, helpNeeded } = body;
 
-    if (!mentorId) {
+    if (!mentorUsername) {
       return NextResponse.json(
-        { error: 'Mentor ID is required' },
+        { error: 'Mentor username is required' },
         { status: 400 }
+      );
+    }
+
+    // Get the mentor user
+    const mentorUser = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.username, mentorUsername))
+      .then(res => res[0]);
+
+    if (!mentorUser) {
+      return NextResponse.json(
+        { error: 'Mentor not found' },
+        { status: 404 }
       );
     }
 
@@ -23,7 +37,7 @@ export async function POST(request: Request) {
       .select()
       .from(mentors)
       .where(and(
-        eq(mentors.userId, mentorId),
+        eq(mentors.userId, mentorUser.id),
         eq(mentors.status, 'approved')
       ))
       .then(res => res[0]);
