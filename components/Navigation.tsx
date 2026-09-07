@@ -10,25 +10,48 @@ export function Navigation() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is logged in
     const token = document.cookie.includes('auth_token');
     setIsLoggedIn(token);
+    
+    // Get user role from cookie or localStorage (mock for now)
+    // In production, this would come from the auth context
+    const role = localStorage.getItem('userRole') || 'student';
+    setUserRole(role);
   }, []);
 
-  const navLinks = isLoggedIn ? [
-    { name: 'Dashboard', href: '/student/dashboard' },
-    { name: 'Connect', href: '/connect' },
-    { name: 'Community', href: '/community' },
-    { name: 'Resources', href: '/resources' },
-    { name: 'About', href: '/about' },
-  ] : [
-    { name: 'Home', href: '/' },
-    { name: 'About', href: '/about' },
-    { name: 'Campus', href: '/campus' },
-    { name: 'Events', href: '/events' },
-  ];
+  // Determine nav links based on role
+  let navLinks = [];
+  
+  if (isLoggedIn) {
+    if (userRole === 'mentor') {
+      navLinks = [
+        { name: 'Dashboard', href: '/mentor' },
+        { name: 'Requests', href: '/mentor/requests' },
+        { name: 'Mentees', href: '/mentor/mentees' },
+        { name: 'Schedule', href: '/mentor/schedule' },
+        { name: 'Resources', href: '/resources' },
+        { name: 'About', href: '/about' },
+      ];
+    } else {
+      navLinks = [
+        { name: 'Dashboard', href: '/student/dashboard' },
+        { name: 'Connect', href: '/connect' },
+        { name: 'Community', href: '/community' },
+        { name: 'Resources', href: '/resources' },
+        { name: 'About', href: '/about' },
+      ];
+    }
+  } else {
+    navLinks = [
+      { name: 'Home', href: '/' },
+      { name: 'About', href: '/about' },
+      { name: 'Campus', href: '/campus' },
+      { name: 'Events', href: '/events' },
+    ];
+  }
 
   return (
     <nav className="border-b border-gray-200 bg-white">
@@ -61,15 +84,24 @@ export function Navigation() {
               </Link>
             ))}
             {isLoggedIn ? (
-              <button
-                onClick={() => {
-                  document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                  window.location.href = '/';
-                }}
-                className="text-sm font-medium text-red-600 hover:text-red-700"
-              >
-                Logout
-              </button>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/settings"
+                  className="text-sm font-medium text-muted-text hover:text-primary-green transition-colors"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={() => {
+                    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    localStorage.removeItem('userRole');
+                    window.location.href = '/';
+                  }}
+                  className="text-sm font-medium text-red-600 hover:text-red-700"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
               <Link
                 href="/auth/login"
@@ -109,15 +141,25 @@ export function Navigation() {
                 </Link>
               ))}
               {isLoggedIn ? (
-                <button
-                  onClick={() => {
-                    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                    window.location.href = '/';
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-off-white text-left"
-                >
-                  Logout
-                </button>
+                <>
+                  <Link
+                    href="/settings"
+                    className="px-4 py-2 text-sm font-medium text-muted-text hover:bg-off-white hover:text-primary-green transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                      localStorage.removeItem('userRole');
+                      window.location.href = '/';
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-off-white text-left"
+                  >
+                    Logout
+                  </button>
+                </>
               ) : (
                 <Link
                   href="/auth/login"
