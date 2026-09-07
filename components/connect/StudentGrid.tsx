@@ -13,7 +13,7 @@ interface StudentCardProps {
 }
 
 export function StudentGrid({ students }: { students: StudentCardProps[] }) {
-  if (students.length === 0) {
+  if (!students || students.length === 0) {
     return (
       <div className="border border-gray-200 bg-white p-8 text-center">
         <p className="text-muted-text">No students found.</p>
