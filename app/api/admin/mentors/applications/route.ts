@@ -4,6 +4,11 @@ import { db } from '@/lib/db';
 import { campuslinkUsers } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
+import { 
+  notifyMentorApplicationApproved, 
+  notifyMentorApplicationRejected 
+} from '@/lib/services/notification.service';
+import { sendMentorApprovalEmail, sendMentorRejectionEmail } from '@/lib/services/email.service';
 
 export async function GET() {
   try {
@@ -26,7 +31,7 @@ export async function PUT(request: Request) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, action } = body;
+    const { id, action, reason } = body;
 
     if (!id || !action) {
       return NextResponse.json(
@@ -46,6 +51,13 @@ export async function PUT(request: Request) {
         })
         .where(eq(campuslinkUsers.id, id))
         .returning();
+
+      if (updated) {
+        // Send in-app notification
+        await notifyMentorApplicationApproved(id, updated.fullName);
+        // Send email notification
+        await sendMentorApprovalEmail(updated.email, updated.fullName);
+      }
     } else if (action === 'reject') {
       [updated] = await db
         .update(campuslinkUsers)
@@ -55,6 +67,13 @@ export async function PUT(request: Request) {
         })
         .where(eq(campuslinkUsers.id, id))
         .returning();
+
+      if (updated) {
+        // Send in-app notification
+        await notifyMentorApplicationRejected(id, reason);
+        // Send email notification
+        await sendMentorRejectionEmail(updated.email, updated.fullName, reason);
+      }
     } else {
       return NextResponse.json(
         { error: 'Invalid action. Must be "approve" or "reject"' },
