@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { db } from '../db';
-import { users } from '../db/schema';
+import { campuslinkUsers } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -37,7 +37,7 @@ export async function getCurrentUser() {
   const decoded = verifyToken(token);
   if (!decoded) return null;
   
-  const user = await db.select().from(users).where(eq(users.id, decoded.userId));
+  const user = await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.id, decoded.userId));
   return user[0] || null;
 }
 
