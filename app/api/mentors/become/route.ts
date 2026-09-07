@@ -1,7 +1,7 @@
 // app/api/mentors/become/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { mentors, users } from '@/lib/db/schema';
+import { campuslinkUsers, mentors } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 
@@ -10,16 +10,18 @@ export async function POST(request: Request) {
     const user = await requireAuth();
     const body = await request.json();
 
-    // Check if user already has a mentor profile
-    const existingMentor = await db
-      .select()
-      .from(mentors)
-      .where(eq(mentors.userId, user.id))
-      .then(res => res[0]);
-
-    if (existingMentor) {
+    // Check if user already has mentor status
+    if (user.isMentor) {
       return NextResponse.json(
-        { error: 'You already have a mentor profile' },
+        { error: 'You are already a mentor' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user has a pending application
+    if (user.mentorStatus === 'pending') {
+      return NextResponse.json(
+        { error: 'You already have a pending mentor application' },
         { status: 400 }
       );
     }
@@ -30,20 +32,25 @@ export async function POST(request: Request) {
       status: 'pending',
       expertise: body.expertise || [],
       subjects: body.subjects || [],
-      introduction: body.introduction,
-      experience: body.experience,
+      availability: body.availability || 'available',
+      introduction: body.bio || '',
+      experience: '',
     }).returning();
 
-    // Update user to mark as mentor
-    await db.update(users)
-      .set({ mentorType: body.mentorType || 'Student' })
-      .where(eq(users.id, user.id));
+    // Update user's mentor status
+    await db.update(campuslinkUsers)
+      .set({
+        mentorStatus: 'pending',
+        mentorType: body.mentorType || 'Student',
+        updatedAt: new Date(),
+      })
+      .where(eq(campuslinkUsers.id, user.id));
 
     return NextResponse.json({ mentor });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to apply' },
-      { status: 500 }
+      { error: error.message || 'Failed to submit application' },
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
 }
