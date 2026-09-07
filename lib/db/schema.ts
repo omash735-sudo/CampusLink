@@ -2,11 +2,11 @@
 import { pgTable, text, uuid, timestamp, integer, jsonb, boolean, foreignKey, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Users
-export const users = pgTable('users', {
+// ==================== CAMPUSLINK USERS (DEDICATED) ====================
+export const campuslinkUsers = pgTable('campuslink_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').unique().notNull(),
-  passwordHash: text('password_hash'),
+  passwordHash: text('password_hash').notNull(),
   fullName: text('full_name').notNull(),
   username: text('username').unique().notNull(),
   avatar: text('avatar'),
@@ -21,11 +21,12 @@ export const users = pgTable('users', {
   lastActive: timestamp('last_active'),
   isMentor: boolean('is_mentor').default(false),
   mentorType: text('mentor_type'),
+  mentorStatus: text('mentor_status').default('not_applied'), // not_applied, pending, approved, rejected, suspended
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Faculties
+// ==================== FACULTIES ====================
 export const faculties = pgTable('faculties', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -35,7 +36,7 @@ export const faculties = pgTable('faculties', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Programmes
+// ==================== PROGRAMMES ====================
 export const programmes = pgTable('programmes', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -52,7 +53,7 @@ export const programmes = pgTable('programmes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Courses
+// ==================== COURSES ====================
 export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -68,7 +69,7 @@ export const courses = pgTable('courses', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Cohorts
+// ==================== COHORTS ====================
 export const cohorts = pgTable('cohorts', {
   id: uuid('id').primaryKey().defaultRandom(),
   programmeId: uuid('programme_id').references(() => programmes.id),
@@ -79,7 +80,7 @@ export const cohorts = pgTable('cohorts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Interests
+// ==================== INTERESTS ====================
 export const interests = pgTable('interests', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').unique().notNull(),
@@ -88,28 +89,28 @@ export const interests = pgTable('interests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Student Interests
+// ==================== STUDENT INTERESTS ====================
 export const studentInterests = pgTable('student_interests', {
   id: uuid('id').primaryKey().defaultRandom(),
-  studentId: uuid('student_id').references(() => users.id).notNull(),
+  studentId: uuid('student_id').references(() => campuslinkUsers.id).notNull(),
   interestId: uuid('interest_id').references(() => interests.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Connections
+// ==================== CONNECTIONS ====================
 export const connections = pgTable('connections', {
   id: uuid('id').primaryKey().defaultRandom(),
-  requesterId: uuid('requester_id').references(() => users.id).notNull(),
-  receiverId: uuid('receiver_id').references(() => users.id).notNull(),
+  requesterId: uuid('requester_id').references(() => campuslinkUsers.id).notNull(),
+  receiverId: uuid('receiver_id').references(() => campuslinkUsers.id).notNull(),
   status: text('status').default('pending').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mentors
+// ==================== MENTORS ====================
 export const mentors = pgTable('mentors', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).unique().notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).unique().notNull(),
   status: text('status').default('pending').notNull(),
   expertise: text('expertise').array(),
   subjects: text('subjects').array(),
@@ -122,7 +123,7 @@ export const mentors = pgTable('mentors', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mentor Expertise
+// ==================== MENTOR EXPERTISE ====================
 export const mentorExpertise = pgTable('mentor_expertise', {
   id: uuid('id').primaryKey().defaultRandom(),
   mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
@@ -131,11 +132,11 @@ export const mentorExpertise = pgTable('mentor_expertise', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Mentorship Requests
+// ==================== MENTORSHIP REQUESTS ====================
 export const mentorshipRequests = pgTable('mentorship_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
-  studentId: uuid('student_id').references(() => users.id).notNull(),
+  studentId: uuid('student_id').references(() => campuslinkUsers.id).notNull(),
   status: text('status').default('pending').notNull(),
   message: text('message'),
   introduction: text('introduction'),
@@ -144,11 +145,11 @@ export const mentorshipRequests = pgTable('mentorship_requests', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mentorships
+// ==================== MENTORSHIPS ====================
 export const mentorships = pgTable('mentorships', {
   id: uuid('id').primaryKey().defaultRandom(),
   mentorId: uuid('mentor_id').references(() => mentors.id).notNull(),
-  studentId: uuid('student_id').references(() => users.id).notNull(),
+  studentId: uuid('student_id').references(() => campuslinkUsers.id).notNull(),
   requestId: uuid('request_id').references(() => mentorshipRequests.id),
   status: text('status').default('active').notNull(),
   startedAt: timestamp('started_at').defaultNow().notNull(),
@@ -158,18 +159,18 @@ export const mentorships = pgTable('mentorships', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mentor Reviews
+// ==================== MENTOR REVIEWS ====================
 export const mentorReviews = pgTable('mentor_reviews', {
   id: uuid('id').primaryKey().defaultRandom(),
   mentorshipId: uuid('mentorship_id').references(() => mentorships.id).notNull(),
-  studentId: uuid('student_id').references(() => users.id).notNull(),
+  studentId: uuid('student_id').references(() => campuslinkUsers.id).notNull(),
   rating: integer('rating'),
   review: text('review'),
   isPublic: boolean('is_public').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Resource Categories
+// ==================== RESOURCE CATEGORIES ====================
 export const resourceCategories = pgTable('resource_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').unique().notNull(),
@@ -179,7 +180,7 @@ export const resourceCategories = pgTable('resource_categories', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Resources
+// ==================== RESOURCES ====================
 export const resources = pgTable('resources', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -190,7 +191,7 @@ export const resources = pgTable('resources', {
   semester: text('semester'),
   academicYear: text('academic_year'),
   course: text('course'),
-  uploadedBy: uuid('uploaded_by').references(() => users.id).notNull(),
+  uploadedBy: uuid('uploaded_by').references(() => campuslinkUsers.id).notNull(),
   fileUrl: text('file_url').notNull(),
   fileName: text('file_name').notNull(),
   fileType: text('file_type').notNull(),
@@ -199,41 +200,41 @@ export const resources = pgTable('resources', {
   viewCount: integer('view_count').default(0),
   status: text('status').default('pending').notNull(),
   isVerified: boolean('is_verified').default(false),
-  verifiedBy: uuid('verified_by').references(() => users.id),
+  verifiedBy: uuid('verified_by').references(() => campuslinkUsers.id),
   verifiedAt: timestamp('verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Saved Resources
+// ==================== SAVED RESOURCES ====================
 export const savedResources = pgTable('saved_resources', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   resourceId: uuid('resource_id').references(() => resources.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Resource Downloads
+// ==================== RESOURCE DOWNLOADS ====================
 export const resourceDownloads = pgTable('resource_downloads', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   resourceId: uuid('resource_id').references(() => resources.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Resource Views
+// ==================== RESOURCE VIEWS ====================
 export const resourceViews = pgTable('resource_views', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: uuid('user_id').references(() => campuslinkUsers.id),
   resourceId: uuid('resource_id').references(() => resources.id).notNull(),
   viewedAt: timestamp('viewed_at').defaultNow().notNull(),
 });
 
-// Resource Reports
+// ==================== RESOURCE REPORTS ====================
 export const resourceReports = pgTable('resource_reports', {
   id: uuid('id').primaryKey().defaultRandom(),
   resourceId: uuid('resource_id').references(() => resources.id).notNull(),
-  reporterId: uuid('reporter_id').references(() => users.id).notNull(),
+  reporterId: uuid('reporter_id').references(() => campuslinkUsers.id).notNull(),
   reason: text('reason').notNull(),
   description: text('description'),
   status: text('status').default('pending').notNull(),
@@ -241,12 +242,12 @@ export const resourceReports = pgTable('resource_reports', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Posts
+// ==================== POSTS ====================
 export const posts = pgTable('posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title'),
   content: text('content').notNull(),
-  authorId: uuid('author_id').references(() => users.id).notNull(),
+  authorId: uuid('author_id').references(() => campuslinkUsers.id).notNull(),
   type: text('type').default('post').notNull(),
   visibility: text('visibility').default('public').notNull(),
   status: text('status').default('published').notNull(),
@@ -256,11 +257,11 @@ export const posts = pgTable('posts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Comments
+// ==================== COMMENTS ====================
 export const comments = pgTable('comments', {
   id: uuid('id').primaryKey().defaultRandom(),
   postId: uuid('post_id').references(() => posts.id).notNull(),
-  authorId: uuid('author_id').references(() => users.id).notNull(),
+  authorId: uuid('author_id').references(() => campuslinkUsers.id).notNull(),
   content: text('content').notNull(),
   parentId: uuid('parent_id'),
   likes: integer('likes').default(0),
@@ -269,7 +270,7 @@ export const comments = pgTable('comments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Groups
+// ==================== GROUPS ====================
 export const groups = pgTable('groups', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -284,25 +285,25 @@ export const groups = pgTable('groups', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Group Members
+// ==================== GROUP MEMBERS ====================
 export const groupMembers = pgTable('group_members', {
   id: uuid('id').primaryKey().defaultRandom(),
   groupId: uuid('group_id').references(() => groups.id).notNull(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   role: text('role').default('member').notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
-// User Communities
+// ==================== USER COMMUNITIES ====================
 export const userCommunities = pgTable('user_communities', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   communityId: uuid('community_id').references(() => groups.id).notNull(),
   role: text('role').default('member').notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
-// Events
+// ==================== EVENTS ====================
 export const events = pgTable('events', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -319,16 +320,16 @@ export const events = pgTable('events', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Event Attendees
+// ==================== EVENT ATTENDEES ====================
 export const eventAttendees = pgTable('event_attendees', {
   id: uuid('id').primaryKey().defaultRandom(),
   eventId: uuid('event_id').references(() => events.id).notNull(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   status: text('status').default('registered').notNull(),
   registeredAt: timestamp('registered_at').defaultNow().notNull(),
 });
 
-// Opportunities
+// ==================== OPPORTUNITIES ====================
 export const opportunities = pgTable('opportunities', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -344,12 +345,12 @@ export const opportunities = pgTable('opportunities', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Announcements
+// ==================== ANNOUNCEMENTS ====================
 export const announcements = pgTable('announcements', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   content: text('content').notNull(),
-  authorId: uuid('author_id').references(() => users.id).notNull(),
+  authorId: uuid('author_id').references(() => campuslinkUsers.id).notNull(),
   type: text('type').default('general').notNull(),
   priority: text('priority').default('normal').notNull(),
   isPublished: boolean('is_published').default(false),
@@ -360,7 +361,7 @@ export const announcements = pgTable('announcements', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Conversations
+// ==================== CONVERSATIONS ====================
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   isGroup: boolean('is_group').default(false),
@@ -372,7 +373,7 @@ export const conversations = pgTable('conversations', {
 export const conversationMembers = pgTable('conversation_members', {
   id: uuid('id').primaryKey().defaultRandom(),
   conversationId: uuid('conversation_id').references(() => conversations.id).notNull(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   lastRead: timestamp('last_read'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
@@ -380,17 +381,17 @@ export const conversationMembers = pgTable('conversation_members', {
 export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().defaultRandom(),
   conversationId: uuid('conversation_id').references(() => conversations.id).notNull(),
-  senderId: uuid('sender_id').references(() => users.id).notNull(),
+  senderId: uuid('sender_id').references(() => campuslinkUsers.id).notNull(),
   content: text('content').notNull(),
   type: text('type').default('text').notNull(),
   read: boolean('read').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Notifications
+// ==================== NOTIFICATIONS ====================
 export const notifications = pgTable('notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id).notNull(),
   type: text('type').notNull(),
   title: text('title').notNull(),
   content: text('content'),
@@ -399,10 +400,10 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Reports
+// ==================== REPORTS ====================
 export const reports = pgTable('reports', {
   id: uuid('id').primaryKey().defaultRandom(),
-  reporterId: uuid('reporter_id').references(() => users.id).notNull(),
+  reporterId: uuid('reporter_id').references(() => campuslinkUsers.id).notNull(),
   targetType: text('target_type').notNull(),
   targetId: uuid('target_id').notNull(),
   reason: text('reason').notNull(),
@@ -412,10 +413,10 @@ export const reports = pgTable('reports', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Audit Logs
+// ==================== AUDIT LOGS ====================
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  adminId: uuid('admin_id').references(() => users.id),
+  adminId: uuid('admin_id').references(() => campuslinkUsers.id),
   action: text('action').notNull(),
   entity: text('entity').notNull(),
   entityId: uuid('entity_id'),
@@ -426,7 +427,7 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// ==================== CAMPUS TABLES ====================
+// ==================== CAMPUS LOCATIONS ====================
 export const campusLocations = pgTable('campus_locations', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -482,35 +483,8 @@ export const campusGallery = pgTable('campus_gallery', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== CAMPUS RELATIONS ====================
-export const campusLocationsRelations = relations(campusLocations, ({ many }) => ({
-  nearby: many(campusLocationNearby, { relationName: 'locationNearby' }),
-  nearbyOf: many(campusLocationNearby, { relationName: 'nearbyLocation' }),
-  gallery: many(campusGallery),
-}));
-
-export const campusLocationNearbyRelations = relations(campusLocationNearby, ({ one }) => ({
-  location: one(campusLocations, {
-    fields: [campusLocationNearby.locationId],
-    references: [campusLocations.id],
-    relationName: 'locationNearby',
-  }),
-  nearbyLocation: one(campusLocations, {
-    fields: [campusLocationNearby.nearbyLocationId],
-    references: [campusLocations.id],
-    relationName: 'nearbyLocation',
-  }),
-}));
-
-export const campusGalleryRelations = relations(campusGallery, ({ one }) => ({
-  location: one(campusLocations, {
-    fields: [campusGallery.locationId],
-    references: [campusLocations.id],
-  }),
-}));
-
-// ==================== MAIN RELATIONS ====================
-export const usersRelations = relations(users, ({ many }) => ({
+// ==================== RELATIONS ====================
+export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) => ({
   mentors: many(mentors),
   resources: many(resources),
   posts: many(posts),
@@ -533,6 +507,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   resourceDownloads: many(resourceDownloads),
   resourceViews: many(resourceViews),
   resourceReports: many(resourceReports),
+  auditLogs: many(auditLogs),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -557,22 +532,22 @@ export const cohortsRelations = relations(cohorts, ({ one }) => ({
 }));
 
 export const connectionsRelations = relations(connections, ({ one }) => ({
-  requester: one(users, {
+  requester: one(campuslinkUsers, {
     fields: [connections.requesterId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
     relationName: 'sentConnections',
   }),
-  receiver: one(users, {
+  receiver: one(campuslinkUsers, {
     fields: [connections.receiverId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
     relationName: 'receivedConnections',
   }),
 }));
 
 export const studentInterestsRelations = relations(studentInterests, ({ one }) => ({
-  student: one(users, {
+  student: one(campuslinkUsers, {
     fields: [studentInterests.studentId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   interest: one(interests, {
     fields: [studentInterests.interestId],
@@ -581,9 +556,9 @@ export const studentInterestsRelations = relations(studentInterests, ({ one }) =
 }));
 
 export const userCommunitiesRelations = relations(userCommunities, ({ one }) => ({
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [userCommunities.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   community: one(groups, {
     fields: [userCommunities.communityId],
@@ -592,9 +567,9 @@ export const userCommunitiesRelations = relations(userCommunities, ({ one }) => 
 }));
 
 export const mentorsRelations = relations(mentors, ({ one, many }) => ({
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [mentors.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   expertise: many(mentorExpertise),
   requests: many(mentorshipRequests, { relationName: 'mentorRequests' }),
@@ -614,9 +589,9 @@ export const mentorshipRequestsRelations = relations(mentorshipRequests, ({ one 
     references: [mentors.id],
     relationName: 'mentorRequests',
   }),
-  student: one(users, {
+  student: one(campuslinkUsers, {
     fields: [mentorshipRequests.studentId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
     relationName: 'studentRequests',
   }),
 }));
@@ -627,9 +602,9 @@ export const mentorshipsRelations = relations(mentorships, ({ one, many }) => ({
     references: [mentors.id],
     relationName: 'mentorMentorships',
   }),
-  student: one(users, {
+  student: one(campuslinkUsers, {
     fields: [mentorships.studentId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
     relationName: 'studentMentorships',
   }),
   request: one(mentorshipRequests, {
@@ -644,9 +619,9 @@ export const mentorReviewsRelations = relations(mentorReviews, ({ one }) => ({
     fields: [mentorReviews.mentorshipId],
     references: [mentorships.id],
   }),
-  student: one(users, {
+  student: one(campuslinkUsers, {
     fields: [mentorReviews.studentId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
@@ -659,9 +634,9 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
     fields: [resources.courseId],
     references: [courses.id],
   }),
-  uploader: one(users, {
+  uploader: one(campuslinkUsers, {
     fields: [resources.uploadedBy],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   savedBy: many(savedResources),
   downloads: many(resourceDownloads),
@@ -670,9 +645,9 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
 }));
 
 export const savedResourcesRelations = relations(savedResources, ({ one }) => ({
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [savedResources.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   resource: one(resources, {
     fields: [savedResources.resourceId],
@@ -681,9 +656,9 @@ export const savedResourcesRelations = relations(savedResources, ({ one }) => ({
 }));
 
 export const resourceDownloadsRelations = relations(resourceDownloads, ({ one }) => ({
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [resourceDownloads.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   resource: one(resources, {
     fields: [resourceDownloads.resourceId],
@@ -692,9 +667,9 @@ export const resourceDownloadsRelations = relations(resourceDownloads, ({ one })
 }));
 
 export const resourceViewsRelations = relations(resourceViews, ({ one }) => ({
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [resourceViews.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   resource: one(resources, {
     fields: [resourceViews.resourceId],
@@ -707,16 +682,16 @@ export const resourceReportsRelations = relations(resourceReports, ({ one }) => 
     fields: [resourceReports.resourceId],
     references: [resources.id],
   }),
-  reporter: one(users, {
+  reporter: one(campuslinkUsers, {
     fields: [resourceReports.reporterId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
-  author: one(users, {
+  author: one(campuslinkUsers, {
     fields: [posts.authorId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   comments: many(comments),
 }));
@@ -726,9 +701,9 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     fields: [comments.postId],
     references: [posts.id],
   }),
-  author: one(users, {
+  author: one(campuslinkUsers, {
     fields: [comments.authorId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
   parent: one(comments, {
     fields: [comments.parentId],
@@ -742,9 +717,9 @@ export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
     fields: [groupMembers.groupId],
     references: [groups.id],
   }),
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [groupMembers.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
@@ -753,9 +728,9 @@ export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
     fields: [eventAttendees.eventId],
     references: [events.id],
   }),
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [eventAttendees.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
@@ -764,9 +739,9 @@ export const conversationMembersRelations = relations(conversationMembers, ({ on
     fields: [conversationMembers.conversationId],
     references: [conversations.id],
   }),
-  user: one(users, {
+  user: one(campuslinkUsers, {
     fields: [conversationMembers.userId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
@@ -775,15 +750,48 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     fields: [messages.conversationId],
     references: [conversations.id],
   }),
-  sender: one(users, {
+  sender: one(campuslinkUsers, {
     fields: [messages.senderId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
   }),
 }));
 
 export const announcementsRelations = relations(announcements, ({ one }) => ({
-  author: one(users, {
+  author: one(campuslinkUsers, {
     fields: [announcements.authorId],
-    references: [users.id],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  admin: one(campuslinkUsers, {
+    fields: [auditLogs.adminId],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+export const campusLocationsRelations = relations(campusLocations, ({ many }) => ({
+  nearby: many(campusLocationNearby, { relationName: 'locationNearby' }),
+  nearbyOf: many(campusLocationNearby, { relationName: 'nearbyLocation' }),
+  gallery: many(campusGallery),
+}));
+
+export const campusLocationNearbyRelations = relations(campusLocationNearby, ({ one }) => ({
+  location: one(campusLocations, {
+    fields: [campusLocationNearby.locationId],
+    references: [campusLocations.id],
+    relationName: 'locationNearby',
+  }),
+  nearbyLocation: one(campusLocations, {
+    fields: [campusLocationNearby.nearbyLocationId],
+    references: [campusLocations.id],
+    relationName: 'nearbyLocation',
+  }),
+}));
+
+export const campusGalleryRelations = relations(campusGallery, ({ one }) => ({
+  location: one(campusLocations, {
+    fields: [campusGallery.locationId],
+    references: [campusLocations.id],
   }),
 }));
