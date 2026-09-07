@@ -1,28 +1,28 @@
 // app/mentors/[username]/page.tsx
 import { db } from '@/lib/db';
-import { mentors, users, mentorExpertise } from '@/lib/db/schema';
+import { mentors, campuslinkUsers, mentorExpertise } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
-import { UserIcon, AcademicIcon, BookOpenIcon } from '@/components/icons';
+import Image from 'next/image';
 
 export default async function MentorProfilePage({ params }: { params: { username: string } }) {
   const currentUser = await getCurrentUser();
 
   const user = await db
     .select({
-      id: users.id,
-      fullName: users.fullName,
-      username: users.username,
-      avatar: users.avatar,
-      programme: users.programme,
-      year: users.year,
-      mentorType: users.mentorType,
-      bio: users.bio,
+      id: campuslinkUsers.id,
+      fullName: campuslinkUsers.fullName,
+      username: campuslinkUsers.username,
+      avatar: campuslinkUsers.avatar,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
+      mentorType: campuslinkUsers.mentorType,
+      bio: campuslinkUsers.bio,
     })
-    .from(users)
-    .where(eq(users.username, params.username))
+    .from(campuslinkUsers)
+    .where(eq(campuslinkUsers.username, params.username))
     .then(res => res[0]);
 
   if (!user) notFound();
@@ -41,10 +41,13 @@ export default async function MentorProfilePage({ params }: { params: { username
       availability: mentors.availability,
     })
     .from(mentors)
-    .where(eq(mentors.userId, user.id))
+    .where(and(
+      eq(mentors.userId, user.id),
+      eq(mentors.status, 'approved')
+    ))
     .then(res => res[0]);
 
-  if (!mentor || mentor.status !== 'verified') notFound();
+  if (!mentor) notFound();
 
   const expertiseList = await db
     .select()
@@ -60,22 +63,19 @@ export default async function MentorProfilePage({ params }: { params: { username
           ← Back to Mentors
         </Link>
 
-        {/* Profile Header */}
         <div className="bg-white border border-gray-200 p-8 mt-4">
           <div className="flex flex-col md:flex-row items-start gap-6">
             <div className="h-24 w-24 flex-shrink-0 border border-gray-200 bg-primary-green text-white flex items-center justify-center font-semibold text-3xl overflow-hidden">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.fullName} className="h-full w-full object-cover" />
+                <Image src={user.avatar} alt={user.fullName} width={96} height={96} className="h-full w-full object-cover" />
               ) : (
-                user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold">{user.fullName}</h1>
-                {mentor.status === 'verified' && (
-                  <span className="text-sm bg-green-100 text-green-700 px-3 py-1">Verified Mentor</span>
-                )}
+                <span className="text-sm bg-green-100 text-green-700 px-3 py-1">Verified Mentor</span>
               </div>
               {user.mentorType && (
                 <p className="text-lg text-muted-text">{user.mentorType} Mentor</p>
@@ -105,7 +105,6 @@ export default async function MentorProfilePage({ params }: { params: { username
           </div>
         </div>
 
-        {/* About Section */}
         {user.bio || mentor.introduction ? (
           <div className="bg-white border border-gray-200 p-6 mt-6">
             <h2 className="text-xl font-bold mb-3">About</h2>
@@ -113,12 +112,11 @@ export default async function MentorProfilePage({ params }: { params: { username
           </div>
         ) : null}
 
-        {/* Expertise Section */}
         {(mentor.expertise && mentor.expertise.length > 0) || expertiseList.length > 0 ? (
           <div className="bg-white border border-gray-200 p-6 mt-6">
             <h2 className="text-xl font-bold mb-3">Expertise</h2>
             <div className="flex flex-wrap gap-2">
-              {mentor.expertise?.map((exp) => (
+              {mentor.expertise?.map((exp: string) => (
                 <span key={exp} className="bg-gray-100 px-3 py-1 text-sm">{exp}</span>
               ))}
               {expertiseList.map((exp) => (
@@ -128,7 +126,6 @@ export default async function MentorProfilePage({ params }: { params: { username
           </div>
         ) : null}
 
-        {/* Experience Section */}
         {mentor.experience && (
           <div className="bg-white border border-gray-200 p-6 mt-6">
             <h2 className="text-xl font-bold mb-3">Experience</h2>
@@ -136,7 +133,6 @@ export default async function MentorProfilePage({ params }: { params: { username
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap gap-4">
           {!isOwnProfile && currentUser ? (
             <Link
@@ -147,7 +143,7 @@ export default async function MentorProfilePage({ params }: { params: { username
             </Link>
           ) : isOwnProfile ? (
             <Link
-              href="/mentors/dashboard"
+              href="/mentor"
               className="bg-primary-green text-white px-8 py-3 font-medium hover:bg-deep-green transition-colors"
             >
               Manage Mentorship
