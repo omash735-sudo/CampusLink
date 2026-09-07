@@ -1,7 +1,7 @@
 // app/mentors/page.tsx
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { mentors, users, mentorExpertise } from '@/lib/db/schema';
+import { mentors, campuslinkUsers, mentorExpertise } from '@/lib/db/schema';
 import { eq, desc, and, like, or, sql } from 'drizzle-orm';
 import Link from 'next/link';
 import { MentorSearch } from '@/components/mentors/MentorSearch';
@@ -20,7 +20,7 @@ export default async function MentorsPage({
   const typeFilter = searchParams.type || '';
   const availabilityFilter = searchParams.availability || '';
 
-  // Build query using incremental approach to avoid TypeScript issues
+  // Build query using incremental approach
   let query = db
     .select({
       id: mentors.id,
@@ -34,24 +34,24 @@ export default async function MentorsPage({
       reviewCount: mentors.reviewCount,
       availability: mentors.availability,
       user: {
-        fullName: users.fullName,
-        username: users.username,
-        programme: users.programme,
-        year: users.year,
-        avatar: users.avatar,
-        mentorType: users.mentorType,
+        fullName: campuslinkUsers.fullName,
+        username: campuslinkUsers.username,
+        programme: campuslinkUsers.programme,
+        year: campuslinkUsers.year,
+        avatar: campuslinkUsers.avatar,
+        mentorType: campuslinkUsers.mentorType,
       }
     })
     .from(mentors)
-    .leftJoin(users, eq(mentors.userId, users.id))
-    .where(eq(mentors.status, 'verified'));
+    .leftJoin(campuslinkUsers, eq(mentors.userId, campuslinkUsers.id))
+    .where(eq(mentors.status, 'approved'));
 
   // Add search conditions
   if (search) {
     query = query.where(
       or(
-        like(users.fullName, `%${search}%`),
-        like(users.programme, `%${search}%`),
+        like(campuslinkUsers.fullName, `%${search}%`),
+        like(campuslinkUsers.programme, `%${search}%`),
         like(mentors.expertise, `%${search}%`)
       )
     );
@@ -59,7 +59,7 @@ export default async function MentorsPage({
 
   // Add type filter
   if (typeFilter) {
-    query = query.where(eq(users.mentorType, typeFilter));
+    query = query.where(eq(campuslinkUsers.mentorType, typeFilter));
   }
 
   // Add availability filter
@@ -85,7 +85,6 @@ export default async function MentorsPage({
   return (
     <div className="min-h-screen bg-off-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-primary-text">Find a Mentor</h1>
           <p className="text-lg text-muted-text mt-2">
@@ -100,7 +99,7 @@ export default async function MentorsPage({
             </Link>
             {!currentUser?.isMentor && (
               <Link
-                href="/mentors/become"
+                href="/mentors/become-a-mentor"
                 className="border-2 border-primary-green text-primary-green px-6 py-2 font-medium hover:bg-primary-green hover:text-white transition-colors"
               >
                 Become a Mentor
@@ -156,7 +155,7 @@ export default async function MentorsPage({
                   Clear Filters
                 </Link>
                 <Link
-                  href="/mentors/become"
+                  href="/mentors/become-a-mentor"
                   className="text-primary-green hover:underline text-sm"
                 >
                   Become a Mentor
