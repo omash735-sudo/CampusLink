@@ -4,46 +4,81 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { adminService, Student } from '@/lib/services/admin.service';
-import { UserIcon, MailIcon, CalendarIcon, BookOpenIcon, UserGroupIcon } from '@/components/icons';
 
-export default function StudentDetailsPage() {
+interface User {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  programme: string;
+  year: number;
+  bio: string;
+  role: string;
+  isActive: boolean;
+  isMentor: boolean;
+  mentorStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  lastActive: string;
+}
+
+export default function StudentDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [student, setStudent] = useState<Student | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadStudent();
+    loadUser();
   }, [params.id]);
 
-  const loadStudent = async () => {
+  const loadUser = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const data = await adminService.getStudent(params.id as string);
-      if (data) {
-        setStudent(data);
+      const res = await fetch(`/api/admin/users/${params.id}`);
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data);
       } else {
-        setError('Student not found');
+        setError(data.error || 'Failed to load user');
       }
     } catch (err) {
-      setError('Failed to load student');
-      console.error(err);
+      setError('Failed to load user');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (newStatus: 'Active' | 'Inactive' | 'Suspended') => {
-    if (!student) return;
-    if (!confirm(`Change student status to ${newStatus}?`)) return;
+  const handleStatusToggle = async () => {
+    if (!user) return;
+    if (!confirm(`Change user status to ${user.isActive ? 'Inactive' : 'Active'}?`)) return;
+    
     try {
-      const updated = await adminService.updateStudent(student.id, { status: newStatus });
-      setStudent(updated);
-    } catch (err) {
-      console.error('Failed to update status:', err);
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, isActive: !user.isActive }),
+      });
+      if (res.ok) {
+        await loadUser();
+      }
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user) return;
+    if (!confirm('Delete this user? This action cannot be undone.')) return;
+    
+    try {
+      const res = await fetch(`/api/admin/users?id=${user.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/admin/students');
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
     }
   };
 
@@ -57,7 +92,6 @@ export default function StudentDetailsPage() {
             <div className="flex-1 space-y-2">
               <div className="h-6 w-48 bg-gray-200 animate-pulse rounded"></div>
               <div className="h-4 w-32 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-4 w-24 bg-gray-200 animate-pulse rounded"></div>
             </div>
           </div>
         </div>
@@ -65,10 +99,10 @@ export default function StudentDetailsPage() {
     );
   }
 
-  if (error || !student) {
+  if (error || !user) {
     return (
       <div className="bg-white border border-gray-200 p-8 text-center">
-        <p className="text-gray-500">{error || 'Student not found'}</p>
+        <p className="text-gray-500">{error || 'User not found'}</p>
         <Link href="/admin/students" className="text-primary-green hover:underline text-sm mt-2 inline-block">
           Back to Students
         </Link>
@@ -78,146 +112,106 @@ export default function StudentDetailsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/admin/students" className="text-primary-green hover:underline text-sm">
-          ← Back to Students
-        </Link>
-        <h1 className="text-2xl font-bold">Student Details</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/students" className="text-primary-green hover:underline text-sm">
+            ← Back to Students
+          </Link>
+          <h1 className="text-2xl font-bold">Student Details</h1>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/admin/students/${user.id}/edit`} className="bg-primary-green text-white px-4 py-1.5 text-sm hover:bg-deep-green transition-colors">
+            Edit
+          </Link>
+          <button onClick={handleDelete} className="border border-red-300 text-red-600 px-4 py-1.5 text-sm hover:bg-red-50 transition-colors">
+            Delete
+          </button>
+        </div>
       </div>
 
-      {/* Profile Header */}
       <div className="bg-white border border-gray-200 p-6">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <div className="h-20 w-20 rounded-full bg-primary-green/10 flex items-center justify-center text-2xl font-semibold text-primary-green flex-shrink-0">
-            {student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+            {user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-2xl font-bold">{student.name}</h2>
-              {student.isDefault && (
-                <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5">Default Data</span>
-              )}
+              <h2 className="text-2xl font-bold">{user.fullName}</h2>
               <span className={`text-xs px-2 py-0.5 ${
-                student.status === 'Active' ? 'bg-green-100 text-green-700' :
-                student.status === 'Inactive' ? 'bg-gray-100 text-gray-600' :
-                'bg-red-100 text-red-700'
+                user.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>
-                {student.status}
+                {user.isActive ? 'Active' : 'Inactive'}
               </span>
+              {user.isMentor && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5">Mentor</span>
+              )}
+              {user.mentorStatus === 'pending' && (
+                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5">Mentor Pending</span>
+              )}
             </div>
-            <p className="text-gray-500">@{student.username}</p>
-            <p className="text-gray-500">{student.programme} • Year {student.year}</p>
-            <p className="text-gray-500">{student.faculty}</p>
+            <p className="text-gray-500">@{user.username}</p>
+            <p className="text-gray-500">{user.programme || 'No programme'} • Year {user.year || '?'}</p>
+            <p className="text-gray-500">{user.role}</p>
           </div>
           <div className="flex gap-2">
-            <button className="border border-gray-300 px-4 py-1.5 text-sm hover:border-primary-green transition-colors">
-              Edit
+            <button
+              onClick={handleStatusToggle}
+              className={`px-4 py-1.5 text-sm ${
+                user.isActive 
+                  ? 'border border-orange-300 text-orange-600 hover:bg-orange-50' 
+                  : 'border border-green-300 text-green-600 hover:bg-green-50'
+              } transition-colors`}
+            >
+              {user.isActive ? 'Deactivate' : 'Activate'}
             </button>
-            {student.status === 'Active' ? (
-              <button
-                onClick={() => handleStatusChange('Suspended')}
-                className="border border-orange-300 text-orange-600 px-4 py-1.5 text-sm hover:bg-orange-50 transition-colors"
-              >
-                Suspend
-              </button>
-            ) : student.status === 'Suspended' ? (
-              <button
-                onClick={() => handleStatusChange('Active')}
-                className="border border-green-300 text-green-600 px-4 py-1.5 text-sm hover:bg-green-50 transition-colors"
-              >
-                Activate
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
 
-      {/* Information Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white border border-gray-200 p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <UserIcon className="h-4 w-4 text-primary-green" />
-            Account Information
-          </h3>
+          <h3 className="font-semibold mb-4">Account Information</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Email</span>
-              <span>{student.email}</span>
+              <span>{user.email}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Username</span>
-              <span>@{student.username}</span>
+              <span>@{user.username}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Role</span>
+              <span>{user.role}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Joined</span>
-              <span>{new Date(student.joinedDate).toLocaleDateString()}</span>
+              <span>{new Date(user.createdAt).toLocaleDateString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Last Active</span>
-              <span>{new Date(student.lastActive).toLocaleDateString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Is Mentor</span>
-              <span>{student.isMentor ? 'Yes' : 'No'}</span>
+              <span>{user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'Never'}</span>
             </div>
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <BookOpenIcon className="h-4 w-4 text-primary-green" />
-            Academic Information
-          </h3>
+          <h3 className="font-semibold mb-4">Academic Information</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Programme</span>
-              <span>{student.programme}</span>
+              <span>{user.programme || 'Not set'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Year</span>
-              <span>{student.year}</span>
+              <span>{user.year || 'Not set'}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Faculty</span>
-              <span>{student.faculty}</span>
-            </div>
-            {student.bio && (
+            {user.bio && (
               <div className="mt-2">
                 <span className="text-gray-500 block">Bio</span>
-                <p className="text-sm mt-1">{student.bio}</p>
+                <p className="text-sm mt-1">{user.bio}</p>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Interests */}
-      {student.interests && student.interests.length > 0 && (
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="font-semibold mb-4">Interests</h3>
-          <div className="flex flex-wrap gap-2">
-            {student.interests.map((interest) => (
-              <span key={interest} className="text-xs bg-gray-100 px-3 py-1">{interest}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Account Activity */}
-      <div className="bg-white border border-gray-200 p-6">
-        <h3 className="font-semibold mb-4">Account Activity</h3>
-        <div className="space-y-2 text-sm text-gray-500">
-          <div className="flex justify-between border-b border-gray-100 pb-2">
-            <span>Account created</span>
-            <span>{new Date(student.createdAt).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 pb-2">
-            <span>Last profile update</span>
-            <span>{new Date(student.updatedAt).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Account status</span>
-            <span>{student.status}</span>
           </div>
         </div>
       </div>
