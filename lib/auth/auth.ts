@@ -53,6 +53,14 @@ export async function requireAdmin() {
   return user;
 }
 
+export async function requireMentor() {
+  const user = await requireAuth();
+  if (!user.isMentor || user.mentorStatus !== 'approved') {
+    throw new Error('Mentor access required');
+  }
+  return user;
+}
+
 export function setAuthCookie(token: string) {
   cookies().set('auth_token', token, {
     httpOnly: true,
@@ -65,4 +73,11 @@ export function setAuthCookie(token: string) {
 
 export function clearAuthCookie() {
   cookies().delete('auth_token');
+}
+
+// Get redirect path based on user role
+export function getRedirectPath(user: any) {
+  if (user.role === 'admin') return '/admin';
+  if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
+  return '/student/dashboard';
 }
