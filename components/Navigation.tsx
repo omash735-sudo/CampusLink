@@ -22,6 +22,7 @@ export function Navigation() {
     { name: 'Connect', href: '/connect' },
     { name: 'Community', href: '/community' },
     { name: 'Resources', href: '/resources' },
+    { name: 'About', href: '/about' },
   ] : [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
