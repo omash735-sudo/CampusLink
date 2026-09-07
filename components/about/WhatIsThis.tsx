@@ -1,5 +1,5 @@
 // components/about/WhatIsThis.tsx
-import { UsersIcon, AcademicIcon, BookIcon, MapIcon, CalendarIcon, UserGroupIcon, BriefcaseIcon } from '@/components/icons';
+import { UsersIcon, AcademicIcon, BookOpenIcon, MapPinIcon, CalendarIcon, UserGroupIcon, BriefcaseIcon } from '@/components/icons';
 
 export function WhatIsThis() {
   return (
@@ -21,12 +21,12 @@ export function WhatIsThis() {
             <p className="text-xs text-muted-text">Get guidance</p>
           </div>
           <div className="border border-gray-200 p-4">
-            <BookIcon className="h-6 w-6 text-primary-green mb-2" />
+            <BookOpenIcon className="h-6 w-6 text-primary-green mb-2" />
             <h3 className="font-medium text-sm">Resources</h3>
             <p className="text-xs text-muted-text">Academic materials</p>
           </div>
           <div className="border border-gray-200 p-4">
-            <MapIcon className="h-6 w-6 text-primary-green mb-2" />
+            <MapPinIcon className="h-6 w-6 text-primary-green mb-2" />
             <h3 className="font-medium text-sm">Campus</h3>
             <p className="text-xs text-muted-text">Discover facilities</p>
           </div>
