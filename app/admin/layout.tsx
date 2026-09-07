@@ -72,12 +72,19 @@ export default function AdminLayout({
     const role = localStorage.getItem('userRole');
     
     if (!token || role !== 'admin') {
-      router.push('/auth/login?redirect=/admin');
+      router.push('/admin/login');
     } else {
       setIsAuthenticated(true);
     }
     setLoading(false);
   }, [router]);
+
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    localStorage.removeItem('userRole');
+    router.push('/admin/login');
+  };
 
   if (loading) {
     return (
@@ -93,12 +100,6 @@ export default function AdminLayout({
   if (!isAuthenticated) {
     return null;
   }
-
-  const handleLogout = () => {
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    localStorage.removeItem('userRole');
-    router.push('/auth/login');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
