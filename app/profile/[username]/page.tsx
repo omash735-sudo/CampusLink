@@ -28,8 +28,8 @@ export default async function PublicProfilePage({ params }: { params: { username
 
         <div className="bg-white border border-gray-200 mt-4 overflow-hidden">
           {/* Cover */}
-          <div className="h-24 bg-primary-green/10"></div>
-          
+          <div className="h-24 bg-primary-green/10" />
+
           {/* Profile Info */}
           <div className="px-6 pb-6">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 -mt-12">
@@ -37,7 +37,7 @@ export default async function PublicProfilePage({ params }: { params: { username
                 {user.avatar ? (
                   <Image src={user.avatar} alt={user.fullName} width={80} height={80} className="object-cover" />
                 ) : (
-                  user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                  user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
                 )}
               </div>
               <div>
@@ -51,14 +51,14 @@ export default async function PublicProfilePage({ params }: { params: { username
               <div>
                 <h3 className="font-semibold mb-2">About</h3>
                 <p className="text-sm text-muted-text">
-                  {user.bio || 'This student hasn't added a bio yet.'}
+                  {user.bio || "This student hasn't added a bio yet."}
                 </p>
               </div>
 
               <div>
                 <h3 className="font-semibold mb-2">Interests</h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockInterests.map((interest) => (
+                  {mockInterests.map((interest: string) => (
                     <span key={interest} className="text-xs bg-gray-100 px-3 py-1">{interest}</span>
                   ))}
                 </div>
@@ -67,7 +67,7 @@ export default async function PublicProfilePage({ params }: { params: { username
               <div>
                 <h3 className="font-semibold mb-2">Communities</h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockCommunities.map((community) => (
+                  {mockCommunities.map((community: string) => (
                     <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
                       {community}
                     </span>
