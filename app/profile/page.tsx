@@ -43,7 +43,7 @@ export default async function ProfilePage() {
                 {user?.avatar ? (
                   <Image src={user.avatar} alt={user.fullName} width={96} height={96} className="object-cover" />
                 ) : (
-                  user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+                  user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '?'
                 )}
               </div>
               <div>
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
               <div>
                 <h3 className="font-semibold mb-2">Interests</h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockInterests.map((interest) => (
+                  {mockInterests.map((interest: string) => (
                     <span key={interest} className="text-xs bg-gray-100 px-3 py-1">{interest}</span>
                   ))}
                 </div>
@@ -76,7 +76,7 @@ export default async function ProfilePage() {
               <div>
                 <h3 className="font-semibold mb-2">Communities</h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockCommunities.map((community) => (
+                  {mockCommunities.map((community: string) => (
                     <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
                       {community}
                     </span>
