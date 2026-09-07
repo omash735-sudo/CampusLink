@@ -11,6 +11,8 @@ export default function EditEventPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -21,6 +23,7 @@ export default function EditEventPage() {
     organizer: '',
     category: '',
     maxAttendees: '',
+    image: '',
     status: 'draft',
   });
 
@@ -43,6 +46,7 @@ export default function EditEventPage() {
           organizer: data.organizer || '',
           category: data.category || '',
           maxAttendees: data.maxAttendees || '',
+          image: data.image || '',
           status: data.status || 'draft',
         });
       }
@@ -53,18 +57,49 @@ export default function EditEventPage() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
 
     try {
+      let imageUrl = form.image;
+
+      // Upload new image if selected
+      if (imageFile) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('type', 'event');
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.url;
+        setUploading(false);
+      }
+
       const res = await fetch(`/api/admin/events`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: params.id,
           ...form,
+          image: imageUrl,
           maxAttendees: parseInt(form.maxAttendees) || null,
         }),
       });
@@ -78,6 +113,7 @@ export default function EditEventPage() {
       setError(err.message);
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -115,6 +151,29 @@ export default function EditEventPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+          </div>
+
+          <div>
+            <label className="label-text">Event Image</label>
+            {form.image && (
+              <div className="mb-2">
+                <img src={form.image} alt="Event" className="h-32 object-cover border border-gray-200" />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="input-field"
+            />
+            {imageFile && (
+              <p className="text-sm text-muted-text mt-1">
+                Selected: {imageFile.name} ({(imageFile.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
+            {uploading && (
+              <p className="text-sm text-blue-600 mt-1">Uploading image...</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -223,7 +282,7 @@ export default function EditEventPage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
