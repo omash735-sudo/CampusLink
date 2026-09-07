@@ -1,47 +1,22 @@
 // app/events/page.tsx
+import { db } from '@/lib/db';
+import { events } from '@/lib/db/schema';
+import { eq, desc, asc, and } from 'drizzle-orm';
 import Link from 'next/link';
 import { CalendarIcon, LocationIcon } from '@/components/icons';
 
-const mockEvents = [
-  { 
-    id: '1', 
-    title: 'Orientation Week', 
-    date: '2026-09-15', 
-    time: '09:00', 
-    location: 'Main Hall',
-    description: 'Welcome new students to campus.',
-    category: 'Orientation',
-    status: 'upcoming'
-  },
-  { 
-    id: '2', 
-    title: 'Career Fair 2026', 
-    date: '2026-09-20', 
-    time: '10:00', 
-    location: 'Student Center',
-    description: 'Connect with employers and explore career opportunities.',
-    category: 'Career',
-    status: 'upcoming'
-  },
-  { 
-    id: '3', 
-    title: 'Research Symposium', 
-    date: '2026-09-25', 
-    time: '14:00', 
-    location: 'Lecture Hall B',
-    description: 'Present your research and learn from others.',
-    category: 'Academic',
-    status: 'upcoming'
-  },
-];
+export default async function EventsPage() {
+  const eventsList = await db
+    .select()
+    .from(events)
+    .where(eq(events.status, 'published'))
+    .orderBy(asc(events.startDate));
 
-export default function EventsPage() {
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">Events</h1>
 
-        {/* Search and Filters */}
         <div className="bg-white border border-gray-200 p-6 mb-8">
           <div className="flex flex-wrap gap-4">
             <input
@@ -62,9 +37,8 @@ export default function EventsPage() {
           </div>
         </div>
 
-        {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockEvents.map((event) => (
+          {eventsList.map((event) => (
             <Link key={event.id} href={`/events/${event.id}`}>
               <div className="border border-gray-200 bg-white hover:border-primary-green transition-colors p-6 h-full">
                 <div className="flex items-start justify-between">
@@ -78,7 +52,7 @@ export default function EventsPage() {
                 <div className="mt-3 space-y-1 text-sm text-muted-text">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4" />
-                    {new Date(event.date).toLocaleDateString()} at {event.time}
+                    {new Date(event.startDate).toLocaleDateString()} at {event.startTime}
                   </div>
                   <div className="flex items-center gap-2">
                     <LocationIcon className="h-4 w-4" />
@@ -89,6 +63,12 @@ export default function EventsPage() {
             </Link>
           ))}
         </div>
+
+        {eventsList.length === 0 && (
+          <div className="border border-gray-200 bg-white p-8 text-center">
+            <p className="text-muted-text">No upcoming events.</p>
+          </div>
+        )}
       </div>
     </div>
   );
