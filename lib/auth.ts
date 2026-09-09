@@ -1,9 +1,9 @@
-// lib/auth.ts (updated to include role in token)
+// lib/auth.ts
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { db } from './db';
-import { users } from './db/schema';
+import { campuslinkUsers } from './db/schema';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -37,7 +37,7 @@ export async function getCurrentUser() {
   const decoded = verifyToken(token);
   if (!decoded) return null;
   
-  const user = await db.select().from(users).where(eq(users.id, decoded.userId));
+  const user = await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.id, decoded.userId));
   return user[0] || null;
 }
 
@@ -53,6 +53,14 @@ export async function requireAdmin() {
   return user;
 }
 
+export async function requireMentor() {
+  const user = await requireAuth();
+  if (!user.isMentor || user.mentorStatus !== 'approved') {
+    throw new Error('Mentor access required');
+  }
+  return user;
+}
+
 export function setAuthCookie(token: string) {
   cookies().set('auth_token', token, {
     httpOnly: true,
@@ -65,4 +73,10 @@ export function setAuthCookie(token: string) {
 
 export function clearAuthCookie() {
   cookies().delete('auth_token');
+}
+
+export function getRedirectPath(user: any) {
+  if (user.role === 'admin') return '/admin';
+  if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
+  return '/student/dashboard';
 }
