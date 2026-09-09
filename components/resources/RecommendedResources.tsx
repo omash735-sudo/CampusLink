@@ -1,18 +1,18 @@
 // components/resources/RecommendedResources.tsx
 import { db } from '@/lib/db';
-import { resources, programmes, courses, users } from '@/lib/db/schema';
+import { resources, programmes, courses, campuslinkUsers } from '@/lib/db/schema';
 import { eq, and, desc, or } from 'drizzle-orm';
 import { ResourceCard } from './ResourceCard';
 
 export async function RecommendedResources({ currentUserId }: { currentUserId: string }) {
   const user = await db
     .select({
-      id: users.id,
-      programme: users.programme,
-      year: users.year,
+      id: campuslinkUsers.id,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
     })
-    .from(users)
-    .where(eq(users.id, currentUserId))
+    .from(campuslinkUsers)
+    .where(eq(campuslinkUsers.id, currentUserId))
     .then(res => res[0]);
 
   if (!user || !user.programme) return null;
