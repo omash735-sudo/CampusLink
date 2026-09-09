@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMentorById, updateMentor } from '@/lib/services/admin.service';
+import { getMentorById, updateMentor, getUserById } from '@/lib/services/admin.service';
 import { UserIcon, BookOpenIcon, UserGroupIcon, CalendarIcon } from '@/components/icons';
 
 interface Mentor {
@@ -44,16 +44,18 @@ export default function MentorDetailsPage() {
     try {
       const data = await getMentorById(params.id as string);
       if (data) {
-        // Map the data to match Mentor interface
+        // Get user data separately
+        const userData = await getUserById(data.userId);
+        
         const mappedMentor: Mentor = {
           id: data.id,
           userId: data.userId,
-          name: data.user?.fullName || 'Unknown',
-          username: data.user?.username || 'unknown',
-          email: data.user?.email || '',
-          programme: data.user?.programme || '',
-          year: data.user?.year || 0,
-          faculty: data.user?.faculty || '',
+          name: userData?.fullName || 'Unknown',
+          username: userData?.username || 'unknown',
+          email: userData?.email || '',
+          programme: userData?.programme || '',
+          year: userData?.year || 0,
+          faculty: userData?.faculty || '',
           expertise: data.expertise || [],
           subjects: data.subjects || [],
           status: data.status || 'pending',
