@@ -4,8 +4,28 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { adminService, Mentor } from '@/lib/services/admin.service';
+import { getMentorById, updateMentor } from '@/lib/services/admin.service';
 import { UserIcon, BookOpenIcon, UserGroupIcon, CalendarIcon } from '@/components/icons';
+
+interface Mentor {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  programme: string;
+  year: number;
+  faculty: string;
+  expertise: string[];
+  subjects: string[];
+  status: string;
+  mentees: number;
+  joinedDate: string;
+  rating: number;
+  availability: string;
+  introduction: string;
+  experience: string;
+  isDefault: boolean;
+}
 
 export default function MentorDetailsPage() {
   const params = useParams();
@@ -21,9 +41,9 @@ export default function MentorDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminService.getMentor(params.id as string);
+      const data = await getMentorById(params.id as string);
       if (data) {
-        setMentor(data);
+        setMentor(data as Mentor);
       } else {
         setError('Mentor not found');
       }
@@ -39,8 +59,8 @@ export default function MentorDetailsPage() {
     if (!mentor) return;
     if (!confirm(`Change mentor status to ${newStatus}?`)) return;
     try {
-      const updated = await adminService.updateMentor(mentor.id, { status: newStatus });
-      setMentor(updated);
+      const updated = await updateMentor(mentor.id, { status: newStatus });
+      setMentor(updated as Mentor);
     } catch (err) {
       console.error('Failed to update status:', err);
     }
@@ -197,7 +217,7 @@ export default function MentorDetailsPage() {
           <div>
             <h4 className="text-sm font-medium text-gray-500">Areas of Expertise</h4>
             <div className="flex flex-wrap gap-2 mt-1">
-              {mentor.expertise.map((exp) => (
+              {mentor.expertise.map((exp: string) => (
                 <span key={exp} className="text-sm bg-gray-100 px-3 py-1">{exp}</span>
               ))}
             </div>
@@ -206,7 +226,7 @@ export default function MentorDetailsPage() {
             <div>
               <h4 className="text-sm font-medium text-gray-500">Subjects</h4>
               <div className="flex flex-wrap gap-2 mt-1">
-                {mentor.subjects.map((subject) => (
+                {mentor.subjects.map((subject: string) => (
                   <span key={subject} className="text-sm bg-primary-green/10 text-primary-green px-3 py-1">{subject}</span>
                 ))}
               </div>
