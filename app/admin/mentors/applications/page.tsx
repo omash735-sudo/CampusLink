@@ -29,7 +29,19 @@ export default function MentorApplicationsPage() {
     setLoading(true);
     try {
       const data = await getMentorApplications();
-      setApplications(data as MentorApplication[]);
+      // Map data to match MentorApplication interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        fullName: item.fullName || '',
+        username: item.username || '',
+        email: item.email || '',
+        programme: item.programme || '',
+        year: item.year || 0,
+        bio: item.bio || '',
+        mentorStatus: item.mentorStatus || 'pending',
+        createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+      }));
+      setApplications(mappedData);
     } catch (error) {
       console.error('Failed to load applications:', error);
     } finally {
