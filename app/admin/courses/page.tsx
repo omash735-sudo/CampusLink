@@ -29,7 +29,18 @@ export default function AdminCoursesPage() {
     setLoading(true);
     try {
       const data = await getCourses();
-      setCourses(data as Course[]);
+      // Map data to match Course interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        code: item.code || '',
+        programme: item.programmeId || '',
+        year: item.year || 0,
+        semester: item.semester || 0,
+        credits: item.credits || 0,
+        isActive: item.isActive || false,
+      }));
+      setCourses(mappedData);
     } catch (error) {
       console.error('Failed to load courses:', error);
     } finally {
