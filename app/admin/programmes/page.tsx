@@ -29,7 +29,18 @@ export default function AdminProgrammesPage() {
     setLoading(true);
     try {
       const data = await getProgrammes();
-      setProgrammes(data as Programme[]);
+      // Map data to match Programme interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        name: item.name || '',
+        code: item.code || '',
+        faculty: item.faculty || '',
+        degree: item.degree || '',
+        duration: item.duration || 0,
+        status: item.isActive ? 'Active' : 'Inactive',
+        isActive: item.isActive || false,
+      }));
+      setProgrammes(mappedData);
     } catch (error) {
       console.error('Failed to load programmes:', error);
     } finally {
