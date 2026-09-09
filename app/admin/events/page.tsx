@@ -30,7 +30,19 @@ export default function AdminEventsPage() {
     setLoading(true);
     try {
       const data = await getEvents();
-      setEvents(data as Event[]);
+      // Map data to match Event interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || '',
+        date: item.startDate ? new Date(item.startDate).toISOString().split('T')[0] : '',
+        startTime: item.startDate ? new Date(item.startDate).toTimeString().slice(0, 5) : '',
+        location: item.location || '',
+        category: item.category || '',
+        status: item.status || 'draft',
+        createdAt: item.createdAt,
+      }));
+      setEvents(mappedData);
     } catch (error) {
       console.error('Failed to load events:', error);
     } finally {
@@ -106,7 +118,8 @@ export default function AdminEventsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500">{event.category || 'No category'} • {event.location}</p>
-                <p className="text-sm text-gray-500">{new Date(event.date).toLocaleDateString()} at {event.startTime}</p>
+                <p className="text-sm text-gray-500">{event.date} at {event.startTime}</p>
+                <p className="text-sm text-gray-500 line-clamp-1">{event.description}</p>
               </div>
               <div className="flex flex-wrap items-start gap-2">
                 <Link href={`/admin/events/${event.id}`} className="text-primary-green hover:underline text-sm">
