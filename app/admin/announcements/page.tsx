@@ -13,7 +13,7 @@ interface Announcement {
   category: string;
   priority: string;
   isPublished: boolean;
-  publishedAt: string;
+  publishedAt: string | null;
   createdAt: string;
 }
 
@@ -29,7 +29,18 @@ export default function AdminAnnouncementsPage() {
     setLoading(true);
     try {
       const data = await getAnnouncements();
-      setAnnouncements(data as Announcement[]);
+      // Map data to match Announcement interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        category: item.type || 'general',
+        priority: item.priority || 'normal',
+        isPublished: item.isPublished || false,
+        publishedAt: item.publishedAt || null,
+        createdAt: item.createdAt,
+      }));
+      setAnnouncements(mappedData);
     } catch (error) {
       console.error('Failed to load announcements:', error);
     } finally {
@@ -112,7 +123,7 @@ export default function AdminAnnouncementsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500">{announcement.category}</p>
-                <p className="text-sm text-gray-500 line-clamp-1">{announcement.content}</p>
+                <p className="text-sm text-gray-500 line-clamp-2">{announcement.content}</p>
                 <p className="text-xs text-gray-400 mt-1">Added {new Date(announcement.createdAt).toLocaleDateString()}</p>
               </div>
               <div className="flex flex-wrap items-start gap-2">
