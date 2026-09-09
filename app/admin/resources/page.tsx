@@ -34,7 +34,22 @@ export default function AdminResourcesPage() {
     setLoading(true);
     try {
       const data = await getResources();
-      setResources(data as Resource[]);
+      // Map data to match Resource interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || '',
+        course: item.course || '',
+        programme: item.programme || '',
+        fileType: item.fileType || '',
+        fileSize: item.fileSize || 0,
+        downloads: item.downloads || 0,
+        viewCount: item.viewCount || 0,
+        status: item.status || 'pending',
+        isVerified: item.isVerified || false,
+        createdAt: item.createdAt,
+      }));
+      setResources(mappedData);
     } catch (error) {
       console.error('Failed to load resources:', error);
     } finally {
