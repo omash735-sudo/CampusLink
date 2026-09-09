@@ -264,13 +264,46 @@ export async function getResourceById(id: string) {
 }
 
 export async function createResource(data: any) {
-  const [resource] = await db.insert(resources).values(data).returning();
+  const [resource] = await db.insert(resources).values({
+    title: data.title,
+    description: data.description,
+    programmeId: data.programmeId || null,
+    courseId: data.courseId || null,
+    year: data.year || null,
+    semester: data.semester || null,
+    academicYear: data.academicYear || null,
+    course: data.course || null,
+    uploadedBy: data.uploadedBy,
+    fileUrl: data.fileUrl,
+    fileName: data.fileName,
+    fileType: data.fileType,
+    fileSize: data.fileSize,
+    status: 'pending',
+    downloads: 0,
+    viewCount: 0,
+    isVerified: false,
+  }).returning();
   return resource;
 }
 
 export async function updateResource(id: string, data: any) {
   const [updated] = await db.update(resources)
-    .set({ ...data, updatedAt: new Date() })
+    .set({ 
+      title: data.title,
+      description: data.description,
+      programmeId: data.programmeId || null,
+      courseId: data.courseId || null,
+      year: data.year || null,
+      semester: data.semester || null,
+      academicYear: data.academicYear || null,
+      course: data.course || null,
+      fileUrl: data.fileUrl,
+      fileName: data.fileName,
+      fileType: data.fileType,
+      fileSize: data.fileSize,
+      status: data.status || 'pending',
+      updatedAt: new Date() 
+    })
     .where(eq(resources.id, id))
     .returning();
   return updated;
@@ -320,13 +353,36 @@ export async function getEventById(id: string) {
 }
 
 export async function createEvent(data: any) {
-  const [event] = await db.insert(events).values(data).returning();
+  const [event] = await db.insert(events).values({
+    title: data.title,
+    description: data.description,
+    startDate: new Date(data.date + 'T' + data.startTime),
+    endDate: data.endTime ? new Date(data.date + 'T' + data.endTime) : null,
+    location: data.location,
+    organizer: data.organizer,
+    category: data.category,
+    image: data.image || null,
+    maxAttendees: data.maxAttendees || null,
+    status: 'draft',
+  }).returning();
   return event;
 }
 
 export async function updateEvent(id: string, data: any) {
   const [updated] = await db.update(events)
-    .set({ ...data, updatedAt: new Date() })
+    .set({
+      title: data.title,
+      description: data.description,
+      startDate: data.date ? new Date(data.date + 'T' + data.startTime) : undefined,
+      endDate: data.endTime ? new Date(data.date + 'T' + data.endTime) : null,
+      location: data.location,
+      organizer: data.organizer,
+      category: data.category,
+      image: data.image || null,
+      maxAttendees: data.maxAttendees || null,
+      status: data.status || 'draft',
+      updatedAt: new Date(),
+    })
     .where(eq(events.id, id))
     .returning();
   return updated;
@@ -354,13 +410,31 @@ export async function getAnnouncementById(id: string) {
 }
 
 export async function createAnnouncement(data: any) {
-  const [announcement] = await db.insert(announcements).values(data).returning();
+  const [announcement] = await db.insert(announcements).values({
+    title: data.title,
+    content: data.content,
+    authorId: data.authorId || 'admin',
+    type: data.category || 'general',
+    priority: data.priority || 'normal',
+    isPublished: data.isPublished || false,
+    imageUrl: data.imageUrl || null,
+    publishedAt: data.isPublished ? new Date() : null,
+  }).returning();
   return announcement;
 }
 
 export async function updateAnnouncement(id: string, data: any) {
   const [updated] = await db.update(announcements)
-    .set({ ...data, updatedAt: new Date() })
+    .set({
+      title: data.title,
+      content: data.content,
+      type: data.category || 'general',
+      priority: data.priority || 'normal',
+      isPublished: data.isPublished,
+      imageUrl: data.imageUrl || null,
+      publishedAt: data.isPublished ? new Date() : null,
+      updatedAt: new Date(),
+    })
     .where(eq(announcements.id, id))
     .returning();
   return updated;
@@ -372,7 +446,11 @@ export async function deleteAnnouncement(id: string) {
 
 export async function publishAnnouncement(id: string) {
   const [updated] = await db.update(announcements)
-    .set({ isPublished: true, publishedAt: new Date(), updatedAt: new Date() })
+    .set({
+      isPublished: true,
+      publishedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(announcements.id, id))
     .returning();
   return updated;
