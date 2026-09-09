@@ -70,7 +70,9 @@ export default function AdminStudentsPage() {
     }
   };
 
-  const programmes = ['All', ...new Set(users.map(u => u.programme).filter(Boolean))];
+  // Get unique programmes - using Array.from to avoid iteration issues
+  const programmeSet = new Set(users.map(u => u.programme).filter(Boolean) as string[]);
+  const programmes = ['All', ...Array.from(programmeSet)];
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = user.fullName.toLowerCase().includes(search.toLowerCase()) ||
