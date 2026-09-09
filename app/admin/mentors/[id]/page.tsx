@@ -9,6 +9,7 @@ import { UserIcon, BookOpenIcon, UserGroupIcon, CalendarIcon } from '@/component
 
 interface Mentor {
   id: string;
+  userId: string;
   name: string;
   username: string;
   email: string;
@@ -43,7 +44,28 @@ export default function MentorDetailsPage() {
     try {
       const data = await getMentorById(params.id as string);
       if (data) {
-        setMentor(data as Mentor);
+        // Map the data to match Mentor interface
+        const mappedMentor: Mentor = {
+          id: data.id,
+          userId: data.userId,
+          name: data.user?.fullName || 'Unknown',
+          username: data.user?.username || 'unknown',
+          email: data.user?.email || '',
+          programme: data.user?.programme || '',
+          year: data.user?.year || 0,
+          faculty: data.user?.faculty || '',
+          expertise: data.expertise || [],
+          subjects: data.subjects || [],
+          status: data.status || 'pending',
+          mentees: 0,
+          joinedDate: data.createdAt || new Date().toISOString(),
+          rating: data.rating || 0,
+          availability: data.availability || 'available',
+          introduction: data.introduction || '',
+          experience: data.experience || '',
+          isDefault: false,
+        };
+        setMentor(mappedMentor);
       } else {
         setError('Mentor not found');
       }
@@ -60,7 +82,9 @@ export default function MentorDetailsPage() {
     if (!confirm(`Change mentor status to ${newStatus}?`)) return;
     try {
       const updated = await updateMentor(mentor.id, { status: newStatus });
-      setMentor(updated as Mentor);
+      if (updated) {
+        setMentor({ ...mentor, status: newStatus });
+      }
     } catch (err) {
       console.error('Failed to update status:', err);
     }
