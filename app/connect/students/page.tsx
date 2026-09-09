@@ -1,6 +1,6 @@
 // app/connect/students/page.tsx
 import { db } from '@/lib/db';
-import { users, programmes } from '@/lib/db/schema';
+import { campuslinkUsers, programmes } from '@/lib/db/schema';
 import { eq, desc, and, sql, like, or } from 'drizzle-orm';
 import { StudentGrid } from '@/components/connect/StudentGrid';
 import { StudentFilters } from '@/components/connect/StudentFilters';
@@ -23,43 +23,43 @@ export default async function StudentsPage({
   const conditions = [];
   
   // Always add active condition
-  conditions.push(eq(users.isActive, true));
+  conditions.push(eq(campuslinkUsers.isActive, true));
   
   // Add search conditions if search exists
   if (search) {
     conditions.push(
       or(
-        like(users.fullName, `%${search}%`),
-        like(users.username, `%${search}%`),
-        like(users.programme, `%${search}%`)
+        like(campuslinkUsers.fullName, `%${search}%`),
+        like(campuslinkUsers.username, `%${search}%`),
+        like(campuslinkUsers.programme, `%${search}%`)
       )
     );
   }
 
   // Add programme filter if exists
   if (programmeFilter) {
-    conditions.push(eq(users.programme, programmeFilter));
+    conditions.push(eq(campuslinkUsers.programme, programmeFilter));
   }
 
   // Add year filter if exists
   if (yearFilter) {
-    conditions.push(eq(users.year, parseInt(yearFilter)));
+    conditions.push(eq(campuslinkUsers.year, parseInt(yearFilter)));
   }
 
   // Execute query with all conditions
   const students = await db
     .select({
-      id: users.id,
-      fullName: users.fullName,
-      username: users.username,
-      avatar: users.avatar,
-      programme: users.programme,
-      year: users.year,
-      interests: users.interests,
+      id: campuslinkUsers.id,
+      fullName: campuslinkUsers.fullName,
+      username: campuslinkUsers.username,
+      avatar: campuslinkUsers.avatar,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
+      interests: campuslinkUsers.interests,
     })
-    .from(users)
+    .from(campuslinkUsers)
     .where(and(...conditions))
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(campuslinkUsers.createdAt));
 
   return (
     <div className="min-h-screen bg-off-white py-8">
