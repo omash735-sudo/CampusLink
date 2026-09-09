@@ -58,7 +58,7 @@ export default function MentorDetailsPage() {
           subjects: data.subjects || [],
           status: data.status || 'pending',
           mentees: 0,
-          joinedDate: data.createdAt || new Date().toISOString(),
+          joinedDate: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(),
           rating: data.rating || 0,
           availability: data.availability || 'available',
           introduction: data.introduction || '',
