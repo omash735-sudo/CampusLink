@@ -1,7 +1,7 @@
 // app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { campuslinkUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { comparePassword, signToken, setAuthCookie } from '@/lib/auth';
 import { loginSchema } from '@/lib/validation';
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
-    const [user] = await db.select().from(users).where(eq(users.email, validated.email));
+    const [user] = await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.email, validated.email));
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
