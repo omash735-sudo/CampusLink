@@ -29,7 +29,18 @@ export default function AdminReportsPage() {
     setLoading(true);
     try {
       const data = await getReports();
-      setReports(data as Report[]);
+      // Map data to match Report interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        reporterId: item.reporterId || '',
+        targetType: item.targetType || '',
+        targetId: item.targetId || '',
+        reason: item.reason || '',
+        description: item.description || '',
+        status: item.status || 'pending',
+        createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+      }));
+      setReports(mappedData);
     } catch (error) {
       console.error('Failed to load reports:', error);
     } finally {
