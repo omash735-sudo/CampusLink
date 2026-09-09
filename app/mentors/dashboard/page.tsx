@@ -1,7 +1,7 @@
 // app/mentors/dashboard/page.tsx
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { mentors, mentorshipRequests, mentorships, users } from '@/lib/db/schema';
+import { mentors, mentorshipRequests, mentorships, campuslinkUsers } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import Link from 'next/link';
 
@@ -42,16 +42,16 @@ export default async function MentorDashboard() {
       helpNeeded: mentorshipRequests.helpNeeded,
       createdAt: mentorshipRequests.createdAt,
       student: {
-        id: users.id,
-        fullName: users.fullName,
-        username: users.username,
-        programme: users.programme,
-        year: users.year,
-        avatar: users.avatar,
+        id: campuslinkUsers.id,
+        fullName: campuslinkUsers.fullName,
+        username: campuslinkUsers.username,
+        programme: campuslinkUsers.programme,
+        year: campuslinkUsers.year,
+        avatar: campuslinkUsers.avatar,
       }
     })
     .from(mentorshipRequests)
-    .leftJoin(users, eq(mentorshipRequests.studentId, users.id))
+    .leftJoin(campuslinkUsers, eq(mentorshipRequests.studentId, campuslinkUsers.id))
     .where(and(
       eq(mentorshipRequests.mentorId, mentor.id),
       eq(mentorshipRequests.status, 'pending')
@@ -65,16 +65,16 @@ export default async function MentorDashboard() {
       startedAt: mentorships.startedAt,
       lastInteraction: mentorships.lastInteraction,
       student: {
-        id: users.id,
-        fullName: users.fullName,
-        username: users.username,
-        programme: users.programme,
-        year: users.year,
-        avatar: users.avatar,
+        id: campuslinkUsers.id,
+        fullName: campuslinkUsers.fullName,
+        username: campuslinkUsers.username,
+        programme: campuslinkUsers.programme,
+        year: campuslinkUsers.year,
+        avatar: campuslinkUsers.avatar,
       }
     })
     .from(mentorships)
-    .leftJoin(users, eq(mentorships.studentId, users.id))
+    .leftJoin(campuslinkUsers, eq(mentorships.studentId, campuslinkUsers.id))
     .where(and(
       eq(mentorships.mentorId, mentor.id),
       eq(mentorships.status, 'active')
