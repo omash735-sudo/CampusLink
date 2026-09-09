@@ -21,7 +21,7 @@ export const campuslinkUsers = pgTable('campuslink_users', {
   lastActive: timestamp('last_active'),
   isMentor: boolean('is_mentor').default(false),
   mentorType: text('mentor_type'),
-  mentorStatus: text('mentor_status').default('not_applied'), // not_applied, pending, approved, rejected, suspended
+  mentorStatus: text('mentor_status').default('not_applied'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -270,7 +270,7 @@ export const comments = pgTable('comments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== GROUPS ====================
+// ==================== GROUPS (UPDATED with whatsappLink and isActive) ====================
 export const groups = pgTable('groups', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -278,9 +278,11 @@ export const groups = pgTable('groups', {
   description: text('description'),
   type: text('type').default('open').notNull(),
   category: text('category'),
+  whatsappLink: text('whatsapp_link'), // ADDED
   avatar: text('avatar'),
   cover: text('cover'),
   memberCount: integer('member_count').default(0),
+  isActive: boolean('is_active').default(true), // ADDED
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
