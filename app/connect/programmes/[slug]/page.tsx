@@ -1,6 +1,6 @@
 // app/connect/programmes/[slug]/page.tsx
 import { db } from '@/lib/db';
-import { programmes, users, cohorts } from '@/lib/db/schema';
+import { programmes, campuslinkUsers, cohorts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -20,20 +20,20 @@ export default async function ProgrammeDetailPage({ params }: { params: { slug: 
 
   const students = await db
     .select({
-      id: users.id,
-      fullName: users.fullName,
-      username: users.username,
-      avatar: users.avatar,
-      programme: users.programme,
-      year: users.year,
-      interests: users.interests,
+      id: campuslinkUsers.id,
+      fullName: campuslinkUsers.fullName,
+      username: campuslinkUsers.username,
+      avatar: campuslinkUsers.avatar,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
+      interests: campuslinkUsers.interests,
     })
-    .from(users)
+    .from(campuslinkUsers)
     .where(and(
-      eq(users.isActive, true),
-      eq(users.programme, programme.name)
+      eq(campuslinkUsers.isActive, true),
+      eq(campuslinkUsers.programme, programme.name)
     ))
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(campuslinkUsers.createdAt));
 
   const programmeCohorts = await db
     .select()
