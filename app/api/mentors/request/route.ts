@@ -7,10 +7,16 @@ import { requireAuth } from '@/lib/auth';
 import { notifyMentorshipRequestReceived } from '@/lib/services/notification.service';
 import { sendMentorshipRequestEmail } from '@/lib/services/email.service';
 
+interface RequestBody {
+  mentorUsername: string;
+  message?: string;
+  helpNeeded?: string[];
+}
+
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
+    const body: RequestBody = await request.json();
     const { mentorUsername, message, helpNeeded } = body;
 
     if (!mentorUsername) {
@@ -84,6 +90,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ request });
   } catch (error: any) {
+    console.error('Mentorship request error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to send request' },
       { status: error.message === 'Unauthorized' ? 401 : 500 }
