@@ -13,10 +13,10 @@ interface RequestBody {
   helpNeeded?: string[];
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
     const user = await requireAuth();
-    const body: RequestBody = await request.json();
+    const body: RequestBody = await req.json();
     const { mentorUsername, message, helpNeeded } = body;
 
     if (!mentorUsername) {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     // Create mentorship request
-    const [request] = await db.insert(mentorshipRequests).values({
+    const [newRequest] = await db.insert(mentorshipRequests).values({
       mentorId: mentor.id,
       studentId: user.id,
       message: message || '',
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     await notifyMentorshipRequestReceived(mentor.id, user.id, user.fullName);
     await sendMentorshipRequestEmail(mentorUser.email, mentorUser.fullName, user.fullName);
 
-    return NextResponse.json({ request });
+    return NextResponse.json({ request: newRequest });
   } catch (error: any) {
     console.error('Mentorship request error:', error);
     return NextResponse.json(
