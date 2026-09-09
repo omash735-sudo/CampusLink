@@ -44,7 +44,7 @@ export default function EditResourcePage() {
           fileUrl: data.fileUrl || '',
           fileName: data.fileName || '',
           fileType: data.fileType || '',
-          fileSize: data.fileSize || '',
+          fileSize: data.fileSize ? String(data.fileSize) : '',
           status: data.status || 'pending',
         });
       }
@@ -93,7 +93,7 @@ export default function EditResourcePage() {
         fileUrl = uploadData.url;
         fileName = file.name;
         fileType = file.type;
-        fileSize = file.size;
+        fileSize = String(file.size);
         setUploading(false);
       }
 
