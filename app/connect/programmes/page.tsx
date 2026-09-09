@@ -1,6 +1,6 @@
 // app/connect/programmes/page.tsx
 import { db } from '@/lib/db';
-import { programmes, users } from '@/lib/db/schema';
+import { programmes, campuslinkUsers } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import Link from 'next/link';
 import { BookOpenIcon } from '@/components/icons';
@@ -23,12 +23,12 @@ export default async function ProgrammesPage() {
 
   const studentCounts = await db
     .select({
-      programme: users.programme,
+      programme: campuslinkUsers.programme,
       count: sql<number>`count(*)`,
     })
-    .from(users)
-    .where(eq(users.isActive, true))
-    .groupBy(users.programme);
+    .from(campuslinkUsers)
+    .where(eq(campuslinkUsers.isActive, true))
+    .groupBy(campuslinkUsers.programme);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
