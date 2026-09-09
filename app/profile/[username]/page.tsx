@@ -31,7 +31,7 @@ export default async function PublicProfilePage({ params }: { params: { username
     .where(eq(userCommunities.userId, user.id))
     .limit(10);
 
-  const communities = userCommunitiesData.map(c => c.name).filter(Boolean);
+  const communities = userCommunitiesData.map(c => c.name).filter((name): name is string => name !== null && name !== undefined);
   const mockInterests = user.interests || ['Technology', 'Research', 'Social Work'];
 
   const isOwnProfile = currentUser?.id === user.id;
