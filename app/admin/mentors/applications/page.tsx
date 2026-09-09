@@ -29,7 +29,7 @@ export default function MentorApplicationsPage() {
     setLoading(true);
     try {
       const data = await getMentorApplications();
-      // Map data to match MentorApplication interface
+      // Map the data to match MentorApplication interface
       const mappedData = data.map((item: any) => ({
         id: item.id,
         fullName: item.fullName || '',
