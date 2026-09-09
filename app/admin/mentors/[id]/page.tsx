@@ -15,7 +15,6 @@ interface Mentor {
   email: string;
   programme: string;
   year: number;
-  faculty: string;
   expertise: string[];
   subjects: string[];
   status: string;
@@ -55,7 +54,6 @@ export default function MentorDetailsPage() {
           email: userData?.email || '',
           programme: userData?.programme || '',
           year: userData?.year || 0,
-          faculty: userData?.faculty || '',
           expertise: data.expertise || [],
           subjects: data.subjects || [],
           status: data.status || 'pending',
@@ -152,7 +150,6 @@ export default function MentorDetailsPage() {
             </div>
             <p className="text-gray-500">@{mentor.username}</p>
             <p className="text-gray-500">{mentor.programme} • Year {mentor.year}</p>
-            <p className="text-gray-500">{mentor.faculty}</p>
           </div>
           <div className="flex gap-2">
             <button className="border border-gray-300 px-4 py-1.5 text-sm hover:border-primary-green transition-colors">
