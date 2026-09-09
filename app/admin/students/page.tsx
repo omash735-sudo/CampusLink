@@ -37,7 +37,22 @@ export default function AdminStudentsPage() {
     setLoading(true);
     try {
       const data = await getUsers();
-      setUsers(data as User[]);
+      // Map data to match User interface
+      const mappedData = data.map((item: any) => ({
+        id: item.id,
+        fullName: item.fullName || '',
+        username: item.username || '',
+        email: item.email || '',
+        programme: item.programme || '',
+        year: item.year || 0,
+        role: item.role || 'student',
+        isActive: item.isActive || false,
+        isMentor: item.isMentor || false,
+        mentorStatus: item.mentorStatus || 'not_applied',
+        createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+        lastActive: item.lastActive ? new Date(item.lastActive).toISOString() : '',
+      }));
+      setUsers(mappedData);
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {
