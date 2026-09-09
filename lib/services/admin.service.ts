@@ -533,3 +533,216 @@ export async function updateCampusLocation(id: string, data: any) {
 export async function deleteCampusLocation(id: string) {
   await db.delete(campusLocations).where(eq(campusLocations.id, id));
 }
+
+// ==================== GROUPS / COMMUNITIES ====================
+export async function getGroups() {
+  return await db.select().from(groups).orderBy(desc(groups.createdAt));
+}
+
+export async function getGroupById(id: string) {
+  return await db.select().from(groups).where(eq(groups.id, id)).then(res => res[0]);
+}
+
+export async function getActiveGroups() {
+  return await db.select().from(groups).where(eq(groups.isActive, true)).orderBy(desc(groups.memberCount));
+}
+
+export async function createGroup(data: any) {
+  const [group] = await db.insert(groups).values({
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    type: data.type || 'open',
+    category: data.category,
+    whatsappLink: data.whatsappLink || null,
+    avatar: data.avatar || null,
+    cover: data.cover || null,
+    memberCount: 0,
+    isActive: data.isActive !== undefined ? data.isActive : true,
+  }).returning();
+  return group;
+}
+
+export async function updateGroup(id: string, data: any) {
+  const [updated] = await db.update(groups)
+    .set({
+      name: data.name,
+      slug: data.slug,
+      description: data.description,
+      category: data.category,
+      whatsappLink: data.whatsappLink || null,
+      avatar: data.avatar || null,
+      cover: data.cover || null,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      updatedAt: new Date(),
+    })
+    .where(eq(groups.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteGroup(id: string) {
+  await db.delete(groups).where(eq(groups.id, id));
+}
+
+export async function getGroupMembers(groupId: string) {
+  return await db.select()
+    .from(groupMembers)
+    .leftJoin(campuslinkUsers, eq(groupMembers.userId, campuslinkUsers.id))
+    .where(eq(groupMembers.groupId, groupId));
+}
+
+export async function joinGroup(groupId: string, userId: string) {
+  const [member] = await db.insert(groupMembers).values({
+    groupId,
+    userId,
+    role: 'member',
+  }).returning();
+  return member;
+}
+
+export async function leaveGroup(groupId: string, userId: string) {
+  await db.delete(groupMembers)
+    .where(and(
+      eq(groupMembers.groupId, groupId),
+      eq(groupMembers.userId, userId)
+    ));
+}
+
+// ==================== NOTIFICATIONS ====================
+export async function getNotifications(userId: string) {
+  return await db.select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt));
+}
+
+export async function getUnreadNotificationsCount(userId: string) {
+  const result = await db.select({ count: sql<number>`count(*)` })
+    .from(notifications)
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.read, false)
+    ));
+  return result[0]?.count || 0;
+}
+
+export async function markNotificationAsRead(id: string, userId: string) {
+  const [updated] = await db.update(notifications)
+    .set({ read: true })
+    .where(and(
+      eq(notifications.id, id),
+      eq(notifications.userId, userId)
+    ))
+    .returning();
+  return updated;
+}
+
+export async function markAllNotificationsAsRead(userId: string) {
+  await db.update(notifications)
+    .set({ read: true })
+    .where(eq(notifications.userId, userId));
+}
+
+export async function createNotification(data: any) {
+  const [notification] = await db.insert(notifications).values({
+    userId: data.userId,
+    type: data.type,
+    title: data.title,
+    content: data.content || '',
+    link: data.link || '',
+  }).returning();
+  return notification;
+}
+
+export async function deleteNotification(id: string, userId: string) {
+  await db.delete(notifications)
+    .where(and(
+      eq(notifications.id, id),
+      eq(notifications.userId, userId)
+    ));
+}
+
+// ==================== USER COMMUNITIES ====================
+export async function getUserCommunities(userId: string) {
+  return await db.select()
+    .from(userCommunities)
+    .leftJoin(groups, eq(userCommunities.communityId, groups.id))
+    .where(eq(userCommunities.userId, userId));
+}
+
+export async function getUserCommunity(userId: string, communityId: string) {
+  return await db.select()
+    .from(userCommunities)
+    .where(and(
+      eq(userCommunities.userId, userId),
+      eq(userCommunities.communityId, communityId)
+    ))
+    .then(res => res[0]);
+}
+
+export async function addUserToCommunity(userId: string, communityId: string) {
+  const [entry] = await db.insert(userCommunities).values({
+    userId,
+    communityId,
+    role: 'member',
+  }).returning();
+  return entry;
+}
+
+export async function removeUserFromCommunity(userId: string, communityId: string) {
+  await db.delete(userCommunities)
+    .where(and(
+      eq(userCommunities.userId, userId),
+      eq(userCommunities.communityId, communityId)
+    ));
+}
+
+// ==================== FEEDBACK ====================
+export async function getFeedback() {
+  return await db.select().from(feedback).orderBy(desc(feedback.createdAt));
+}
+
+export async function getFeedbackById(id: string) {
+  return await db.select().from(feedback).where(eq(feedback.id, id)).then(res => res[0]);
+}
+
+export async function createFeedback(data: any) {
+  const [item] = await db.insert(feedback).values({
+    userId: data.userId,
+    content: data.content,
+    category: data.category || 'general',
+    status: 'new',
+  }).returning();
+  return item;
+}
+
+export async function updateFeedbackStatus(id: string, status: string) {
+  const [updated] = await db.update(feedback)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(feedback.id, id))
+    .returning();
+  return updated;
+}
+
+// ==================== AUDIT LOGS ====================
+export async function getAuditLogs(limit: number = 50) {
+  return await db.select()
+    .from(auditLogs)
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+}
+
+export async function createAuditLog(data: any) {
+  const [log] = await db.insert(auditLogs).values({
+    adminId: data.adminId,
+    action: data.action,
+    entity: data.entity,
+    entityId: data.entityId,
+    previousValue: data.previousValue || null,
+    newValue: data.newValue || null,
+    ipAddress: data.ipAddress || null,
+    userAgent: data.userAgent || null,
+  }).returning();
+  return log;
+}
