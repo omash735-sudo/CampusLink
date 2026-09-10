@@ -1,15 +1,14 @@
-// app/admin/layout.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  HomeIcon, 
-  UsersIcon, 
-  UserGroupIcon, 
-  BookOpenIcon, 
-  CalendarIcon, 
+import {
+  HomeIcon,
+  UsersIcon,
+  UserGroupIcon,
+  BookOpenIcon,
+  CalendarIcon,
   BellIcon,
   SettingsIcon,
   MapPinIcon,
@@ -45,6 +44,20 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  if (pathname === '/admin/setup') {
+    return <>{children}</>;
+  }
+
+  return <AdminLayoutShell>{children}</AdminLayoutShell>;
+}
+
+function AdminLayoutShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -70,9 +83,9 @@ export default function AdminLayout({
   useEffect(() => {
     const token = document.cookie.includes('auth_token');
     const role = localStorage.getItem('userRole');
-    
+
     if (!token || role !== 'admin') {
-      router.push('/admin/login');
+      router.push('/auth/login');
     } else {
       setIsAuthenticated(true);
     }
@@ -83,7 +96,7 @@ export default function AdminLayout({
     await fetch('/api/admin/logout', { method: 'POST' });
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     localStorage.removeItem('userRole');
-    router.push('/admin/login');
+    router.push('/auth/login');
   };
 
   if (loading) {
@@ -103,7 +116,6 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className={`bg-white border-r border-gray-200 fixed lg:relative z-50 h-full w-64 transition-transform duration-300 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
@@ -141,12 +153,10 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Overlay */}
       {isMobile && sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main Content */}
       <div className="flex-1 min-w-0">
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
           <button
