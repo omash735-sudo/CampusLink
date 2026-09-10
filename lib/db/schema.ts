@@ -270,7 +270,7 @@ export const comments = pgTable('comments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== GROUPS (UPDATED with whatsappLink and isActive) ====================
+// ==================== GROUPS ====================
 export const groups = pgTable('groups', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -398,6 +398,7 @@ export const notifications = pgTable('notifications', {
   title: text('title').notNull(),
   content: text('content'),
   link: text('link'),
+  metadata: jsonb('metadata'),   // ✅ ADDED
   read: boolean('read').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -415,7 +416,7 @@ export const reports = pgTable('reports', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ==================== FEEDBACK (NEWLY ADDED) ====================
+// ==================== FEEDBACK ====================
 export const feedback = pgTable('feedback', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => campuslinkUsers.id),
@@ -521,7 +522,7 @@ export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) =>
   resourceViews: many(resourceViews),
   resourceReports: many(resourceReports),
   auditLogs: many(auditLogs),
-  feedback: many(feedback),  // ADDED
+  feedback: many(feedback),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -784,7 +785,6 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
 }));
 
-// ADDED: feedback relations
 export const feedbackRelations = relations(feedback, ({ one }) => ({
   user: one(campuslinkUsers, {
     fields: [feedback.userId],
