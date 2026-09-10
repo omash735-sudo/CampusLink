@@ -1,3 +1,4 @@
+// app/admin/layout.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import {
   AcademicIcon,
   MenuIcon,
   XIcon,
-  LogOutIcon
+  LogOutIcon,
 } from '@/components/icons';
 
 const navItems = [
@@ -39,11 +40,7 @@ const navItems = [
   { name: 'Settings', href: '/admin/settings', icon: SettingsIcon },
 ];
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   if (pathname === '/admin/setup') {
@@ -53,26 +50,16 @@ export default function AdminLayout({
   return <AdminLayoutShell>{children}</AdminLayoutShell>;
 }
 
-function AdminLayoutShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
+      setSidebarOpen(window.innerWidth >= 1024);
     };
 
     handleResize();
@@ -80,45 +67,21 @@ function AdminLayoutShell({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    const token = document.cookie.includes('auth_token');
-    const role = localStorage.getItem('userRole');
-
-    if (!token || role !== 'admin') {
-      router.push('/auth/login');
-    } else {
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, [router]);
-
   const handleLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
+    await fetch('/api/auth/logout', { method: 'POST' });
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    localStorage.removeItem('userRole');
+    document.cookie = 'super_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/auth/login');
+    router.refresh();
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 border-2 border-primary-green animate-spin rounded-full mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className={`bg-white border-r border-gray-200 fixed lg:relative z-50 h-full w-64 transition-transform duration-300 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
+      <aside
+        className={`bg-white border-r border-gray-200 fixed lg:relative z-50 h-full w-64 transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
         <div className="flex items-center gap-2 p-4 border-b border-gray-200">
           <div className="h-8 w-8 border-2 border-primary-green bg-white"></div>
           <span className="text-lg font-semibold text-primary-green">CampusLink</span>
@@ -154,7 +117,10 @@ function AdminLayoutShell({
       </aside>
 
       {isMobile && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       <div className="flex-1 min-w-0">
@@ -173,9 +139,7 @@ function AdminLayoutShell({
           </div>
         </header>
 
-        <main className="p-4 md:p-6">
-          {children}
-        </main>
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
