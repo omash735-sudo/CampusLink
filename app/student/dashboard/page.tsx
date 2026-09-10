@@ -1,7 +1,7 @@
 // app/student/dashboard/page.tsx
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { announcements, events, resources, campuslinkUsers } from '@/lib/db/schema';
+import { announcements, events, resources, campuslinkUsers, programmes } from '@/lib/db/schema';
 import { eq, desc, asc, and } from 'drizzle-orm';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -29,24 +29,33 @@ export default async function StudentDashboard() {
   const upcomingEvents = await db
     .select()
     .from(events)
-    .where(and(
-      eq(events.status, 'published'),
-      // Only future events
-      // In production, add date filter
-    ))
+    .where(eq(events.status, 'published'))
     .orderBy(asc(events.startDate))
     .limit(5);
   
+  // Get programme ID for user's programme
+  let programmeId: string | undefined;
+  if (user.programme) {
+    const programme = await db
+      .select({ id: programmes.id })
+      .from(programmes)
+      .where(eq(programmes.name, user.programme))
+      .then(res => res[0]);
+    programmeId = programme?.id;
+  }
+  
   // Get recommended resources based on user's programme
-  const recommendedResources = await db
-    .select()
-    .from(resources)
-    .where(and(
-      eq(resources.status, 'approved'),
-      user.programme ? eq(resources.programme, user.programme) : undefined
-    ))
-    .orderBy(desc(resources.downloads))
-    .limit(4);
+  const recommendedResources = programmeId
+    ? await db
+        .select()
+        .from(resources)
+        .where(and(
+          eq(resources.status, 'approved'),
+          eq(resources.programmeId, programmeId)
+        ))
+        .orderBy(desc(resources.downloads))
+        .limit(4)
+    : [];
   
   // Get students from same programme
   const cohortStudents = await db
@@ -61,8 +70,7 @@ export default async function StudentDashboard() {
     .from(campuslinkUsers)
     .where(and(
       eq(campuslinkUsers.isActive, true),
-      user.programme ? eq(campuslinkUsers.programme, user.programme) : undefined,
-      campuslinkUsers.id !== user.id
+      user.programme ? eq(campuslinkUsers.programme, user.programme) : undefined
     ))
     .limit(6);
 
