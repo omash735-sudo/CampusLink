@@ -1,4 +1,3 @@
-// app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { campuslinkUsers } from '@/lib/db/schema';
@@ -13,12 +12,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
-    const [user] = await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.email, validated.email));
+    const [user] = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.email, validated.email));
+
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Ensure passwordHash exists
     if (!user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
@@ -31,10 +33,20 @@ export async function POST(request: Request) {
     const token = signToken(user.id, user.role);
     setAuthCookie(token);
 
-    return NextResponse.json({ 
-      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role }
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        isMentor: user.isMentor,
+        mentorStatus: user.mentorStatus,
+      },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Login failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Login failed' },
+      { status: 500 }
+    );
   }
 }
