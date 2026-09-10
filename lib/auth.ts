@@ -1,82 +1,121 @@
-// lib/auth.ts
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
-import { db } from './db';
-import { campuslinkUsers } from './db/schema';
-import { eq } from 'drizzle-orm';
+// lib/validation.ts
+import { z } from 'zod';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+export const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  fullName: z.string().min(2),
+  username: z.string().min(3),
+  programme: z.string().optional(),
+  year: z.number().optional(),
+});
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 10);
-}
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
 
-export async function comparePassword(password: string, hash: string) {
-  return bcrypt.compare(password, hash);
-}
+export const announcementSchema = z.object({
+  title: z.string().min(3),
+  content: z.string().min(10),
+  type: z.enum(['general', 'academic', 'student_union']).default('general'),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  isPublished: z.boolean().default(false),
+  imageUrl: z.string().url().optional().nullable(),
+  expiresAt: z.string().optional().nullable(),
+});
 
-export function signToken(userId: string, role: string = 'student') {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
-}
+export const eventSchema = z.object({
+  title: z.string().min(3),
+  description: z.string().optional(),
+  startDate: z.string(),
+  endDate: z.string().optional(),
+  location: z.string().optional(),
+  organizer: z.string().optional(),
+  category: z.string().optional(),
+  maxAttendees: z.number().optional(),
+  status: z.enum(['draft', 'published']).default('draft'),
+});
 
-export function verifyToken(token: string) {
-  try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; role: string };
-  } catch {
-    return null;
-  }
-}
+export const resourceSchema = z.object({
+  title: z.string().min(3),
+  description: z.string().optional(),
+  programmeId: z.string().optional(),
+  year: z.number().optional(),
+  course: z.string().optional(),
+  fileUrl: z.string().url(),
+  fileName: z.string(),
+  fileType: z.string(),
+  fileSize: z.number(),
+});
 
-export async function getCurrentUser() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('auth_token')?.value;
-  
-  if (!token) return null;
-  
-  const decoded = verifyToken(token);
-  if (!decoded) return null;
-  
-  const user = await db.select().from(campuslinkUsers).where(eq(campuslinkUsers.id, decoded.userId));
-  return user[0] || null;
-}
+export const mentorSchema = z.object({
+  expertise: z.array(z.string()).optional().default([]),
+  subjects: z.array(z.string()).optional().default([]),
+  introduction: z.string().optional().default(''),
+  experience: z.string().optional().nullable(),
+  availability: z.enum(['available', 'limited', 'unavailable']).optional().default('available'),
+});
 
-export async function requireAuth() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
-  return user;
-}
+export const opportunitySchema = z.object({
+  title: z.string().min(3),
+  description: z.string().min(10),
+  organization: z.string().min(2),
+  category: z.string(),
+  eligibility: z.string().optional(),
+  deadline: z.string().optional(),
+  applicationUrl: z.string().url().optional(),
+  contact: z.string().optional(),
+  isPublished: z.boolean().default(false),
+});
 
-export async function requireAdmin() {
-  const user = await requireAuth();
-  if (user.role !== 'admin') throw new Error('Forbidden');
-  return user;
-}
+export const postSchema = z.object({
+  title: z.string().optional(),
+  content: z.string().min(1),
+  type: z.enum(['post', 'question', 'announcement']).default('post'),
+  visibility: z.enum(['public', 'private']).default('public'),
+});
 
-export async function requireMentor() {
-  const user = await requireAuth();
-  if (!user.isMentor || user.mentorStatus !== 'approved') {
-    throw new Error('Mentor access required');
-  }
-  return user;
-}
+// New: Mentorship Request Schema
+export const mentorshipRequestSchema = z.object({
+  message: z.string().min(10),
+  introduction: z.string().optional(),
+  helpNeeded: z.array(z.string()).optional(),
+});
 
-export function setAuthCookie(token: string) {
-  cookies().set('auth_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  });
-}
+// New: Become Mentor Schema
+export const becomeMentorSchema = z.object({
+  expertise: z.array(z.string()).min(1, 'At least one area of expertise is required'),
+  subjects: z.array(z.string()).optional(),
+  introduction: z.string().min(20, 'Introduction must be at least 20 characters'),
+  experience: z.string().optional(),
+  mentorType: z.enum(['Student', 'Alumni', 'Professional', 'Staff']).default('Student'),
+});
 
-export function clearAuthCookie() {
-  cookies().delete('auth_token');
-}
+// ==================== ADMIN / AUTH SCHEMAS ====================
 
-export function getRedirectPath(user: any) {
-  if (user.role === 'admin') return '/admin';
-  if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
-  return '/student/dashboard';
-}
+export const adminSetupSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(2, 'Full name is required'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[a-z]/, 'Must contain a lowercase letter')
+    .regex(/[0-9]/, 'Must contain a number'),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[a-z]/, 'Must contain a lowercase letter')
+    .regex(/[0-9]/, 'Must contain a number'),
+});
+
+export const superAccessSchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+});
