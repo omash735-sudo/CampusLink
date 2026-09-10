@@ -91,3 +91,31 @@ export const becomeMentorSchema = z.object({
   experience: z.string().optional(),
   mentorType: z.enum(['Student', 'Alumni', 'Professional', 'Staff']).default('Student'),
 });
+
+// ==================== ADMIN / AUTH SCHEMAS ====================
+
+export const adminSetupSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(2, 'Full name is required'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[a-z]/, 'Must contain a lowercase letter')
+    .regex(/[0-9]/, 'Must contain a number'),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[a-z]/, 'Must contain a lowercase letter')
+    .regex(/[0-9]/, 'Must contain a number'),
+});
+
+export const superAccessSchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+});
