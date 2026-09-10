@@ -1,4 +1,3 @@
-// app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -27,7 +26,14 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
-      router.push('/student/dashboard');
+      const user = data.user;
+      if (user?.role === 'admin') {
+        router.push('/admin');
+      } else if (user?.isMentor && user?.mentorStatus === 'approved') {
+        router.push('/mentor');
+      } else {
+        router.push('/student/dashboard');
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -85,9 +91,9 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button 
-            type="submit" 
-            className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors" 
+          <button
+            type="submit"
+            className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}
