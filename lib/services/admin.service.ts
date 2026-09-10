@@ -36,7 +36,7 @@ import {
   campusTimeline,
   campusGallery
 } from '@/lib/db/schema';
-import { eq, desc, asc, and, or, like, count, sql } from 'drizzle-orm';
+import { eq, desc, asc, and, or, like, sql } from 'drizzle-orm';  // ← removed `count`
 
 // ==================== USERS ====================
 export async function getUsers() {
