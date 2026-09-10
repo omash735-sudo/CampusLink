@@ -1,7 +1,6 @@
 // scripts/seed.ts
 import { db } from '@/lib/db';
-import { programmes, cohorts, campuslinkUsers } from '@/lib/db/schema';
-import { hashPassword } from '@/lib/auth';
+import { programmes, cohorts } from '@/lib/db/schema';
 
 async function seed() {
   console.log(' Seeding database...');
@@ -47,26 +46,11 @@ async function seed() {
     console.log(` Skipping cohorts — ${existingCohorts.length} already exist`);
   }
 
-  // Only create admin if it doesn't exist
-  const existingAdmin = await db.select().from(campuslinkUsers);
-  const adminExists = existingAdmin.some(u => u.email === 'admin@campuslink.com');
-
-  if (!adminExists) {
-    const adminPassword = await hashPassword('admin123');
-    await db.insert(campuslinkUsers).values({
-      email: 'admin@campuslink.com',
-      passwordHash: adminPassword,
-      fullName: 'System Administrator',
-      username: 'admin',
-      role: 'admin',
-      isVerified: true,
-    }).onConflictDoNothing();
-    console.log(' Admin user created (email: admin@campuslink.com, password: admin123)');
-  } else {
-    console.log(' Skipping admin — already exists');
-  }
-
   console.log(' Seed complete!');
+  console.log('');
+  console.log(' NOTE: No admin account is created by this script.');
+  console.log(' To create your admin account, visit: /admin/setup');
+  console.log(' (Only works if no admin exists yet.)');
 }
 
 seed().catch(console.error);
