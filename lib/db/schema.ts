@@ -278,11 +278,11 @@ export const groups = pgTable('groups', {
   description: text('description'),
   type: text('type').default('open').notNull(),
   category: text('category'),
-  whatsappLink: text('whatsapp_link'), // ADDED
+  whatsappLink: text('whatsapp_link'),
   avatar: text('avatar'),
   cover: text('cover'),
   memberCount: integer('member_count').default(0),
-  isActive: boolean('is_active').default(true), // ADDED
+  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -415,6 +415,17 @@ export const reports = pgTable('reports', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ==================== FEEDBACK (NEWLY ADDED) ====================
+export const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id),
+  content: text('content').notNull(),
+  category: text('category').default('general'),
+  status: text('status').default('new').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // ==================== AUDIT LOGS ====================
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -510,6 +521,7 @@ export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) =>
   resourceViews: many(resourceViews),
   resourceReports: many(resourceReports),
   auditLogs: many(auditLogs),
+  feedback: many(feedback),  // ADDED
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -768,6 +780,14 @@ export const announcementsRelations = relations(announcements, ({ one }) => ({
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   admin: one(campuslinkUsers, {
     fields: [auditLogs.adminId],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+// ADDED: feedback relations
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+  user: one(campuslinkUsers, {
+    fields: [feedback.userId],
     references: [campuslinkUsers.id],
   }),
 }));
