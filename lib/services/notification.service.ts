@@ -1,7 +1,7 @@
 // lib/services/notification.service.ts
 import { db } from '@/lib/db';
 import { notifications, campuslinkUsers } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';  // ← added sql
 
 interface NotificationData {
   userId: string;
