@@ -1,18 +1,18 @@
 // components/mentors/RecommendedMentors.tsx
 import { db } from '@/lib/db';
-import { mentors, users } from '@/lib/db/schema';
+import { mentors, campuslinkUsers } from '@/lib/db/schema';
 import { eq, and, ne, desc } from 'drizzle-orm';
 import { MentorCard } from './MentorCard';
 
 export async function RecommendedMentors({ currentUserId }: { currentUserId: string }) {
   const currentUser = await db
     .select({
-      id: users.id,
-      programme: users.programme,
-      year: users.year,
+      id: campuslinkUsers.id,
+      programme: campuslinkUsers.programme,
+      year: campuslinkUsers.year,
     })
-    .from(users)
-    .where(eq(users.id, currentUserId))
+    .from(campuslinkUsers)
+    .where(eq(campuslinkUsers.id, currentUserId))
     .then(res => res[0]);
 
   if (!currentUser || !currentUser.programme) return null;
@@ -31,20 +31,20 @@ export async function RecommendedMentors({ currentUserId }: { currentUserId: str
       reviewCount: mentors.reviewCount,
       availability: mentors.availability,
       user: {
-        fullName: users.fullName,
-        username: users.username,
-        programme: users.programme,
-        year: users.year,
-        avatar: users.avatar,
-        mentorType: users.mentorType,
+        fullName: campuslinkUsers.fullName,
+        username: campuslinkUsers.username,
+        programme: campuslinkUsers.programme,
+        year: campuslinkUsers.year,
+        avatar: campuslinkUsers.avatar,
+        mentorType: campuslinkUsers.mentorType,
       }
     })
     .from(mentors)
-    .leftJoin(users, eq(mentors.userId, users.id))
+    .leftJoin(campuslinkUsers, eq(mentors.userId, campuslinkUsers.id))
     .where(and(
-      eq(mentors.status, 'verified'),
+      eq(mentors.status, 'approved'),
       ne(mentors.userId, currentUserId),
-      eq(users.programme, currentUser.programme)
+      eq(campuslinkUsers.programme, currentUser.programme)
     ))
     .orderBy(desc(mentors.rating))
     .limit(4);
