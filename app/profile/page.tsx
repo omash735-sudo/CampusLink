@@ -23,7 +23,9 @@ export default async function ProfilePage() {
     .limit(10);
 
   const mockInterests = user.interests || ['Technology', 'Research', 'Social Work'];
-  const communities = userCommunitiesData.map(c => c.name).filter(Boolean);
+  const communities = userCommunitiesData
+    .map(c => c.name)
+    .filter((name): name is string => name !== null && name !== undefined);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
