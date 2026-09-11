@@ -1,4 +1,3 @@
-// lib/auth.ts
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
@@ -6,9 +5,11 @@ import { db } from './db';
 import { campuslinkUsers } from './db/schema';
 import { eq, sql } from 'drizzle-orm';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// ==================== PASSWORDS ====================
+if (!JWT_SECRET) {
+  throw new Error('[lib/auth] JWT_SECRET is not set');
+}
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
@@ -18,21 +19,17 @@ export async function comparePassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-// ==================== JWT ====================
-
 export function signToken(userId: string, role: string = 'student') {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId, role }, JWT_SECRET!, { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; role: string };
+    return jwt.verify(token, JWT_SECRET!) as { userId: string; role: string };
   } catch {
     return null;
   }
 }
-
-// ==================== SESSION ====================
 
 export async function getCurrentUser() {
   const cookieStore = cookies();
@@ -47,6 +44,7 @@ export async function getCurrentUser() {
     .select()
     .from(campuslinkUsers)
     .where(eq(campuslinkUsers.id, decoded.userId));
+
   return user[0] || null;
 }
 
@@ -65,20 +63,16 @@ export async function requireAdmin() {
 export async function requireMentor() {
   const user = await requireAuth();
 
-  // Real mentors
   if (user.isMentor && user.mentorStatus === 'approved') {
     return user;
   }
 
-  // Admin with super access — allow viewing as mentor
   if (user.role === 'admin' && hasSuperAccess()) {
     return user;
   }
 
   throw new Error('Mentor access required');
 }
-
-// ==================== ADMIN HELPERS ====================
 
 export async function adminExists(): Promise<boolean> {
   const result = await db
@@ -87,8 +81,6 @@ export async function adminExists(): Promise<boolean> {
     .where(eq(campuslinkUsers.role, 'admin'));
   return (result[0]?.count || 0) > 0;
 }
-
-// ==================== COOKIES ====================
 
 export function setAuthCookie(token: string) {
   cookies().set('auth_token', token, {
@@ -104,16 +96,18 @@ export function clearAuthCookie() {
   cookies().delete('auth_token');
 }
 
-export function getRedirectPath(user: any) {
+export function getRedirectPath(user: {
+  role?: string;
+  isMentor?: boolean;
+  mentorStatus?: string;
+}): string {
   if (user.role === 'admin') return '/admin';
   if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
   return '/student/dashboard';
 }
 
-// ==================== SUPER ACCESS ====================
-
 const SUPER_ACCESS_COOKIE = 'super_access_token';
-const SUPER_ACCESS_TTL_SECONDS = 60 * 60; // 1 hour
+const SUPER_ACCESS_TTL_SECONDS = 60 * 60;
 
 export function isSuperAccessEnabled(): boolean {
   return process.env.SUPER_ACCESS_ENABLED === 'true';
@@ -122,9 +116,7 @@ export function isSuperAccessEnabled(): boolean {
 export function verifySuperAccessPassword(input: string): boolean {
   const expected = process.env.SUPER_ACCESS_PASSWORD;
   if (!expected || !isSuperAccessEnabled()) return false;
-  // length check first
   if (input.length !== expected.length) return false;
-  // constant-time-ish comparison to avoid trivial timing leaks
   let mismatch = 0;
   for (let i = 0; i < input.length; i++) {
     mismatch |= input.charCodeAt(i) ^ expected.charCodeAt(i);
@@ -133,14 +125,14 @@ export function verifySuperAccessPassword(input: string): boolean {
 }
 
 export function signSuperAccessToken() {
-  return jwt.sign({ type: 'super_access' }, JWT_SECRET, {
+  return jwt.sign({ type: 'super_access' }, JWT_SECRET!, {
     expiresIn: SUPER_ACCESS_TTL_SECONDS,
   });
 }
 
 export function verifySuperAccessToken(token: string): boolean {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { type?: string };
+    const decoded = jwt.verify(token, JWT_SECRET!) as { type?: string };
     return decoded?.type === 'super_access';
   } catch {
     return false;
