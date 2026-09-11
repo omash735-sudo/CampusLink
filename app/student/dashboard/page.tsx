@@ -1,5 +1,4 @@
 // app/student/dashboard/page.tsx
-import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { announcements, events, resources, campuslinkUsers, programmes } from '@/lib/db/schema';
 import { eq, desc, asc, and } from 'drizzle-orm';
@@ -15,7 +14,19 @@ import {
 } from '@/components/icons';
 
 export default async function StudentDashboard() {
-  const user = await requireAuth();
+  // TEMP: fake user for visual testing. Auth is disabled in middleware.
+  const user = {
+    id: 'test-student-id',
+    email: 'student@test.com',
+    fullName: 'Test Student',
+    username: 'teststudent',
+    role: 'student',
+    programme: 'BSc Agricultural Economics',
+    year: 1,
+    avatar: null as string | null,
+    isMentor: false,
+    mentorStatus: 'not_applied',
+  };
 
   // Get announcements
   const recentAnnouncements = await db
@@ -83,7 +94,6 @@ export default async function StudentDashboard() {
       <SuperAccessBannerServer as="student" />
       <div className="min-h-screen bg-off-white py-8">
         <div className="container mx-auto px-4">
-          {/* Welcome Section */}
           <div className="bg-white border border-gray-200 p-6 mb-8">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="h-16 w-16 rounded-full border-2 border-primary-green bg-primary-green/10 flex items-center justify-center text-2xl font-bold text-primary-green overflow-hidden">
@@ -121,7 +131,6 @@ export default async function StudentDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <QuickAction href="/connect" icon={UsersIcon} label="Find Students" />
             <QuickAction href="/mentors" icon={AcademicIcon} label="Find a Mentor" />
@@ -129,10 +138,8 @@ export default async function StudentDashboard() {
             <QuickAction href="/campus" icon={MapPinIcon} label="Explore Campus" />
           </div>
 
-          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              {/* Announcements */}
               <div className="bg-white border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Announcements</h2>
@@ -171,7 +178,6 @@ export default async function StudentDashboard() {
                 )}
               </div>
 
-              {/* Upcoming Events */}
               <div className="bg-white border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Upcoming Events</h2>
@@ -208,7 +214,6 @@ export default async function StudentDashboard() {
             </div>
 
             <div className="space-y-6">
-              {/* Your Cohort */}
               {cohortStudents.length > 0 && (
                 <div className="bg-white border border-gray-200 p-6">
                   <h2 className="text-xl font-bold mb-4">Your Cohort</h2>
@@ -245,7 +250,6 @@ export default async function StudentDashboard() {
                 </div>
               )}
 
-              {/* Recommended Resources */}
               {recommendedResources.length > 0 && (
                 <div className="bg-white border border-gray-200 p-6">
                   <h2 className="text-xl font-bold mb-4">Recommended Resources</h2>
