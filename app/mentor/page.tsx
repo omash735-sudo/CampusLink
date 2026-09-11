@@ -1,5 +1,4 @@
 // app/mentor/page.tsx
-import { requireMentor, hasSuperAccess } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   mentorshipRequests,
@@ -18,18 +17,24 @@ import {
 } from '@/components/icons';
 
 export default async function MentorDashboard() {
-  const user = await requireMentor();
-  const superAccess = hasSuperAccess();
+  // TEMP: fake user for visual testing. Auth is disabled in middleware.
+  const user = {
+    id: 'test-mentor-id',
+    email: 'mentor@test.com',
+    fullName: 'Test Mentor',
+    username: 'testmentor',
+    role: 'mentor',
+    avatar: null as string | null,
+    isMentor: true,
+    mentorStatus: 'approved',
+  };
 
-  // Get mentor profile
   const mentor = await db
     .select()
     .from(mentors)
     .where(eq(mentors.userId, user.id))
     .then((res) => res[0]);
 
-  // If viewing as admin via super access but no mentor profile exists,
-  // render a friendly "no mentor profile" state instead of crashing.
   if (!mentor) {
     return (
       <>
@@ -39,12 +44,12 @@ export default async function MentorDashboard() {
             <div className="bg-white border border-gray-200 p-8 max-w-2xl mx-auto text-center">
               <h1 className="text-2xl font-bold mb-2">No Mentor Profile</h1>
               <p className="text-muted-text mb-4">
-                You are currently viewing the mentor dashboard with Super Access,
-                but no mentor profile exists for this account.
+                This is what an admin sees when using Super Access to view the
+                mentor dashboard without an actual mentor profile.
               </p>
               <p className="text-sm text-muted-text">
-                This is expected for admins testing the mentor view. When real
-                mentors log in, they will see their requests and mentees here.
+                When a real mentor logs in, they will see their requests and
+                mentees here.
               </p>
             </div>
           </div>
@@ -53,7 +58,6 @@ export default async function MentorDashboard() {
     );
   }
 
-  // Get pending requests
   const pendingRequests = await db
     .select({
       id: mentorshipRequests.id,
@@ -78,7 +82,6 @@ export default async function MentorDashboard() {
     .orderBy(desc(mentorshipRequests.createdAt))
     .limit(5);
 
-  // Get active mentorships
   const activeMentorships = await db
     .select({
       id: mentorships.id,
@@ -125,7 +128,6 @@ export default async function MentorDashboard() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Link
               href="/mentor/requests"
@@ -165,7 +167,6 @@ export default async function MentorDashboard() {
             </Link>
           </div>
 
-          {/* Quick Actions */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <QuickAction href="/mentor/requests" label="Review Requests" icon={UserGroupIcon} />
             <QuickAction href="/mentor/mentees" label="View Mentees" icon={UsersIcon} />
@@ -173,7 +174,6 @@ export default async function MentorDashboard() {
             <QuickAction href="/mentor/profile" label="Edit Profile" icon={UserGroupIcon} />
           </div>
 
-          {/* Pending Requests */}
           <div className="bg-white border border-gray-200 p-6 mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Pending Requests</h2>
@@ -233,7 +233,6 @@ export default async function MentorDashboard() {
             )}
           </div>
 
-          {/* Active Mentees */}
           <div className="bg-white border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Active Mentees</h2>
