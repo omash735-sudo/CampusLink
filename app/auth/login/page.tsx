@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
@@ -26,18 +24,9 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
-      const user = data.user;
-      if (user?.role === 'admin') {
-        router.push('/admin');
-      } else if (user?.isMentor && user?.mentorStatus === 'approved') {
-        router.push('/mentor');
-      } else {
-        router.push('/student/dashboard');
-      }
-      router.refresh();
+      window.location.href = data.redirectTo || '/student/dashboard';
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
