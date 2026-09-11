@@ -97,9 +97,9 @@ export function clearAuthCookie() {
 }
 
 export function getRedirectPath(user: {
-  role?: string;
-  isMentor?: boolean;
-  mentorStatus?: string;
+  role?: string | null;
+  isMentor?: boolean | null;
+  mentorStatus?: string | null;
 }): string {
   if (user.role === 'admin') return '/admin';
   if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
