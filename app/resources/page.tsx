@@ -2,7 +2,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { resources, programmes, courses, resourceCategories } from '@/lib/db/schema';
-import { eq, desc, and, like, or, sql } from 'drizzle-orm';
+import { eq, desc, and, like, or } from 'drizzle-orm';
 import Link from 'next/link';
 import { ResourceSearch } from '@/components/resources/ResourceSearch';
 import { ResourceFilters } from '@/components/resources/ResourceFilters';
@@ -11,11 +11,12 @@ import { PopularResources } from '@/components/resources/PopularResources';
 import { RecentResources } from '@/components/resources/RecentResources';
 import { RecommendedResources } from '@/components/resources/RecommendedResources';
 import { ResourceCategories } from '@/components/resources/ResourceCategories';
+import { ResourceSort } from '@/components/resources/ResourceSort';
 
 export default async function ResourcesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; type?: string; programme?: string; year?: string; sort?: string }
+  searchParams: { search?: string; type?: string; programme?: string; year?: string; sort?: string };
 }) {
   const currentUser = await getCurrentUser();
   const search = searchParams.search || '';
@@ -23,8 +24,28 @@ export default async function ResourcesPage({
   const yearFilter = searchParams.year || '';
   const sort = searchParams.sort || 'recent';
 
-  // Build query
-  let query = db
+  const conditions: any[] = [eq(resources.status, 'approved')];
+
+  if (search) {
+    conditions.push(
+      or(
+        like(resources.title, `%${search}%`),
+        like(resources.description, `%${search}%`),
+        like(resources.course, `%${search}%`),
+        like(programmes.name, `%${search}%`)
+      )
+    );
+  }
+
+  if (programmeFilter) {
+    conditions.push(eq(resources.programmeId, programmeFilter));
+  }
+
+  if (yearFilter) {
+    conditions.push(eq(resources.year, parseInt(yearFilter)));
+  }
+
+  const resourceList = await db
     .select({
       id: resources.id,
       title: resources.title,
@@ -55,40 +76,27 @@ export default async function ResourcesPage({
     .from(resources)
     .leftJoin(programmes, eq(resources.programmeId, programmes.id))
     .leftJoin(courses, eq(resources.courseId, courses.id))
-    .where(eq(resources.status, 'approved'));
+    .where(and(...conditions))
+    .orderBy(
+      sort === 'downloads'
+        ? desc(resources.downloads)
+        : sort === 'views'
+        ? desc(resources.viewCount)
+        : sort === 'title'
+        ? resources.title
+        : desc(resources.createdAt)
+    )
+    .limit(24);
 
-  if (search) {
-    query = query.where(
-      or(
-        like(resources.title, `%${search}%`),
-        like(resources.description, `%${search}%`),
-        like(resources.course, `%${search}%`),
-        like(programmes.name, `%${search}%`)
-      )
-    );
-  }
+  const programmesList = await db
+    .select()
+    .from(programmes)
+    .where(eq(programmes.isActive, true));
 
-  if (programmeFilter) {
-    query = query.where(eq(resources.programmeId, programmeFilter));
-  }
-  if (yearFilter) {
-    query = query.where(eq(resources.year, parseInt(yearFilter)));
-  }
-
-  if (sort === 'recent') {
-    query = query.orderBy(desc(resources.createdAt));
-  } else if (sort === 'downloads') {
-    query = query.orderBy(desc(resources.downloads));
-  } else if (sort === 'views') {
-    query = query.orderBy(desc(resources.viewCount));
-  } else if (sort === 'title') {
-    query = query.orderBy(resources.title);
-  }
-
-  const resourceList = await query.limit(24);
-
-  const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
-  const categories = await db.select().from(resourceCategories).orderBy(resourceCategories.name);
+  const categories = await db
+    .select()
+    .from(resourceCategories)
+    .orderBy(resourceCategories.name);
 
   const popularResources = await db
     .select({
@@ -127,15 +135,25 @@ export default async function ResourcesPage({
     .orderBy(desc(resources.createdAt))
     .limit(6);
 
-  const resourceTypes = ['Notes', 'Past Paper', 'Assignment', 'Study Guide', 'Presentation', 'Other'];
+  const resourceTypes = [
+    'Notes',
+    'Past Paper',
+    'Assignment',
+    'Study Guide',
+    'Presentation',
+    'Other',
+  ];
 
   return (
     <div className="min-h-screen bg-off-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary-text">Academic Resources</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-primary-text">
+            Academic Resources
+          </h1>
           <p className="text-lg text-muted-text mt-2">
-            Find the notes, past papers, study materials and academic resources you need to succeed.
+            Find the notes, past papers, study materials and academic resources
+            you need to succeed.
           </p>
           <div className="mt-4 max-w-2xl">
             <ResourceSearch />
@@ -160,23 +178,7 @@ export default async function ResourcesPage({
         <div className="bg-white border border-gray-200 p-6 mb-8">
           <div className="flex flex-wrap gap-4 items-center justify-between">
             <h2 className="text-lg font-semibold">Browse Resources</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-text">Sort by:</span>
-              <select
-                className="border border-gray-300 bg-white px-3 py-1 text-sm focus:border-primary-green focus:outline-none"
-                onChange={(e) => {
-                  const params = new URLSearchParams(searchParams);
-                  params.set('sort', e.target.value);
-                  window.location.href = `/resources?${params.toString()}`;
-                }}
-                defaultValue={sort}
-              >
-                <option value="recent">Most Recent</option>
-                <option value="downloads">Most Downloaded</option>
-                <option value="views">Most Viewed</option>
-                <option value="title">Alphabetical</option>
-              </select>
-            </div>
+            <ResourceSort currentSort={sort} searchParams={searchParams} />
           </div>
           <div className="mt-4">
             <ResourceFilters
@@ -195,9 +197,14 @@ export default async function ResourcesPage({
           <ResourceGrid resources={resourceList} currentUserId={currentUser?.id} />
           {resourceList.length === 0 && (
             <div className="border border-gray-200 bg-white p-8 text-center">
-              <p className="text-muted-text">No resources found matching your criteria.</p>
+              <p className="text-muted-text">
+                No resources found matching your criteria.
+              </p>
               <div className="mt-4">
-                <Link href="/resources" className="text-primary-green hover:underline text-sm">
+                <Link
+                  href="/resources"
+                  className="text-primary-green hover:underline text-sm"
+                >
                   Clear Filters
                 </Link>
               </div>
