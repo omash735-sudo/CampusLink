@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { campuslinkUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { comparePassword, signToken, setAuthCookie } from '@/lib/auth';
+import { comparePassword, signToken, setAuthCookie, getRedirectPath } from '@/lib/auth';
 import { loginSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -17,11 +17,7 @@ export async function POST(request: Request) {
       .from(campuslinkUsers)
       .where(eq(campuslinkUsers.email, validated.email));
 
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-    }
-
-    if (!user.passwordHash) {
+    if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -42,6 +38,7 @@ export async function POST(request: Request) {
         isMentor: user.isMentor,
         mentorStatus: user.mentorStatus,
       },
+      redirectTo: getRedirectPath(user),
     });
   } catch (error: any) {
     return NextResponse.json(
