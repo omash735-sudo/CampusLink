@@ -16,10 +16,12 @@ import {
   BellIcon,
 } from '@/components/icons';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MentorDashboard() {
-  // TEMP: fake user for visual testing. Auth is disabled in middleware.
+  // TEMP: fake user for visual testing. Auth disabled.
   const user = {
-    id: 'test-mentor-id',
+    id: '4b93eb7d-f26f-4aaa-95fe-ae7abea695eb',   // admin's real UUID
     email: 'mentor@test.com',
     fullName: 'Test Mentor',
     username: 'testmentor',
