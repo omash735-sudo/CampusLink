@@ -1,7 +1,31 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { checkSuperAccessToken } from '@/lib/middleware-helpers';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in middleware runtime');
+}
+
+function verifyToken(token: string): { userId: string; role: string } | null {
+  try {
+    return jwt.verify(token, JWT_SECRET!) as { userId: string; role: string };
+  } catch {
+    return null;
+  }
+}
+
+function checkSuperAccessToken(token: string | undefined): boolean {
+  if (!token) return false;
+  if (process.env.SUPER_ACCESS_ENABLED !== 'true') return false;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET!) as { type?: string };
+    return decoded?.type === 'super_access';
+  } catch {
+    return false;
+  }
+}
 
 const publicRoutes = [
   '/',
@@ -43,6 +67,11 @@ export function middleware(request: NextRequest) {
   const superToken = request.cookies.get('super_access_token')?.value;
   const pathname = request.nextUrl.pathname;
 
+  console.log('[MW]', pathname, 'token?', !!token, 'secretLen=', JWT_SECRET!.length);
+  if (token) {
+    console.log('[MW] decoded=', JSON.stringify(verifyToken(token)));
+  }
+
   if (openSuperAccessRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
     return NextResponse.next();
   }
@@ -67,7 +96,6 @@ export function middleware(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)!;
-  const hasSuper = checkSuperAccessToken(superToken);
 
   if (adminRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
     if (decoded.role !== 'admin') {
