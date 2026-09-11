@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined in middleware runtime');
+  throw new Error('[middleware] JWT_SECRET is not set');
 }
 
 function verifyToken(token: string): { userId: string; role: string } | null {
@@ -16,7 +16,7 @@ function verifyToken(token: string): { userId: string; role: string } | null {
   }
 }
 
-function checkSuperAccessToken(token: string | undefined): boolean {
+function checkSuperAccess(token: string | undefined): boolean {
   if (!token) return false;
   if (process.env.SUPER_ACCESS_ENABLED !== 'true') return false;
   try {
@@ -46,7 +46,7 @@ const authRoutes = [
   '/auth/reset-password',
 ];
 
-const openAdminRoutes = ['/admin/setup', '/admin/login'];
+const openAdminRoutes = ['/admin/setup'];
 const openSuperAccessRoutes = ['/super-access'];
 
 const studentRoutes = [
@@ -67,11 +67,6 @@ export function middleware(request: NextRequest) {
   const superToken = request.cookies.get('super_access_token')?.value;
   const pathname = request.nextUrl.pathname;
 
-  console.log('[MW]', pathname, 'token?', !!token, 'secretLen=', JWT_SECRET!.length);
-  if (token) {
-    console.log('[MW] decoded=', JSON.stringify(verifyToken(token)));
-  }
-
   if (openSuperAccessRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
     return NextResponse.next();
   }
@@ -86,7 +81,7 @@ export function middleware(request: NextRequest) {
 
   if (authRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
     if (token && verifyToken(token)) {
-      return NextResponse.redirect(new URL('/student/dashboard', request.url));
+      return NextResponse.next();
     }
     return NextResponse.next();
   }
