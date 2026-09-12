@@ -9,6 +9,7 @@ export const campuslinkUsers = pgTable('campuslink_users', {
   passwordHash: text('password_hash').notNull(),
   fullName: text('full_name').notNull(),
   username: text('username').unique().notNull(),
+  phone: text('phone'),
   avatar: text('avatar'),
   bio: text('bio'),
   role: text('role').default('student').notNull(),
@@ -17,7 +18,7 @@ export const campuslinkUsers = pgTable('campuslink_users', {
   year: integer('year'),
   interests: text('interests').array(),
   isVerified: boolean('is_verified').default(false),
-  isActive: boolean('is_active').default(true),
+  isActive: boolean('is_active').default(false),
   lastActive: timestamp('last_active'),
   isMentor: boolean('is_mentor').default(false),
   mentorType: text('mentor_type'),
@@ -398,7 +399,7 @@ export const notifications = pgTable('notifications', {
   title: text('title').notNull(),
   content: text('content'),
   link: text('link'),
-  metadata: jsonb('metadata'),   // ✅ ADDED
+  metadata: jsonb('metadata'),
   read: boolean('read').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
