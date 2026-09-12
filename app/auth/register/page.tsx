@@ -26,17 +26,16 @@ export default function RegisterPage() {
     password: '',
     fullName: '',
     username: '',
+    phone: '',
     programmeId: '',
     year: '',
   });
 
-  // Fetch programmes on component mount
   useEffect(() => {
     const fetchProgrammes = async () => {
       try {
         const res = await fetch('/api/programmes');
         const data = await res.json();
-        
         if (res.ok) {
           setProgrammes(data);
         } else {
@@ -48,7 +47,6 @@ export default function RegisterPage() {
         setLoadingProgrammes(false);
       }
     };
-
     fetchProgrammes();
   }, []);
 
@@ -66,6 +64,7 @@ export default function RegisterPage() {
           password: form.password,
           fullName: form.fullName,
           username: form.username,
+          phone: form.phone,
           programmeId: form.programmeId,
           year: parseInt(form.year),
         }),
@@ -74,8 +73,8 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
-      router.push('/student/dashboard');
-      router.refresh();
+      // Redirect to the confirmation page — NOT the dashboard.
+      router.push('/auth/register-success');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -83,12 +82,9 @@ export default function RegisterPage() {
     }
   };
 
-  // Group programmes by faculty
   const groupedProgrammes = programmes.reduce((acc, programme) => {
     const faculty = programme.faculty || 'Other';
-    if (!acc[faculty]) {
-      acc[faculty] = [];
-    }
+    if (!acc[faculty]) acc[faculty] = [];
     acc[faculty].push(programme);
     return acc;
   }, {} as Record<string, Programme[]>);
@@ -149,6 +145,18 @@ export default function RegisterPage() {
           </div>
 
           <div>
+            <label className="label-text">Phone Number</label>
+            <input
+              type="tel"
+              required
+              className="input-field"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+265 991 234 567"
+            />
+          </div>
+
+          <div>
             <label className="label-text">Password</label>
             <input
               type="password"
@@ -158,6 +166,9 @@ export default function RegisterPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="Min. 8 characters"
             />
+            <p className="text-xs text-muted-text mt-1">
+              At least 8 characters with an uppercase letter, a lowercase letter and a number.
+            </p>
           </div>
 
           <div>
@@ -172,8 +183,6 @@ export default function RegisterPage() {
               <option value="">
                 {loadingProgrammes ? 'Loading programmes...' : 'Select your programme'}
               </option>
-              
-              {/* Option 1: Grouped by faculty */}
               {Object.entries(groupedProgrammes).map(([faculty, programmes]) => (
                 <optgroup key={faculty} label={faculty}>
                   {programmes.map((programme) => (
@@ -213,7 +222,11 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <button type="submit" className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors" disabled={loading}>
+          <button
+            type="submit"
+            className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
+            disabled={loading}
+          >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
 
