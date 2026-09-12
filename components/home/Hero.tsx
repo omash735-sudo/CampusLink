@@ -9,7 +9,7 @@ export function Hero() {
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-6 flex justify-center">
             <Image
-              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnzur.png"
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
               alt="CampusLink"
               width={64}
               height={64}
