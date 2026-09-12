@@ -1,3 +1,4 @@
+// app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { campuslinkUsers } from '@/lib/db/schema';
@@ -24,6 +25,18 @@ export async function POST(request: Request) {
     const valid = await comparePassword(validated.password, user.passwordHash);
     if (!valid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // BLOCK restricted users
+    if (user.isActive === false) {
+      return NextResponse.json(
+        {
+          error:
+            'Your account is pending activation. Access to CampusLink will be enabled once authorization is complete.',
+          code: 'ACCOUNT_RESTRICTED',
+        },
+        { status: 403 }
+      );
     }
 
     const token = signToken(user.id, user.role);
