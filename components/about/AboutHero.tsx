@@ -32,7 +32,7 @@ export function AboutHero() {
           </div>
           <div className="relative h-64 md:h-80 lg:h-96 bg-gray-200 border border-gray-200 overflow-hidden">
             <Image
-              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653529/DSC_8912_hb7vtt.jpg"
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1789247541/757b291e2b61b6990b11d22ad3158183_sycrsw.jpg"
               alt="Campus Community"
               fill
               className="object-cover"
