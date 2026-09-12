@@ -58,6 +58,8 @@ export default function RegisterPage() {
       uppercase: /[A-Z]/.test(p),
       lowercase: /[a-z]/.test(p),
       number: /[0-9]/.test(p),
+      special: /[^A-Za-z0-9]/.test(p),
+      long: p.length >= 12,
     };
   }, [form.password]);
 
@@ -66,6 +68,33 @@ export default function RegisterPage() {
     passwordChecks.uppercase &&
     passwordChecks.lowercase &&
     passwordChecks.number;
+
+  const passwordStrength = useMemo(() => {
+    const p = form.password;
+    if (!p) return { score: 0, label: '', color: '', width: '0%' };
+
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (p.length >= 12) score++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+
+    if (p.length < 6) {
+      return { score: 1, label: 'Too short', color: 'bg-red-500', width: '20%' };
+    }
+
+    if (score <= 2) {
+      return { score: 2, label: 'Weak', color: 'bg-red-500', width: '35%' };
+    }
+    if (score === 3) {
+      return { score: 3, label: 'Fair', color: 'bg-yellow-500', width: '60%' };
+    }
+    if (score === 4) {
+      return { score: 4, label: 'Good', color: 'bg-blue-500', width: '80%' };
+    }
+    return { score: 5, label: 'Strong', color: 'bg-primary-green', width: '100%' };
+  }, [form.password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +230,34 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            <ul className="mt-2 space-y-1 text-xs">
+            {form.password.length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-muted-text">Strength</span>
+                  <span
+                    className={`text-xs font-medium ${
+                      passwordStrength.score <= 2
+                        ? 'text-red-600'
+                        : passwordStrength.score === 3
+                        ? 'text-yellow-600'
+                        : passwordStrength.score === 4
+                        ? 'text-blue-600'
+                        : 'text-primary-green'
+                    }`}
+                  >
+                    {passwordStrength.label}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                    style={{ width: passwordStrength.width }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <ul className="mt-3 space-y-1 text-xs">
               <PasswordRule
                 met={passwordChecks.length}
                 label="At least 8 characters"
@@ -217,6 +273,11 @@ export default function RegisterPage() {
               <PasswordRule
                 met={passwordChecks.number}
                 label="Contains a number"
+              />
+              <PasswordRule
+                met={passwordChecks.special}
+                label="Contains a symbol (optional, but recommended)"
+                optional
               />
             </ul>
           </div>
@@ -298,11 +359,23 @@ export default function RegisterPage() {
   );
 }
 
-function PasswordRule({ met, label }: { met: boolean; label: string }) {
+function PasswordRule({
+  met,
+  label,
+  optional = false,
+}: {
+  met: boolean;
+  label: string;
+  optional?: boolean;
+}) {
   return (
     <li
       className={`flex items-center gap-2 ${
-        met ? 'text-primary-green' : 'text-muted-text'
+        met
+          ? 'text-primary-green'
+          : optional
+          ? 'text-muted-text/70'
+          : 'text-muted-text'
       }`}
     >
       {met ? <CheckIcon /> : <DotIcon />}
