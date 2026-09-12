@@ -2,12 +2,29 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  fullName: z.string().min(2),
-  username: z.string().min(3),
-  programme: z.string().optional(),
-  year: z.number().optional(),
+  email: z.string().email('Enter a valid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[a-z]/, 'Password must contain a lowercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
+  fullName: z
+    .string()
+    .min(2, 'Full name is required')
+    .max(100, 'Full name is too long'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username is too long')
+    .regex(/^[a-zA-Z0-9._]+$/, 'Username may only contain letters, numbers, dots and underscores'),
+  phone: z
+    .string()
+    .min(7, 'Enter a valid phone number')
+    .max(20, 'Phone number is too long')
+    .regex(/^[0-9+\-\s()]+$/, 'Enter a valid phone number'),
+  programmeId: z.string().uuid('Select a programme'),
+  year: z.number().int().min(1).max(6),
 });
 
 export const loginSchema = z.object({
@@ -76,14 +93,12 @@ export const postSchema = z.object({
   visibility: z.enum(['public', 'private']).default('public'),
 });
 
-// New: Mentorship Request Schema
 export const mentorshipRequestSchema = z.object({
   message: z.string().min(10),
   introduction: z.string().optional(),
   helpNeeded: z.array(z.string()).optional(),
 });
 
-// New: Become Mentor Schema
 export const becomeMentorSchema = z.object({
   expertise: z.array(z.string()).min(1, 'At least one area of expertise is required'),
   subjects: z.array(z.string()).optional(),
