@@ -108,3 +108,22 @@ export async function sendMentorshipRequestEmail(email: string, name: string, st
     `,
   });
 }
+
+export async function sendRegistrationReceivedEmail(email: string, name: string) {
+  return sendEmail({
+    to: email,
+    subject: 'Welcome to CampusLink - Registration Received',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Welcome to CampusLink, ${name}!</h1>
+        <p>Thank you for joining CampusLink. Your registration has been received successfully.</p>
+        <p>At the moment, access to CampusLink is limited while we complete the authorization system. Your information has been securely recorded, and you will be notified when access becomes available.</p>
+        <p>No further action is required from you at this time. If you have any questions, feel free to reach out to us.</p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
