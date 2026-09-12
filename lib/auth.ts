@@ -45,7 +45,12 @@ export async function getCurrentUser() {
     .from(campuslinkUsers)
     .where(eq(campuslinkUsers.id, decoded.userId));
 
-  return user[0] || null;
+  const found = user[0];
+  if (!found) return null;
+
+  if (found.isActive === false) return null;
+
+  return found;
 }
 
 export async function requireAuth() {
