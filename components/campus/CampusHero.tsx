@@ -35,7 +35,7 @@ export function CampusHero() {
           </div>
           <div className="relative h-64 md:h-80 lg:h-96 bg-gray-200 border border-gray-200 overflow-hidden">
             <Image
-              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788653525/DSC_8897_asrddb.jpg"
+              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1789247542/e7e3b81ff87c8a6307bd93618b4372b8_tvx2gc.jpg"
               alt="City Campus"
               fill
               className="object-cover"
