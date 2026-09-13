@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { announcements, events } from '@/lib/db/schema';
 import { eq, desc, asc } from 'drizzle-orm';
 import { Hero } from '@/components/home/Hero';
+import { StudentUnion } from '@/components/home/StudentUnion';
 
 export default async function HomePage() {
   const recentAnnouncements = await db.select().from(announcements)
@@ -42,6 +43,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <StudentUnion />
 
       <section className="bg-off-white py-16">
         <div className="container mx-auto px-4">
