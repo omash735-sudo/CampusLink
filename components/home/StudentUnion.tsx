@@ -1,47 +1,59 @@
 // components/home/StudentUnion.tsx
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
-import { eq, asc, desc } from 'drizzle-orm';
+import { eq, asc, desc, and } from 'drizzle-orm';
 
-async function getUnionMembers() {
-  const latest = await db
+const EXECUTIVE_LIMIT = 5;
+
+async function getExecutive() {
+  const [latest] = await db
     .select({ academicYear: studentUnionMembers.academicYear })
     .from(studentUnionMembers)
     .where(eq(studentUnionMembers.isActive, true))
     .orderBy(desc(studentUnionMembers.academicYear))
     .limit(1);
 
-  if (latest.length === 0) return { year: null, members: [] };
-
-  const year = latest[0].academicYear;
+  if (!latest) return { year: null, members: [] };
 
   const members = await db
     .select()
     .from(studentUnionMembers)
-    .where(eq(studentUnionMembers.isActive, true))
-    .orderBy(asc(studentUnionMembers.sortOrder));
+    .where(
+      and(
+        eq(studentUnionMembers.isActive, true),
+        eq(studentUnionMembers.academicYear, latest.academicYear)
+      )
+    )
+    .orderBy(asc(studentUnionMembers.sortOrder))
+    .limit(EXECUTIVE_LIMIT);
 
-  return {
-    year,
-    members: members.filter((m) => m.academicYear === year),
-  };
+  return { year: latest.academicYear, members };
 }
 
 export async function StudentUnion() {
-  const { year, members } = await getUnionMembers();
+  const { year, members } = await getExecutive();
 
   if (members.length === 0) return null;
 
   return (
     <section className="py-16 bg-off-white">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Know Your Student Union</h2>
-          {year && (
-            <p className="text-muted-text">
-              The {year} Student Union leadership
-            </p>
-          )}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-10">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Know Your Student Union</h2>
+            {year && (
+              <p className="text-muted-text">
+                The {year} Student Union leadership
+              </p>
+            )}
+          </div>
+          <Link
+            href="/student-union"
+            className="text-primary-green hover:underline text-sm font-medium"
+          >
+            View all →
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
