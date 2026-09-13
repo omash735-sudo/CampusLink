@@ -498,6 +498,22 @@ export const campusGallery = pgTable('campus_gallery', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ==================== STUDENT UNION MEMBERS ====================
+export const studentUnionMembers = pgTable('student_union_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fullName: text('full_name').notNull(),
+  position: text('position').notNull(),
+  description: text('description'),
+  photoUrl: text('photo_url'),
+  email: text('email'),
+  whatsapp: text('whatsapp'),
+  academicYear: text('academic_year').notNull(),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // ==================== RELATIONS ====================
 export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) => ({
   mentors: many(mentors),
