@@ -1,6 +1,7 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +13,11 @@ cloudinary.config({
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
