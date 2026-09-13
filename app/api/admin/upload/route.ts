@@ -1,7 +1,6 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -11,11 +10,18 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// TEMPORARY: set to true to allow uploads without login.
+// REVERT to false when done entering Student Union data.
+const TEMP_UPLOAD_BYPASS = true;
+
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!TEMP_UPLOAD_BYPASS) {
+      const { getCurrentUser } = await import('@/lib/auth');
+      const user = await getCurrentUser();
+      if (!user || user.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     if (
