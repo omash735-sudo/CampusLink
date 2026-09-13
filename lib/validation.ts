@@ -134,3 +134,17 @@ export const changePasswordSchema = z.object({
 export const superAccessSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
+
+// ==================== STUDENT UNION SCHEMA ====================
+
+export const studentUnionMemberSchema = z.object({
+  fullName: z.string().min(2, 'Full name is required').max(100),
+  position: z.string().min(2, 'Position is required').max(100),
+  description: z.string().max(1000).optional().nullable(),
+  photoUrl: z.string().url('Photo URL must be a valid URL').optional().nullable().or(z.literal('')),
+  email: z.string().email('Enter a valid email').optional().nullable().or(z.literal('')),
+  whatsapp: z.string().max(30).optional().nullable(),
+  academicYear: z.string().min(4, 'Academic year is required').max(20),
+  sortOrder: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+});
