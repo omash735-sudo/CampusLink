@@ -44,7 +44,7 @@ export async function StudentUnion() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
           {members.map((member) => (
             <UnionCard key={member.id} member={member} />
           ))}
@@ -91,40 +91,42 @@ function UnionCard({
     : null;
 
   return (
-    <div className="bg-white border border-gray-200 p-6 flex flex-col">
-      <div className="flex justify-center mb-4">
+    <div className="bg-white border border-gray-200 p-4 flex flex-col">
+      <div className="flex justify-center mb-3">
         {member.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={member.photoUrl}
             alt={member.fullName}
-            className="h-28 w-28 rounded-full object-cover border-2 border-primary-green/20"
+            className="h-20 w-20 rounded-full object-cover border-2 border-primary-green/20"
           />
         ) : (
-          <div className="h-28 w-28 rounded-full bg-primary-green/10 flex items-center justify-center text-2xl font-bold text-primary-green">
+          <div className="h-20 w-20 rounded-full bg-primary-green/10 flex items-center justify-center text-lg font-bold text-primary-green">
             {initials}
           </div>
         )}
       </div>
 
-      <h3 className="text-lg font-bold text-center">{member.fullName}</h3>
-      <p className="text-sm text-primary-green font-medium text-center mb-3">
+      <h3 className="text-sm font-bold text-center leading-tight">
+        {member.fullName}
+      </h3>
+      <p className="text-xs text-primary-green font-medium text-center mt-1 mb-2">
         {member.position}
       </p>
 
       {member.description && (
-        <p className="text-sm text-muted-text text-center mb-4 line-clamp-4">
+        <p className="text-xs text-muted-text text-center mb-3 line-clamp-3">
           {member.description}
         </p>
       )}
 
-      <div className="flex gap-2 mt-auto pt-4">
+      <div className="flex flex-col gap-1 mt-auto pt-2">
         {whatsappHref && (
           <a
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 bg-primary-green text-white text-sm font-medium py-2 text-center hover:bg-deep-green transition-colors"
+            className="bg-primary-green text-white text-xs font-medium py-1.5 text-center hover:bg-deep-green transition-colors"
           >
             WhatsApp
           </a>
@@ -132,7 +134,7 @@ function UnionCard({
         {emailHref && (
           <a
             href={emailHref}
-            className="flex-1 border border-primary-green text-primary-green text-sm font-medium py-2 text-center hover:bg-primary-green/5 transition-colors"
+            className="border border-primary-green text-primary-green text-xs font-medium py-1.5 text-center hover:bg-primary-green/5 transition-colors"
           >
             Email
           </a>
