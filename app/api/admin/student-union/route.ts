@@ -2,13 +2,18 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
-import { desc, eq } from 'drizzle-orm';
-import { getCurrentUser } from '@/lib/auth';
+import { desc } from 'drizzle-orm';
 import { studentUnionMemberSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 
+// TEMPORARY: set to true to allow access without login.
+// REVERT to false when done entering Student Union data.
+const TEMP_UNION_BYPASS = true;
+
 async function requireAdmin() {
+  if (TEMP_UNION_BYPASS) return true;
+  const { getCurrentUser } = await import('@/lib/auth');
   const user = await getCurrentUser();
   if (!user || user.role !== 'admin') return null;
   return user;
