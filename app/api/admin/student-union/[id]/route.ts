@@ -1,23 +1,40 @@
-// app/api/admin/student-union/[id]/route.ts
+// app/api/admin/student-union/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { getCurrentUser } from '@/lib/auth';
+import { desc } from 'drizzle-orm';
 import { studentUnionMemberSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 
+// TEMPORARY: set to true to allow access without login.
+// REVERT to false when done entering Student Union data.
+const TEMP_UNION_BYPASS = true;
+
 async function requireAdmin() {
+  if (TEMP_UNION_BYPASS) return true;
+  const { getCurrentUser } = await import('@/lib/auth');
   const user = await getCurrentUser();
   if (!user || user.role !== 'admin') return null;
   return user;
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET() {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rows = await db
+    .select()
+    .from(studentUnionMembers)
+    .orderBy(
+      desc(studentUnionMembers.academicYear),
+      studentUnionMembers.sortOrder
+    );
+
+  return NextResponse.json(rows);
+}
+
+export async function POST(request: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -26,8 +43,8 @@ export async function PUT(
     const data = studentUnionMemberSchema.parse(body);
 
     const [row] = await db
-      .update(studentUnionMembers)
-      .set({
+      .insert(studentUnionMembers)
+      .values({
         fullName: data.fullName,
         position: data.position,
         description: data.description || null,
@@ -37,14 +54,8 @@ export async function PUT(
         academicYear: data.academicYear,
         sortOrder: data.sortOrder,
         isActive: data.isActive,
-        updatedAt: new Date(),
       })
-      .where(eq(studentUnionMembers.id, params.id))
       .returning();
-
-    if (!row) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-    }
 
     return NextResponse.json({ success: true, member: row });
   } catch (error: any) {
@@ -55,28 +66,7 @@ export async function PUT(
       );
     }
     return NextResponse.json(
-      { error: error.message || 'Failed to update' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  try {
-    await db
-      .delete(studentUnionMembers)
-      .where(eq(studentUnionMembers.id, params.id));
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete' },
+      { error: error.message || 'Failed to create' },
       { status: 500 }
     );
   }
