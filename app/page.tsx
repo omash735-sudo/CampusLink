@@ -7,6 +7,8 @@ import { eq, desc, asc } from 'drizzle-orm';
 import { Hero } from '@/components/home/Hero';
 import { StudentUnion } from '@/components/home/StudentUnion';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const recentAnnouncements = await db.select().from(announcements)
     .where(eq(announcements.isPublished, true))
