@@ -13,7 +13,7 @@ interface Member {
   email: string | null;
   whatsapp: string | null;
   academicYear: string;
-  sortOrder: number;
+  sortOrder: number | null;
   isActive: boolean;
 }
 
@@ -35,7 +35,7 @@ export function MemberRow({ member }: { member: Member }) {
           email: member.email,
           whatsapp: member.whatsapp,
           academicYear: member.academicYear,
-          sortOrder: member.sortOrder,
+          sortOrder: member.sortOrder ?? 0,
           isActive: !member.isActive,
         }),
       });
