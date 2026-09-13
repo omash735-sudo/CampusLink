@@ -1,8 +1,8 @@
-// app/api/admin/student-union/route.ts
+// app/api/admin/student-union/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { studentUnionMemberSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -19,22 +19,10 @@ async function requireAdmin() {
   return user;
 }
 
-export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const rows = await db
-    .select()
-    .from(studentUnionMembers)
-    .orderBy(
-      desc(studentUnionMembers.academicYear),
-      studentUnionMembers.sortOrder
-    );
-
-  return NextResponse.json(rows);
-}
-
-export async function POST(request: Request) {
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -43,8 +31,8 @@ export async function POST(request: Request) {
     const data = studentUnionMemberSchema.parse(body);
 
     const [row] = await db
-      .insert(studentUnionMembers)
-      .values({
+      .update(studentUnionMembers)
+      .set({
         fullName: data.fullName,
         position: data.position,
         description: data.description || null,
@@ -54,8 +42,14 @@ export async function POST(request: Request) {
         academicYear: data.academicYear,
         sortOrder: data.sortOrder,
         isActive: data.isActive,
+        updatedAt: new Date(),
       })
+      .where(eq(studentUnionMembers.id, params.id))
       .returning();
+
+    if (!row) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, member: row });
   } catch (error: any) {
@@ -66,7 +60,28 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json(
-      { error: error.message || 'Failed to create' },
+      { error: error.message || 'Failed to update' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    await db
+      .delete(studentUnionMembers)
+      .where(eq(studentUnionMembers.id, params.id));
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Failed to delete' },
       { status: 500 }
     );
   }
