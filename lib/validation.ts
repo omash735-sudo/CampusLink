@@ -42,7 +42,9 @@ export const loginSchema = z.object({
 export const announcementSchema = z.object({
   title: z.string().min(3),
   content: z.string().min(10),
-  type: z.enum(['general', 'academic', 'student_union']).default('general'),
+  type: z
+    .enum(['general', 'academic', 'student_union', 'student_news'])
+    .default('general'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   isPublished: z.boolean().default(false),
   imageUrl: z.string().url().optional().nullable(),
@@ -173,4 +175,37 @@ export const acceptLegalSchema = z.object({
   }),
   marketingEmailConsent: z.boolean().optional().default(false),
   whatsappMarketingConsent: z.boolean().optional().default(false),
+});
+
+// ==================== SPOTLIGHT SCHEMA ====================
+
+export const spotlightSchema = z.object({
+  studentName: z.string().min(2, 'Student name is required').max(120),
+  programme: z.string().max(200).optional().nullable(),
+  year: z.number().int().min(1).max(8).optional().nullable(),
+  bio: z.string().min(20, 'Bio must be at least 20 characters').max(600),
+  graphicUrl: z.string().url('Graphic URL must be a valid URL').optional().nullable().or(z.literal('')),
+  tags: z.array(z.string().max(40)).max(10).optional().default([]),
+  achievement: z.string().max(200).optional().nullable(),
+  isPublished: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
+// ==================== CLUB SCHEMAS ====================
+
+export const clubSchema = z.object({
+  name: z.string().min(2, 'Club name is required').max(120),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
+  category: z.string().max(60).optional().nullable(),
+  logoUrl: z.string().url('Logo URL must be a valid URL').optional().nullable().or(z.literal('')),
+  coverUrl: z.string().url().optional().nullable().or(z.literal('')),
+  email: z.string().email('Enter a valid email').optional().nullable().or(z.literal('')),
+  whatsapp: z.string().max(30).optional().nullable(),
+  instagramUrl: z.string().url().optional().nullable().or(z.literal('')),
+  websiteUrl: z.string().url().optional().nullable().or(z.literal('')),
+  meetingInfo: z.string().max(500).optional().nullable(),
+  membershipInfo: z.string().max(500).optional().nullable(),
+  isActive: z.boolean().default(true),
+  isFeatured: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
 });
