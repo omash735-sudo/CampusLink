@@ -34,9 +34,11 @@ const navItems = [
   { name: 'Events', href: '/admin/events', icon: CalendarIcon },
   { name: 'Announcements', href: '/admin/announcements', icon: BellIcon },
   { name: 'Campus', href: '/admin/campus', icon: MapPinIcon },
+  { name: 'Student Union', href: '/admin/student-union', icon: UserGroupIcon },
   { name: 'Reports', href: '/admin/reports', icon: FlagIcon },
   { name: 'Feedback', href: '/admin/feedback', icon: ChatIcon },
   { name: 'Activity', href: '/admin/activity', icon: BellIcon },
+  { name: 'Legal', href: '/admin/legal', icon: FlagIcon },
   { name: 'Settings', href: '/admin/settings', icon: SettingsIcon },
 ];
 
