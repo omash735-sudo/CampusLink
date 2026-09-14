@@ -127,3 +127,28 @@ export async function sendRegistrationReceivedEmail(email: string, name: string)
     `,
   });
 }
+
+export async function sendTermsUpdatedEmail(email: string, name: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink — Terms and Privacy Policy Updated',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">We've updated our Terms</h1>
+        <p>Dear ${name},</p>
+        <p>We've made changes to the CampusLink Terms and Conditions and/or Privacy Policy.</p>
+        <p>Please take a moment to review the updated versions. You'll be asked to accept them the next time you sign in.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/terms" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Review Terms and Conditions
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
