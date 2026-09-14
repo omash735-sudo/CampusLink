@@ -8,7 +8,7 @@ import { sendTermsUpdatedEmail } from '@/lib/services/email.service';
 export const runtime = 'nodejs';
 
 // TEMPORARY: set to false once Terms and Privacy are pasted and verified.
-const TEMP_BYPASS = true;
+const TEMP_BYPASS = false;
 
 async function requireAdmin() {
   if (TEMP_BYPASS) return true;
