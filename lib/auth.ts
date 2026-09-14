@@ -1,3 +1,4 @@
+// lib/auth.ts
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
@@ -65,6 +66,20 @@ export async function requireAdmin() {
   return user;
 }
 
+export async function requirePublications() {
+  const user = await requireAuth();
+  if (user.role !== 'publications') throw new Error('Forbidden');
+  return user;
+}
+
+export async function requireAdminOrPublications() {
+  const user = await requireAuth();
+  if (user.role !== 'admin' && user.role !== 'publications') {
+    throw new Error('Forbidden');
+  }
+  return user;
+}
+
 export async function requireMentor() {
   const user = await requireAuth();
 
@@ -106,7 +121,7 @@ export function getRedirectPath(user: {
   isMentor?: boolean | null;
   mentorStatus?: string | null;
 }): string {
-  if (user.role === 'admin') return '/admin';
+  if (user.role === 'admin' || user.role === 'publications') return '/admin';
   if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
   return '/student/dashboard';
 }
