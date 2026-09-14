@@ -25,6 +25,13 @@ export const registerSchema = z.object({
     .regex(/^[0-9+\-\s()]+$/, 'Enter a valid phone number'),
   programmeId: z.string().uuid('Select a programme'),
   year: z.number().int().min(1).max(6),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({
+      message: 'You must accept the Terms and Conditions and Privacy Policy',
+    }),
+  }),
+  marketingEmailConsent: z.boolean().optional().default(false),
+  whatsappMarketingConsent: z.boolean().optional().default(false),
 });
 
 export const loginSchema = z.object({
@@ -147,4 +154,23 @@ export const studentUnionMemberSchema = z.object({
   academicYear: z.string().min(4, 'Academic year is required').max(20),
   sortOrder: z.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
+});
+
+// ==================== LEGAL SCHEMAS ====================
+
+export const legalDocumentSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  content: z.string().min(20, 'Content is required'),
+  version: z.string().min(1, 'Version is required'),
+});
+
+export const acceptLegalSchema = z.object({
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms and Conditions' }),
+  }),
+  privacyAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Privacy Policy' }),
+  }),
+  marketingEmailConsent: z.boolean().optional().default(false),
+  whatsappMarketingConsent: z.boolean().optional().default(false),
 });
