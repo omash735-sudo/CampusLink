@@ -38,6 +38,9 @@ const publicRoutes = [
   '/opportunities',
   '/faq',
   '/contact',
+  '/terms',
+  '/privacy',
+  '/student-union',
 ];
 
 const authRoutes = [
@@ -51,10 +54,10 @@ const authRoutes = [
 const openAdminRoutes = ['/admin/setup'];
 const openSuperAccessRoutes = ['/super-access'];
 
-// TEMPORARY: Student Union admin bypass.
-// REMOVE these two lines when you're done entering data.
-const TEMP_UNION_BYPASS = true;
-const TEMP_UNION_ROUTES = ['/admin/student-union'];
+// TEMPORARY bypass — Legal admin only, for content review.
+// Set to false once Terms and Privacy are pasted and verified.
+const TEMP_BYPASS_ENABLED = true;
+const TEMP_BYPASS_ROUTES = ['/admin/legal'];
 
 const adminRoutes = ['/admin'];
 const mentorRoutes = ['/mentor'];
@@ -83,13 +86,12 @@ export function middleware(request: NextRequest) {
   if (matches(pathname, openSuperAccessRoutes)) return NextResponse.next();
   if (matches(pathname, openAdminRoutes)) return NextResponse.next();
 
-  // TEMPORARY: allow Student Union admin pages without login.
-  // REMOVE this block when you're done entering data.
-  if (TEMP_UNION_BYPASS && matches(pathname, TEMP_UNION_ROUTES)) {
+  // TEMPORARY: allow Legal admin without login.
+  if (TEMP_BYPASS_ENABLED && matches(pathname, TEMP_BYPASS_ROUTES)) {
     return NextResponse.next();
   }
 
-  // Public marketing pages
+  // Public marketing and legal pages
   if (matches(pathname, publicRoutes)) return NextResponse.next();
 
   // Auth pages — if already logged in, send to their dashboard
@@ -109,7 +111,6 @@ export function middleware(request: NextRequest) {
   const decoded = token ? verifyToken(token) : null;
 
   if (!decoded) {
-    // Not logged in — send to login. Preserve intended destination.
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
@@ -127,7 +128,6 @@ export function middleware(request: NextRequest) {
   if (matches(pathname, mentorRoutes)) {
     const hasSuper = checkSuperAccess(superToken);
     if (decoded.role === 'admin' && hasSuper) return NextResponse.next();
-    // Actual mentor check happens in the page via requireMentor()
     return NextResponse.next();
   }
 
@@ -136,7 +136,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Unknown protected route — require auth but let through
   return NextResponse.next();
 }
 
