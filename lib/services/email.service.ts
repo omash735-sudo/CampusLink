@@ -218,3 +218,53 @@ export async function sendPublicationsRejectedEmail(email: string, name: string)
     `,
   });
 }
+
+export async function sendClubRegistrationNotification(
+  clubName: string,
+  proposedBy: string,
+  contactEmail: string,
+  description: string
+) {
+  const adminEmail = 'campuslinkmw@gmail.com';
+  return sendEmail({
+    to: adminEmail,
+    subject: `New Club Registration — ${clubName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">New Club Registration</h1>
+        <p><strong>Club name:</strong> ${clubName}</p>
+        <p><strong>Proposed by:</strong> ${proposedBy}</p>
+        <p><strong>Contact email:</strong> ${contactEmail}</p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+        <p><strong>Description:</strong></p>
+        <p style="white-space: pre-wrap;">${description}</p>
+        <p style="margin-top: 20px;">
+          Review and approve this club in the admin dashboard.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendClubApprovedEmail(email: string, clubName: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: `Your club ${clubName} is now on CampusLink`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Club Approved</h1>
+        <p>Good news — your club <strong>${clubName}</strong> has been approved and is now listed on CampusLink.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/clubs" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            View Clubs Page
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
