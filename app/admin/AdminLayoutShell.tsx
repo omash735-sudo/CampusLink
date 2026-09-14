@@ -42,6 +42,8 @@ const allNavItems: NavItem[] = [
   { name: 'Announcements', href: '/admin/announcements', icon: BellIcon, roles: ['admin', 'publications'] },
   { name: 'Campus', href: '/admin/campus', icon: MapPinIcon, roles: ['admin'] },
   { name: 'Student Union', href: '/admin/student-union', icon: UserGroupIcon, roles: ['admin', 'publications'] },
+  { name: 'Spotlights', href: '/admin/spotlights', icon: AcademicIcon, roles: ['admin', 'publications'] },
+  { name: 'Clubs', href: '/admin/clubs', icon: UserGroupIcon, roles: ['admin', 'publications'] },
   { name: 'Publications', href: '/admin/publications', icon: UsersIcon, roles: ['admin'] },
   { name: 'Reports', href: '/admin/reports', icon: FlagIcon, roles: ['admin'] },
   { name: 'Feedback', href: '/admin/feedback', icon: ChatIcon, roles: ['admin'] },
@@ -98,15 +100,15 @@ export function AdminLayoutShell({
       <aside
         className={`bg-white border-r border-gray-200 fixed lg:relative z-50 h-full w-64 transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        } flex flex-col`}
       >
-        <div className="flex items-center gap-2 p-4 border-b border-gray-200">
+        <div className="flex items-center gap-2 p-4 border-b border-gray-200 flex-shrink-0">
           <div className="h-8 w-8 border-2 border-primary-green bg-white"></div>
           <span className="text-lg font-semibold text-primary-green">CampusLink</span>
           <span className="text-xs bg-gray-100 px-2 py-0.5">{badgeLabel}</span>
         </div>
 
-        <nav className="p-3 overflow-y-auto h-[calc(100vh-8rem)]">
+        <nav className="flex-1 overflow-y-auto p-3">
           {navItems.map((item) => (
             <Link
               key={item.name}
@@ -123,7 +125,7 @@ export function AdminLayoutShell({
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="flex-shrink-0 p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full transition-colors"
@@ -149,7 +151,7 @@ export function AdminLayoutShell({
           >
             {sidebarOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ml-auto">
             <span className="text-sm text-gray-500">{badgeLabel}</span>
             <div className="h-8 w-8 rounded-full bg-primary-green/10 flex items-center justify-center text-sm font-semibold text-primary-green">
               {avatarLetter}
