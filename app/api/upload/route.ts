@@ -1,7 +1,7 @@
-// app/api/upload/route.ts
+// app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { requireAuth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -11,25 +11,44 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const ALLOWED_TYPES = ['student-union', 'spotlights', 'clubs', 'general'];
+
 export async function POST(request: Request) {
   try {
-    await requireAuth();
+    const user = await getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.role !== 'publications')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return NextResponse.json(
+        { error: 'Cloudinary is not configured' },
+        { status: 500 }
+      );
+    }
 
     const formData = await request.formData();
     const file = formData.get('file');
-    const type = (formData.get('type') as string) || 'general';
+    const rawType = (formData.get('type') as string) || 'general';
+    const type = ALLOWED_TYPES.includes(rawType) ? rawType : 'general';
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Image must be smaller than 5MB' },
+        { status: 400 }
+      );
     }
 
     const arrayBuffer = await file.arrayBuffer();
@@ -50,13 +69,15 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
+      success: true,
       url: result.secure_url,
+      publicId: result.public_id,
       filename: result.public_id,
     });
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to upload file' },
+      { error: error.message || 'Upload failed' },
       { status: 500 }
     );
   }
