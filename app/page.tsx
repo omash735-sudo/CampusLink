@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { db } from '@/lib/db';
-import { announcements, events } from '@/lib/db/schema';
+import { announcements, events, clubs } from '@/lib/db/schema';
 import { eq, desc, asc } from 'drizzle-orm';
 import { Hero } from '@/components/home/Hero';
 import { StudentUnion } from '@/components/home/StudentUnion';
+import { StudentSpotlight } from '@/components/home/StudentSpotlight';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,13 @@ export default async function HomePage() {
   const upcomingEvents = await db.select().from(events)
     .where(eq(events.status, 'published'))
     .orderBy(asc(events.startDate))
+    .limit(3);
+
+  const featuredClubs = await db
+    .select()
+    .from(clubs)
+    .where(eq(clubs.isActive, true))
+    .orderBy(desc(clubs.isFeatured), asc(clubs.sortOrder))
     .limit(3);
 
   return (
@@ -47,6 +55,76 @@ export default async function HomePage() {
       </section>
 
       <StudentUnion />
+
+      <StudentSpotlight />
+
+      {featuredClubs.length > 0 && (
+        <section className="py-16 bg-off-white">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-10">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">
+                  Interested in Joining Campus Clubs?
+                </h2>
+                <p className="text-muted-text">
+                  Find a community that matches your interests
+                </p>
+              </div>
+              <Link
+                href="/clubs"
+                className="text-primary-green hover:underline text-sm font-medium"
+              >
+                View all →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredClubs.map((club) => (
+                <Link
+                  key={club.id}
+                  href="/clubs"
+                  className="bg-white border border-gray-200 p-6 flex flex-col hover:border-primary-green transition-colors"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    {club.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={club.logoUrl}
+                        alt={club.name}
+                        className="h-14 w-14 object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="h-14 w-14 bg-primary-green/10 flex items-center justify-center text-primary-green font-bold">
+                        {club.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-bold truncate">{club.name}</h3>
+                      {club.category && (
+                        <p className="text-xs text-primary-green">
+                          {club.category}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-text line-clamp-3">
+                    {club.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center mt-10">
+              <Link
+                href="/clubs/register"
+                className="border-2 border-primary-green text-primary-green px-6 py-3 font-medium hover:bg-primary-green hover:text-white transition-colors inline-block"
+              >
+                Register Your Club
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="bg-off-white py-16">
         <div className="container mx-auto px-4">
