@@ -41,6 +41,8 @@ const publicRoutes = [
   '/terms',
   '/privacy',
   '/student-union',
+  '/student-spotlight',
+  '/clubs',
 ];
 
 const authRoutes = [
@@ -64,6 +66,8 @@ const publicationsAllowedRoutes = [
   '/admin/announcements',
   '/admin/events',
   '/admin/student-union',
+  '/admin/spotlights',
+  '/admin/clubs',
 ];
 
 const adminRoutes = ['/admin'];
