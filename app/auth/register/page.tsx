@@ -22,6 +22,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [marketingEmail, setMarketingEmail] = useState(false);
+  const [marketingWhatsapp, setMarketingWhatsapp] = useState(false);
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -83,7 +86,6 @@ export default function RegisterPage() {
     if (p.length < 6) {
       return { score: 1, label: 'Too short', color: 'bg-red-500', width: '20%' };
     }
-
     if (score <= 2) {
       return { score: 2, label: 'Weak', color: 'bg-red-500', width: '35%' };
     }
@@ -105,6 +107,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('You must accept the Terms and Conditions and Privacy Policy to continue.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -119,6 +126,9 @@ export default function RegisterPage() {
           phone: form.phone,
           programmeId: form.programmeId,
           year: parseInt(form.year),
+          termsAccepted: true,
+          marketingEmailConsent: marketingEmail,
+          whatsappMarketingConsent: marketingWhatsapp,
         }),
       });
 
@@ -258,27 +268,11 @@ export default function RegisterPage() {
             )}
 
             <ul className="mt-3 space-y-1 text-xs">
-              <PasswordRule
-                met={passwordChecks.length}
-                label="At least 8 characters"
-              />
-              <PasswordRule
-                met={passwordChecks.uppercase}
-                label="Contains an uppercase letter"
-              />
-              <PasswordRule
-                met={passwordChecks.lowercase}
-                label="Contains a lowercase letter"
-              />
-              <PasswordRule
-                met={passwordChecks.number}
-                label="Contains a number"
-              />
-              <PasswordRule
-                met={passwordChecks.special}
-                label="Contains a symbol (optional, but recommended)"
-                optional
-              />
+              <PasswordRule met={passwordChecks.length} label="At least 8 characters" />
+              <PasswordRule met={passwordChecks.uppercase} label="Contains an uppercase letter" />
+              <PasswordRule met={passwordChecks.lowercase} label="Contains a lowercase letter" />
+              <PasswordRule met={passwordChecks.number} label="Contains a number" />
+              <PasswordRule met={passwordChecks.special} label="Contains a symbol (optional, but recommended)" optional />
             </ul>
           </div>
 
@@ -292,9 +286,7 @@ export default function RegisterPage() {
               disabled={loadingProgrammes}
             >
               <option value="">
-                {loadingProgrammes
-                  ? 'Loading programmes...'
-                  : 'Select your programme'}
+                {loadingProgrammes ? 'Loading programmes...' : 'Select your programme'}
               </option>
               {Object.entries(groupedProgrammes).map(([faculty, progs]) => (
                 <optgroup key={faculty} label={faculty}>
@@ -307,11 +299,6 @@ export default function RegisterPage() {
                 </optgroup>
               ))}
             </select>
-            {!loadingProgrammes && programmes.length === 0 && (
-              <p className="text-sm text-red-500 mt-1">
-                No programmes available. Please contact support.
-              </p>
-            )}
           </div>
 
           <div>
@@ -330,6 +317,57 @@ export default function RegisterPage() {
             </select>
           </div>
 
+          <div className="border border-gray-200 p-4 space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="h-4 w-4 mt-0.5 flex-shrink-0"
+                required
+              />
+              <span className="text-sm">
+                I have read and agree to the CampusLink{' '}
+                <Link href="/terms" target="_blank" className="text-primary-green hover:underline">
+                  Terms and Conditions
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" target="_blank" className="text-primary-green hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+          </div>
+
+          <div className="border border-gray-200 p-4 space-y-3">
+            <p className="text-xs text-muted-text font-medium uppercase tracking-wide">
+              Optional communications
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marketingEmail}
+                onChange={(e) => setMarketingEmail(e.target.checked)}
+                className="h-4 w-4 mt-0.5 flex-shrink-0"
+              />
+              <span className="text-sm">
+                Send me news, updates, and announcements by email.
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marketingWhatsapp}
+                onChange={(e) => setMarketingWhatsapp(e.target.checked)}
+                className="h-4 w-4 mt-0.5 flex-shrink-0"
+              />
+              <span className="text-sm">
+                Send me optional updates via WhatsApp (using the number you provided above).
+              </span>
+            </label>
+          </div>
+
           {error && (
             <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -346,10 +384,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-muted-text">
             Already have an account?{' '}
-            <Link
-              href="/auth/login"
-              className="text-primary-green hover:underline font-medium"
-            >
+            <Link href="/auth/login" className="text-primary-green hover:underline font-medium">
               Sign in
             </Link>
           </p>
@@ -359,25 +394,9 @@ export default function RegisterPage() {
   );
 }
 
-function PasswordRule({
-  met,
-  label,
-  optional = false,
-}: {
-  met: boolean;
-  label: string;
-  optional?: boolean;
-}) {
+function PasswordRule({ met, label, optional = false }: { met: boolean; label: string; optional?: boolean }) {
   return (
-    <li
-      className={`flex items-center gap-2 ${
-        met
-          ? 'text-primary-green'
-          : optional
-          ? 'text-muted-text/70'
-          : 'text-muted-text'
-      }`}
-    >
+    <li className={`flex items-center gap-2 ${met ? 'text-primary-green' : optional ? 'text-muted-text/70' : 'text-muted-text'}`}>
       {met ? <CheckIcon /> : <DotIcon />}
       <span>{label}</span>
     </li>
@@ -386,32 +405,15 @@ function PasswordRule({
 
 function CheckIcon() {
   return (
-    <svg
-      className="h-3.5 w-3.5 flex-shrink-0"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={3}
-        d="M5 13l4 4L19 7"
-      />
+    <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
     </svg>
   );
 }
 
 function DotIcon() {
   return (
-    <svg
-      className="h-3.5 w-3.5 flex-shrink-0"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
+    <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="4" strokeWidth={2} />
     </svg>
   );
@@ -419,44 +421,17 @@ function DotIcon() {
 
 function EyeIcon() {
   return (
-    <svg
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-      />
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
   );
 }
 
 function EyeOffIcon() {
   return (
-    <svg
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-      />
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
     </svg>
   );
 }
