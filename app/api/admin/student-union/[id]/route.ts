@@ -8,8 +8,7 @@ import { studentUnionMemberSchema } from '@/lib/validation';
 export const runtime = 'nodejs';
 
 // TEMPORARY: set to true to allow access without login.
-// REVERT to false when done entering Student Union data.
-const TEMP_UNION_BYPASS = true;
+const TEMP_UNION_BYPASS = false;
 
 async function requireAdmin() {
   if (TEMP_UNION_BYPASS) return true;
