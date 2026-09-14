@@ -3,18 +3,15 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth';
 import { studentUnionMemberSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 
-// TEMPORARY: set to true to allow access without login.
-const TEMP_UNION_BYPASS = false;
-
-async function requireAdmin() {
-  if (TEMP_UNION_BYPASS) return true;
-  const { getCurrentUser } = await import('@/lib/auth');
+async function requireAdminOrPublications() {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'admin') return null;
+  if (!user) return null;
+  if (user.role !== 'admin' && user.role !== 'publications') return null;
   return user;
 }
 
@@ -22,8 +19,8 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const body = await request.json();
@@ -69,8 +66,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     await db
