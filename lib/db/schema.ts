@@ -535,6 +535,66 @@ export const legalDocuments = pgTable('legal_documents', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ==================== STUDENT SPOTLIGHTS ====================
+export const studentSpotlights = pgTable('student_spotlights', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  studentName: text('student_name').notNull(),
+  programme: text('programme'),
+  year: integer('year'),
+  bio: text('bio').notNull(),
+  graphicUrl: text('graphic_url'),
+  tags: text('tags').array(),
+  achievement: text('achievement'),
+  isPublished: boolean('is_published').default(false).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  publishedAt: timestamp('published_at'),
+  createdBy: uuid('created_by').references(() => campuslinkUsers.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ==================== CLUBS ====================
+export const clubs = pgTable('clubs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').unique().notNull(),
+  description: text('description').notNull(),
+  category: text('category'),
+  logoUrl: text('logo_url'),
+  coverUrl: text('cover_url'),
+  email: text('email'),
+  whatsapp: text('whatsapp'),
+  instagramUrl: text('instagram_url'),
+  websiteUrl: text('website_url'),
+  meetingInfo: text('meeting_info'),
+  membershipInfo: text('membership_info'),
+  isActive: boolean('is_active').default(true).notNull(),
+  isFeatured: boolean('is_featured').default(false).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ==================== CLUB REGISTRATIONS ====================
+export const clubRegistrations = pgTable('club_registrations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clubName: text('club_name').notNull(),
+  category: text('category'),
+  description: text('description').notNull(),
+  proposedBy: text('proposed_by').notNull(),
+  contactEmail: text('contact_email').notNull(),
+  contactPhone: text('contact_phone'),
+  membershipInfo: text('membership_info'),
+  meetingInfo: text('meeting_info'),
+  socialLinks: text('social_links'),
+  status: text('status').default('pending').notNull(),
+  reviewedBy: uuid('reviewed_by').references(() => campuslinkUsers.id),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewNotes: text('review_notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // ==================== RELATIONS ====================
 export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) => ({
   mentors: many(mentors),
@@ -853,5 +913,19 @@ export const campusGalleryRelations = relations(campusGallery, ({ one }) => ({
   location: one(campusLocations, {
     fields: [campusGallery.locationId],
     references: [campusLocations.id],
+  }),
+}));
+
+export const studentSpotlightsRelations = relations(studentSpotlights, ({ one }) => ({
+  creator: one(campuslinkUsers, {
+    fields: [studentSpotlights.createdBy],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+export const clubRegistrationsRelations = relations(clubRegistrations, ({ one }) => ({
+  reviewer: one(campuslinkUsers, {
+    fields: [clubRegistrations.reviewedBy],
+    references: [campuslinkUsers.id],
   }),
 }));
