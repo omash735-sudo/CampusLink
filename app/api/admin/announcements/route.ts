@@ -3,11 +3,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { announcements } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdminOrPublications } from '@/lib/auth';
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireAdminOrPublications();
     const allAnnouncements = await db
       .select()
       .from(announcements)
@@ -23,7 +23,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdminOrPublications();
     const body = await request.json();
 
     const [announcement] = await db
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdminOrPublications();
     const body = await request.json();
     const { id, ...data } = body;
 
@@ -80,7 +80,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdminOrPublications();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
