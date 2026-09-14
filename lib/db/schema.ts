@@ -23,6 +23,12 @@ export const campuslinkUsers = pgTable('campuslink_users', {
   isMentor: boolean('is_mentor').default(false),
   mentorType: text('mentor_type'),
   mentorStatus: text('mentor_status').default('not_applied'),
+  termsVersion: text('terms_version'),
+  termsAcceptedAt: timestamp('terms_accepted_at'),
+  privacyVersion: text('privacy_version'),
+  privacyAcceptedAt: timestamp('privacy_accepted_at'),
+  marketingEmailConsent: boolean('marketing_email_consent').default(false).notNull(),
+  whatsappMarketingConsent: boolean('whatsapp_marketing_consent').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -509,6 +515,18 @@ export const studentUnionMembers = pgTable('student_union_members', {
   whatsapp: text('whatsapp'),
   academicYear: text('academic_year').notNull(),
   sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ==================== LEGAL DOCUMENTS ====================
+export const legalDocuments = pgTable('legal_documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  docType: text('doc_type').notNull().unique(),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  version: text('version').notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
