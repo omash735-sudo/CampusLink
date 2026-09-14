@@ -6,6 +6,7 @@ import { eq, or } from 'drizzle-orm';
 import { hashPassword } from '@/lib/auth';
 import { registerSchema } from '@/lib/validation';
 import { sendRegistrationReceivedEmail } from '@/lib/services/email.service';
+import { getCurrentVersions } from '@/lib/legal';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = registerSchema.parse(body);
 
-    // Check duplicate email or username
     const existing = await db
       .select({ id: campuslinkUsers.id, email: campuslinkUsers.email, username: campuslinkUsers.username })
       .from(campuslinkUsers)
@@ -35,7 +35,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Confirm the programme exists and get its name
     const [programme] = await db
       .select({ id: programmes.id, name: programmes.name })
       .from(programmes)
@@ -46,8 +45,9 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(validated.password);
+    const { termsVersion, privacyVersion } = await getCurrentVersions();
+    const now = new Date();
 
-    // Insert user as RESTRICTED (isActive: false)
     const [user] = await db
       .insert(campuslinkUsers)
       .values({
@@ -61,23 +61,24 @@ export async function POST(request: Request) {
         role: 'student',
         isActive: false,
         isVerified: false,
+        termsVersion,
+        termsAcceptedAt: now,
+        privacyVersion,
+        privacyAcceptedAt: now,
+        marketingEmailConsent: validated.marketingEmailConsent ?? false,
+        whatsappMarketingConsent: validated.whatsappMarketingConsent ?? false,
       })
       .returning();
 
-    // Send confirmation email (non-blocking for the response)
     try {
       await sendRegistrationReceivedEmail(user.email, user.fullName);
     } catch (emailErr) {
       console.error('Registration confirmation email failed:', emailErr);
     }
 
-    // NOTE: We intentionally do NOT sign a token or set a cookie.
-    // The user cannot log in until an admin flips is_active to true.
-
     return NextResponse.json({
       success: true,
-      message:
-        'Your registration has been received. Check your email for confirmation.',
+      message: 'Your registration has been received. Check your email for confirmation.',
       user: {
         id: user.id,
         email: user.email,
