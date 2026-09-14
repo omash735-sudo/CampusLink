@@ -152,3 +152,69 @@ export async function sendTermsUpdatedEmail(email: string, name: string) {
     `,
   });
 }
+
+export async function sendPublicationsApplicationReceivedEmail(
+  email: string,
+  name: string
+) {
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink Publications Application Received',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Application Received</h1>
+        <p>Dear ${name},</p>
+        <p>Thank you for applying to join the CampusLink Publications Office. Your application has been received and is currently under review.</p>
+        <p>We'll notify you by email once a decision has been made.</p>
+        <p>No further action is required from you at this time.</p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPublicationsApprovedEmail(email: string, name: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'Welcome to the CampusLink Publications Office',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">You're now a Publications Officer</h1>
+        <p>Dear ${name},</p>
+        <p>Your application to join the CampusLink Publications Office has been approved. You can now access the publications dashboard to help manage announcements, events, and the Student Union section.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/admin" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Go to Publications Dashboard
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPublicationsRejectedEmail(email: string, name: string) {
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink Publications Application Update',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #DC2626;">Application Update</h1>
+        <p>Dear ${name},</p>
+        <p>Thank you for your interest in joining the CampusLink Publications Office. After reviewing your application, we are unable to offer you a position at this time.</p>
+        <p>You are welcome to apply again in the future. If you have any questions, feel free to reach out to us.</p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
