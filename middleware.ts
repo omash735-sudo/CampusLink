@@ -55,9 +55,16 @@ const openAdminRoutes = ['/admin/setup'];
 const openSuperAccessRoutes = ['/super-access'];
 
 // TEMPORARY bypass — Legal admin only, for content review.
-// Set to false once Terms and Privacy are pasted and verified.
-const TEMP_BYPASS_ENABLED = true;
+const TEMP_BYPASS_ENABLED = false;
 const TEMP_BYPASS_ROUTES = ['/admin/legal'];
+
+// Routes Publications Officers may access under /admin
+const publicationsAllowedRoutes = [
+  '/admin',
+  '/admin/announcements',
+  '/admin/events',
+  '/admin/student-union',
+];
 
 const adminRoutes = ['/admin'];
 const mentorRoutes = ['/mentor'];
@@ -82,32 +89,29 @@ export function middleware(request: NextRequest) {
   const superToken = request.cookies.get('super_access_token')?.value;
   const pathname = request.nextUrl.pathname;
 
-  // Public: super-access setup, admin first-time setup
   if (matches(pathname, openSuperAccessRoutes)) return NextResponse.next();
   if (matches(pathname, openAdminRoutes)) return NextResponse.next();
 
-  // TEMPORARY: allow Legal admin without login.
   if (TEMP_BYPASS_ENABLED && matches(pathname, TEMP_BYPASS_ROUTES)) {
     return NextResponse.next();
   }
 
-  // Public marketing and legal pages
   if (matches(pathname, publicRoutes)) return NextResponse.next();
 
-  // Auth pages — if already logged in, send to their dashboard
   if (matches(pathname, authRoutes)) {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded) {
         const target =
-          decoded.role === 'admin' ? '/admin' : '/student/dashboard';
+          decoded.role === 'admin' || decoded.role === 'publications'
+            ? '/admin'
+            : '/student/dashboard';
         return NextResponse.redirect(new URL(target, request.url));
       }
     }
     return NextResponse.next();
   }
 
-  // Everything below requires a valid token
   const decoded = token ? verifyToken(token) : null;
 
   if (!decoded) {
@@ -116,22 +120,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Admin routes: admin only
   if (matches(pathname, adminRoutes)) {
-    if (decoded.role !== 'admin') {
-      return NextResponse.redirect(new URL('/student/dashboard', request.url));
+    if (decoded.role === 'admin') return NextResponse.next();
+    if (
+      decoded.role === 'publications' &&
+      matches(pathname, publicationsAllowedRoutes)
+    ) {
+      return NextResponse.next();
     }
-    return NextResponse.next();
+    if (decoded.role === 'publications') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    return NextResponse.redirect(new URL('/student/dashboard', request.url));
   }
 
-  // Mentor routes: mentor, admin, or admin with super access
   if (matches(pathname, mentorRoutes)) {
     const hasSuper = checkSuperAccess(superToken);
     if (decoded.role === 'admin' && hasSuper) return NextResponse.next();
     return NextResponse.next();
   }
 
-  // Student routes: any authenticated user
   if (matches(pathname, studentRoutes)) {
     return NextResponse.next();
   }
