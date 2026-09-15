@@ -23,13 +23,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdminOrPublications();
+    const user = await requireAdminOrPublications();
     const body = await request.json();
 
     const [announcement] = await db
       .insert(announcements)
       .values({
-        ...body,
+        title: body.title,
+        content: body.content,
+        type: body.type || 'general',
+        priority: body.priority || 'normal',
+        imageUrl: body.imageUrl || null,
+        authorId: user.id,
         isPublished: false,
       })
       .returning();
@@ -38,7 +43,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to create announcement' },
-      { status: 500 }
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
 }
