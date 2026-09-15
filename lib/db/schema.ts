@@ -180,6 +180,26 @@ export const mentorReviews = pgTable('mentor_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ==================== MENTOR AVAILABILITY SLOTS ====================
+export const mentorAvailabilitySlots = pgTable('mentor_availability_slots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorId: uuid('mentor_id').references(() => mentors.id, { onDelete: 'cascade' }).notNull(),
+  dayOfWeek: integer('day_of_week').notNull(),
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== MENTOR NOTES ====================
+export const mentorNotes = pgTable('mentor_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mentorId: uuid('mentor_id').references(() => mentors.id, { onDelete: 'cascade' }).notNull(),
+  menteeId: uuid('mentee_id').references(() => campuslinkUsers.id).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // ==================== RESOURCE CATEGORIES ====================
 export const resourceCategories = pgTable('resource_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -687,6 +707,8 @@ export const mentorsRelations = relations(mentors, ({ one, many }) => ({
   expertise: many(mentorExpertise),
   requests: many(mentorshipRequests, { relationName: 'mentorRequests' }),
   mentorships: many(mentorships, { relationName: 'mentorMentorships' }),
+  availabilitySlots: many(mentorAvailabilitySlots),
+  notes: many(mentorNotes),
 }));
 
 export const mentorExpertiseRelations = relations(mentorExpertise, ({ one }) => ({
@@ -734,6 +756,27 @@ export const mentorReviewsRelations = relations(mentorReviews, ({ one }) => ({
   }),
   student: one(campuslinkUsers, {
     fields: [mentorReviews.studentId],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+export const mentorAvailabilitySlotsRelations = relations(
+  mentorAvailabilitySlots,
+  ({ one }) => ({
+    mentor: one(mentors, {
+      fields: [mentorAvailabilitySlots.mentorId],
+      references: [mentors.id],
+    }),
+  })
+);
+
+export const mentorNotesRelations = relations(mentorNotes, ({ one }) => ({
+  mentor: one(mentors, {
+    fields: [mentorNotes.mentorId],
+    references: [mentors.id],
+  }),
+  mentee: one(campuslinkUsers, {
+    fields: [mentorNotes.menteeId],
     references: [campuslinkUsers.id],
   }),
 }));
