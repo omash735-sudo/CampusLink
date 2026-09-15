@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ANNOUNCEMENT_TYPES } from '@/lib/announcement-types';
 
 export default function EditAnnouncementPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function EditAnnouncementPage() {
   const [form, setForm] = useState({
     title: '',
     content: '',
-    category: 'Academic',
+    type: 'general',
     priority: 'normal',
     isPublished: false,
   });
@@ -31,7 +32,7 @@ export default function EditAnnouncementPage() {
         setForm({
           title: data.title || '',
           content: data.content || '',
-          category: data.category || 'Academic',
+          type: data.type || 'general',
           priority: data.priority || 'normal',
           isPublished: data.isPublished || false,
         });
@@ -54,7 +55,11 @@ export default function EditAnnouncementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: params.id,
-          ...form,
+          title: form.title,
+          content: form.content,
+          type: form.type,
+          priority: form.priority,
+          isPublished: form.isPublished,
         }),
       });
 
@@ -109,17 +114,17 @@ export default function EditAnnouncementPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label-text">Category</label>
+              <label className="label-text">Type</label>
               <select
                 className="input-field"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
               >
-                <option value="Academic">Academic</option>
-                <option value="Student Life">Student Life</option>
-                <option value="Administrative">Administrative</option>
-                <option value="Events">Events</option>
-                <option value="Other">Other</option>
+                {ANNOUNCEMENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
