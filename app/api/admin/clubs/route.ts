@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       .returning();
 
     await logAudit({
-      adminId: user === true ? '' : user.id,
+      adminId: user.id,
       action: 'create_club',
       entity: 'club',
       entityId: row.id,
