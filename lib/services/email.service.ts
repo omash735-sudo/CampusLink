@@ -268,3 +268,79 @@ export async function sendClubApprovedEmail(email: string, clubName: string) {
     `,
   });
 }
+
+export async function sendMentorApplicationReceivedEmail(email: string, name: string) {
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink Mentor Application Received',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Application Received</h1>
+        <p>Dear ${name},</p>
+        <p>Thank you for applying to become a CampusLink Mentor. Your application has been received and is currently under review.</p>
+        <p>We'll notify you by email once a decision has been made. In the meantime, you can continue using CampusLink as a student.</p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMentorshipRequestAcceptedEmail(
+  email: string,
+  studentName: string,
+  mentorName: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'Your mentorship request was accepted',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Request Accepted!</h1>
+        <p>Dear ${studentName},</p>
+        <p><strong>${mentorName}</strong> has accepted your mentorship request. You can now start your mentorship journey.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/student/dashboard" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Go to Dashboard
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMentorshipRequestDeclinedEmail(
+  email: string,
+  studentName: string,
+  mentorName: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'Mentorship Request Update',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #DC2626;">Mentorship Request Update</h1>
+        <p>Dear ${studentName},</p>
+        <p>Unfortunately, <strong>${mentorName}</strong> is unable to accept your mentorship request at this time.</p>
+        <p>You can browse other mentors on CampusLink and send a request to someone else. There are plenty of experienced students and alumni ready to help.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/mentors" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Browse Mentors
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
