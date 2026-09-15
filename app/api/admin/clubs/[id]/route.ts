@@ -68,8 +68,9 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await db.delete(clubs).where(eq(clubs.id, params.id));
+
   await logAudit({
-    adminId: user === true ? '' : user.id,
+    adminId: user.id,
     action: 'delete_club',
     entity: 'club',
     entityId: params.id,
