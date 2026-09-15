@@ -1,149 +1,168 @@
 // app/mentor/schedule/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CalendarIcon, PlusIcon } from '@/components/icons';
 
-const mockAvailability = {
-  monday: ['09:00-12:00', '14:00-17:00'],
-  tuesday: ['09:00-12:00', '14:00-17:00'],
-  wednesday: ['09:00-12:00', '14:00-17:00'],
-  thursday: ['09:00-12:00'],
-  friday: ['09:00-12:00'],
-  saturday: [],
-  sunday: []
-};
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const mockUpcomingSessions = [
-  {
-    id: '1',
-    student: 'Jane Mwale',
-    topic: 'Academic Support',
-    date: '2026-09-07',
-    time: '14:00',
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    student: 'John Banda',
-    topic: 'Career Guidance',
-    date: '2026-09-08',
-    time: '10:00',
-    status: 'upcoming'
-  },
-  {
-    id: '3',
-    student: 'Sarah Phiri',
-    topic: 'University Life',
-    date: '2026-09-10',
-    time: '15:00',
-    status: 'upcoming'
-  }
-];
-
-const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+interface Slot {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
 
 export default function MentorSchedulePage() {
-  const [showAddSlot, setShowAddSlot] = useState(false);
-  const [newDay, setNewDay] = useState('monday');
-  const [newTime, setNewTime] = useState('09:00-12:00');
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [dayOfWeek, setDayOfWeek] = useState(1);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('12:00');
 
-  const handleAddSlot = () => {
-    // Mock add slot
-    setShowAddSlot(false);
+  useEffect(() => {
+    loadSlots();
+  }, []);
+
+  const loadSlots = async () => {
+    try {
+      const res = await fetch('/api/mentors/availability');
+      if (res.ok) {
+        const data = await res.json();
+        setSlots(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const addSlot = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/mentors/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayOfWeek, startTime, endTime }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add');
+      await loadSlots();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeSlot = async (id: string) => {
+    if (!confirm('Remove this availability slot?')) return;
+    try {
+      await fetch(`/api/mentors/availability?id=${id}`, { method: 'DELETE' });
+      await loadSlots();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const slotsByDay = DAYS.map((_, i) => slots.filter((s) => s.dayOfWeek === i));
 
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Schedule & Availability</h1>
-          <button className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors">
-            <PlusIcon className="inline h-4 w-4 mr-1" />
-            Add Availability
-          </button>
+          <Link href="/mentor" className="text-primary-green hover:underline text-sm">
+            ← Back to Dashboard
+          </Link>
         </div>
 
-        {/* Calendar Preview */}
         <div className="bg-white border border-gray-200 p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Availability</h2>
-          <div className="grid grid-cols-7 gap-2 text-center">
-            {days.map((day) => (
-              <div key={day} className="border border-gray-200 p-2">
-                <div className="font-medium text-xs capitalize">{day.slice(0, 3)}</div>
-                {mockAvailability[day as keyof typeof mockAvailability].length > 0 ? (
-                  mockAvailability[day as keyof typeof mockAvailability].map((slot: string) => (
-                    <div key={slot} className="text-xs text-muted-text mt-1">{slot}</div>
-                  ))
-                ) : (
-                  <div className="text-xs text-gray-400 mt-1">—</div>
-                )}
-              </div>
-            ))}
+          <h2 className="text-xl font-bold mb-4">Add Availability</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="label-text">Day</label>
+              <select
+                className="input-field"
+                value={dayOfWeek}
+                onChange={(e) => setDayOfWeek(parseInt(e.target.value))}
+              >
+                {DAYS.map((d, i) => (
+                  <option key={d} value={i}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label-text">Start Time</label>
+              <input
+                type="time"
+                className="input-field"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label-text">End Time</label>
+              <input
+                type="time"
+                className="input-field"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={addSlot}
+              disabled={saving}
+              className="bg-primary-green text-white px-4 py-2 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Adding...' : 'Add Slot'}
+            </button>
           </div>
+          {error && (
+            <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700 mt-4">
+              {error}
+            </div>
+          )}
         </div>
 
-        {/* Add Availability Slot */}
-        {showAddSlot && (
-          <div className="bg-white border border-gray-200 p-6 mb-6">
-            <h3 className="font-semibold mb-4">Add Availability Slot</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label-text">Day</label>
-                <select className="input-field" value={newDay} onChange={(e) => setNewDay(e.target.value)}>
-                  {days.map((day) => (
-                    <option key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label-text">Time</label>
-                <select className="input-field" value={newTime} onChange={(e) => setNewTime(e.target.value)}>
-                  <option value="09:00-12:00">09:00 - 12:00</option>
-                  <option value="12:00-14:00">12:00 - 14:00</option>
-                  <option value="14:00-17:00">14:00 - 17:00</option>
-                  <option value="17:00-19:00">17:00 - 19:00</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={handleAddSlot} className="bg-primary-green text-white px-4 py-2 text-sm hover:bg-deep-green transition-colors">
-                Add Slot
-              </button>
-              <button onClick={() => setShowAddSlot(false)} className="border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Upcoming Sessions */}
         <div className="bg-white border border-gray-200 p-6">
-          <h2 className="text-xl font-bold mb-4">Upcoming Sessions</h2>
-          {mockUpcomingSessions.length > 0 ? (
-            <div className="space-y-3">
-              {mockUpcomingSessions.map((session) => (
-                <div key={session.id} className="border border-gray-100 p-4 hover:border-primary-green transition-colors">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-                    <div>
-                      <h4 className="font-semibold">{session.student}</h4>
-                      <p className="text-sm text-muted-text">{session.topic}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-text">
-                        <span> {new Date(session.date).toLocaleDateString()}</span>
-                        <span> {session.time}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5">Upcoming</span>
-                      <button className="text-sm text-primary-green hover:underline">View Details</button>
+          <h2 className="text-xl font-bold mb-4">Your Weekly Availability</h2>
+          {loading ? (
+            <p className="text-muted-text">Loading...</p>
+          ) : (
+            <div className="space-y-4">
+              {DAYS.map((day, i) => (
+                <div key={day} className="border-b border-gray-100 pb-3 last:border-0">
+                  <div className="flex items-start gap-3">
+                    <div className="w-24 font-medium text-sm">{day}</div>
+                    <div className="flex-1 flex flex-wrap gap-2">
+                      {slotsByDay[i].length === 0 ? (
+                        <span className="text-xs text-muted-text italic">Not available</span>
+                      ) : (
+                        slotsByDay[i].map((slot) => (
+                          <span
+                            key={slot.id}
+                            className="text-xs bg-primary-green/10 text-primary-green px-3 py-1 flex items-center gap-2"
+                          >
+                            {slot.startTime} – {slot.endTime}
+                            <button
+                              onClick={() => removeSlot(slot.id)}
+                              className="text-primary-green hover:text-red-500"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-muted-text">No upcoming sessions.</p>
           )}
         </div>
       </div>
