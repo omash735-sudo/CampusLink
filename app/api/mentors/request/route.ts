@@ -1,98 +1,202 @@
 // app/api/mentors/request/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { mentorshipRequests, mentors, campuslinkUsers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth';
-import { notifyMentorshipRequestReceived } from '@/lib/services/notification.service';
-import { sendMentorshipRequestEmail } from '@/lib/services/email.service';
+import {
+  mentors,
+  mentorshipRequests,
+  mentorships,
+  campuslinkUsers,
+} from '@/lib/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { requireMentor, requireAuth } from '@/lib/auth';
+import {
+  sendMentorshipRequestEmail,
+  sendMentorshipRequestAcceptedEmail,
+  sendMentorshipRequestDeclinedEmail,
+} from '@/lib/services/email.service';
 
-interface RequestBody {
-  mentorUsername: string;
-  message?: string;
-  helpNeeded?: string[];
-}
+export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+// GET — mentor fetches their incoming requests
+export async function GET() {
   try {
-    const user = await requireAuth();
-    const body: RequestBody = await req.json();
-    const { mentorUsername, message, helpNeeded } = body;
-
-    if (!mentorUsername) {
-      return NextResponse.json(
-        { error: 'Mentor username is required' },
-        { status: 400 }
-      );
-    }
-
-    // Get the mentor user
-    const mentorUser = await db
-      .select()
-      .from(campuslinkUsers)
-      .where(eq(campuslinkUsers.username, mentorUsername))
-      .then(res => res[0]);
-
-    if (!mentorUser) {
-      return NextResponse.json(
-        { error: 'Mentor not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if mentor exists and is approved
-    const mentor = await db
+    const user = await requireMentor();
+    const [mentor] = await db
       .select()
       .from(mentors)
-      .where(and(
-        eq(mentors.userId, mentorUser.id),
-        eq(mentors.status, 'approved')
-      ))
-      .then(res => res[0]);
+      .where(eq(mentors.userId, user.id));
+    if (!mentor) return NextResponse.json([]);
 
-    if (!mentor) {
-      return NextResponse.json(
-        { error: 'Mentor not found' },
-        { status: 404 }
-      );
+    const rows = await db
+      .select({
+        id: mentorshipRequests.id,
+        message: mentorshipRequests.message,
+        introduction: mentorshipRequests.introduction,
+        helpNeeded: mentorshipRequests.helpNeeded,
+        status: mentorshipRequests.status,
+        createdAt: mentorshipRequests.createdAt,
+        student: {
+          id: campuslinkUsers.id,
+          fullName: campuslinkUsers.fullName,
+          username: campuslinkUsers.username,
+          programme: campuslinkUsers.programme,
+          year: campuslinkUsers.year,
+          avatar: campuslinkUsers.avatar,
+        },
+      })
+      .from(mentorshipRequests)
+      .leftJoin(campuslinkUsers, eq(mentorshipRequests.studentId, campuslinkUsers.id))
+      .where(eq(mentorshipRequests.mentorId, mentor.id))
+      .orderBy(desc(mentorshipRequests.createdAt));
+
+    return NextResponse.json(rows);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Failed' },
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
+    );
+  }
+}
+
+// POST — student sends a new request (from /mentors/[username]/request)
+export async function POST(request: Request) {
+  try {
+    const user = await requireAuth();
+    const body = await request.json();
+    const { mentorUsername, message, helpNeeded } = body;
+
+    if (!mentorUsername || !message) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    // Check if user already has a pending request
-    const existingRequest = await db
+    const [mentorUser] = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.username, mentorUsername));
+    if (!mentorUser) {
+      return NextResponse.json({ error: 'Mentor not found' }, { status: 404 });
+    }
+
+    const [mentor] = await db
+      .select()
+      .from(mentors)
+      .where(and(eq(mentors.userId, mentorUser.id), eq(mentors.status, 'approved')));
+    if (!mentor) {
+      return NextResponse.json({ error: 'Mentor not approved' }, { status: 404 });
+    }
+
+    if (mentorUser.id === user.id) {
+      return NextResponse.json({ error: 'Cannot request yourself' }, { status: 400 });
+    }
+
+    const [existing] = await db
       .select()
       .from(mentorshipRequests)
-      .where(and(
-        eq(mentorshipRequests.studentId, user.id),
-        eq(mentorshipRequests.mentorId, mentor.id),
-        eq(mentorshipRequests.status, 'pending')
-      ))
-      .then(res => res[0]);
-
-    if (existingRequest) {
+      .where(
+        and(
+          eq(mentorshipRequests.mentorId, mentor.id),
+          eq(mentorshipRequests.studentId, user.id),
+          eq(mentorshipRequests.status, 'pending')
+        )
+      );
+    if (existing) {
       return NextResponse.json(
-        { error: 'You already have a pending request with this mentor' },
+        { error: 'You already have a pending request to this mentor' },
         { status: 400 }
       );
     }
 
-    // Create mentorship request
-    const [newRequest] = await db.insert(mentorshipRequests).values({
-      mentorId: mentor.id,
-      studentId: user.id,
-      message: message || '',
-      helpNeeded: helpNeeded || [],
-      status: 'pending',
-    }).returning();
+    const [row] = await db
+      .insert(mentorshipRequests)
+      .values({
+        mentorId: mentor.id,
+        studentId: user.id,
+        message,
+        helpNeeded: helpNeeded || [],
+        status: 'pending',
+      })
+      .returning();
 
-    // Send notifications
-    await notifyMentorshipRequestReceived(mentor.id, user.id, user.fullName);
-    await sendMentorshipRequestEmail(mentorUser.email, mentorUser.fullName, user.fullName);
+    try {
+      await sendMentorshipRequestEmail(mentorUser.email, mentorUser.fullName, user.fullName);
+    } catch (e) {
+      console.error('Mentorship request email failed:', e);
+    }
 
-    return NextResponse.json({ request: newRequest });
+    return NextResponse.json({ success: true, request: row });
   } catch (error: any) {
-    console.error('Mentorship request error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to send request' },
+      { error: error.message || 'Failed' },
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
+    );
+  }
+}
+
+// PUT — mentor accepts or declines
+export async function PUT(request: Request) {
+  try {
+    const user = await requireMentor();
+    const body = await request.json();
+    const { id, action } = body;
+
+    if (!id || (action !== 'accept' && action !== 'decline')) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    }
+
+    const [mentor] = await db
+      .select()
+      .from(mentors)
+      .where(eq(mentors.userId, user.id));
+    if (!mentor) return NextResponse.json({ error: 'Not a mentor' }, { status: 403 });
+
+    const [req] = await db
+      .select()
+      .from(mentorshipRequests)
+      .where(
+        and(
+          eq(mentorshipRequests.id, id),
+          eq(mentorshipRequests.mentorId, mentor.id)
+        )
+      );
+    if (!req) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+
+    const newStatus = action === 'accept' ? 'accepted' : 'declined';
+
+    await db
+      .update(mentorshipRequests)
+      .set({ status: newStatus, updatedAt: new Date() })
+      .where(eq(mentorshipRequests.id, id));
+
+    if (action === 'accept') {
+      await db.insert(mentorships).values({
+        mentorId: mentor.id,
+        studentId: req.studentId,
+        requestId: req.id,
+        status: 'active',
+      });
+    }
+
+    const [student] = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.id, req.studentId));
+
+    if (student) {
+      try {
+        if (action === 'accept') {
+          await sendMentorshipRequestAcceptedEmail(student.email, student.fullName, user.fullName);
+        } else {
+          await sendMentorshipRequestDeclinedEmail(student.email, student.fullName, user.fullName);
+        }
+      } catch (e) {
+        console.error('Notification email failed:', e);
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Failed' },
       { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
