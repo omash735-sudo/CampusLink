@@ -3,16 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-const CATEGORIES = [
-  'Orientation',
-  'Career',
-  'Academic',
-  'Social',
-  'Sports',
-  'Entertainment',
-  'Other',
-];
+import { EVENT_CATEGORIES } from '@/lib/event-categories';
 
 export function EventFilters() {
   const router = useRouter();
@@ -55,7 +46,7 @@ export function EventFilters() {
         className="border border-gray-300 bg-white px-4 py-2 focus:border-primary-green focus:outline-none"
       >
         <option value="">All Categories</option>
-        {CATEGORIES.map((c) => (
+        {EVENT_CATEGORIES.map((c) => (
           <option key={c} value={c}>
             {c}
           </option>
