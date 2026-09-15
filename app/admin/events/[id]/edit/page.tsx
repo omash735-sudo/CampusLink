@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { EVENT_CATEGORIES } from '@/lib/event-categories';
 
 export default function EditEventPage() {
   const router = useRouter();
@@ -36,12 +37,16 @@ export default function EditEventPage() {
       const res = await fetch(`/api/admin/events/${params.id}`);
       const data = await res.json();
       if (res.ok) {
+        const startDate = data.startDate ? new Date(data.startDate) : null;
+        const endDate = data.endDate ? new Date(data.endDate) : null;
         setForm({
           title: data.title || '',
           description: data.description || '',
-          date: data.date ? new Date(data.date).toISOString().split('T')[0] : '',
-          startTime: data.startTime || '',
-          endTime: data.endTime || '',
+          date: startDate ? startDate.toISOString().split('T')[0] : '',
+          startTime: startDate
+            ? startDate.toTimeString().slice(0, 5)
+            : '',
+          endTime: endDate ? endDate.toTimeString().slice(0, 5) : '',
           location: data.location || '',
           organizer: data.organizer || '',
           category: data.category || '',
@@ -72,14 +77,13 @@ export default function EditEventPage() {
     try {
       let imageUrl = form.image;
 
-      // Upload new image if selected
       if (imageFile) {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', imageFile);
-        formData.append('type', 'event');
+        formData.append('type', 'events');
 
-        const uploadRes = await fetch('/api/upload', {
+        const uploadRes = await fetch('/api/admin/upload', {
           method: 'POST',
           body: formData,
         });
@@ -157,7 +161,12 @@ export default function EditEventPage() {
             <label className="label-text">Event Image</label>
             {form.image && (
               <div className="mb-2">
-                <img src={form.image} alt="Event" className="h-32 object-cover border border-gray-200" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={form.image}
+                  alt="Event"
+                  className="h-32 object-cover border border-gray-200"
+                />
               </div>
             )}
             <input
@@ -249,12 +258,11 @@ export default function EditEventPage() {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                 <option value="">Select category</option>
-                <option value="Orientation">Orientation</option>
-                <option value="Academic">Academic</option>
-                <option value="Career">Career</option>
-                <option value="Social">Social</option>
-                <option value="Sports">Sports</option>
-                <option value="Other">Other</option>
+                {EVENT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
