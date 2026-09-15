@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { EVENT_CATEGORIES } from '@/lib/event-categories';
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -38,14 +39,13 @@ export default function NewEventPage() {
     try {
       let imageUrl = '';
 
-      // Upload image if selected
       if (imageFile) {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', imageFile);
-        formData.append('type', 'event');
+        formData.append('type', 'events');
 
-        const uploadRes = await fetch('/api/upload', {
+        const uploadRes = await fetch('/api/admin/upload', {
           method: 'POST',
           body: formData,
         });
@@ -210,12 +210,11 @@ export default function NewEventPage() {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                 <option value="">Select category</option>
-                <option value="Orientation">Orientation</option>
-                <option value="Academic">Academic</option>
-                <option value="Career">Career</option>
-                <option value="Social">Social</option>
-                <option value="Sports">Sports</option>
-                <option value="Other">Other</option>
+                {EVENT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
