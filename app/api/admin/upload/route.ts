@@ -1,6 +1,7 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -10,18 +11,20 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// TEMPORARY: set to true to allow uploads without login.
-// REVERT to false when done entering Student Union data.
-const TEMP_UPLOAD_BYPASS = true;
+const ALLOWED_TYPES = [
+  'student-union',
+  'spotlights',
+  'clubs',
+  'announcements',
+  'events',
+  'general',
+];
 
 export async function POST(request: Request) {
   try {
-    if (!TEMP_UPLOAD_BYPASS) {
-      const { getCurrentUser } = await import('@/lib/auth');
-      const user = await getCurrentUser();
-      if (!user || user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    const user = await getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.role !== 'publications')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (
@@ -37,6 +40,8 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get('file');
+    const rawType = (formData.get('type') as string) || 'general';
+    const type = ALLOWED_TYPES.includes(rawType) ? rawType : 'general';
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
     const result = await new Promise<any>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'campuslink/student-union',
+          folder: `campuslink/${type}`,
           resource_type: 'image',
         },
         (error, result) => {
@@ -74,6 +79,7 @@ export async function POST(request: Request) {
       success: true,
       url: result.secure_url,
       publicId: result.public_id,
+      filename: result.public_id,
     });
   } catch (error: any) {
     console.error('Upload error:', error);
