@@ -1,4 +1,5 @@
 // app/mentor/page.tsx
+import { requireMentor } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   mentorshipRequests,
@@ -19,17 +20,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function MentorDashboard() {
-  // TEMP: fake user for visual testing. Auth disabled.
-  const user = {
-    id: '4b93eb7d-f26f-4aaa-95fe-ae7abea695eb',   // admin's real UUID
-    email: 'mentor@test.com',
-    fullName: 'Test Mentor',
-    username: 'testmentor',
-    role: 'mentor',
-    avatar: null as string | null,
-    isMentor: true,
-    mentorStatus: 'approved',
-  };
+  const user = await requireMentor();
 
   const mentor = await db
     .select()
@@ -46,13 +37,15 @@ export default async function MentorDashboard() {
             <div className="bg-white border border-gray-200 p-8 max-w-2xl mx-auto text-center">
               <h1 className="text-2xl font-bold mb-2">No Mentor Profile</h1>
               <p className="text-muted-text mb-4">
-                This is what an admin sees when using Super Access to view the
-                mentor dashboard without an actual mentor profile.
+                You don&apos;t have a mentor profile yet. Apply to become a mentor
+                to access the mentor dashboard.
               </p>
-              <p className="text-sm text-muted-text">
-                When a real mentor logs in, they will see their requests and
-                mentees here.
-              </p>
+              <Link
+                href="/mentors/become-a-mentor"
+                className="bg-primary-green text-white px-6 py-3 font-medium hover:bg-deep-green transition-colors inline-block"
+              >
+                Apply to Become a Mentor
+              </Link>
             </div>
           </div>
         </div>
@@ -123,9 +116,11 @@ export default async function MentorDashboard() {
                 className="relative p-2 border border-gray-200 hover:border-primary-green transition-colors"
               >
                 <BellIcon className="h-5 w-5 text-muted-text" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full">
-                  {pendingRequests.length}
-                </span>
+                {pendingRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full">
+                    {pendingRequests.length}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
@@ -149,21 +144,18 @@ export default async function MentorDashboard() {
               </div>
               <div className="text-sm text-muted-text">Active Mentees</div>
             </Link>
-            <Link
-              href="/mentor/mentees"
-              className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors"
-            >
+            <div className="bg-white border border-gray-200 p-4">
               <div className="text-2xl font-bold text-primary-green">
-                {mentor?.rating || 0}
+                {mentor.rating || 0}
               </div>
               <div className="text-sm text-muted-text">Rating</div>
-            </Link>
+            </div>
             <Link
               href="/mentor/profile"
               className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors"
             >
               <div className="text-2xl font-bold text-primary-green">
-                {mentor?.reviewCount || 0}
+                {mentor.reviewCount || 0}
               </div>
               <div className="text-sm text-muted-text">Reviews</div>
             </Link>
@@ -218,14 +210,12 @@ export default async function MentorDashboard() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button className="bg-green-600 text-white px-3 py-1 text-sm hover:bg-green-700 transition-colors">
-                          Accept
-                        </button>
-                        <button className="border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 transition-colors">
-                          Decline
-                        </button>
-                      </div>
+                      <Link
+                        href="/mentor/requests"
+                        className="text-sm text-primary-green hover:underline"
+                      >
+                        Review
+                      </Link>
                     </div>
                   </div>
                 ))}
