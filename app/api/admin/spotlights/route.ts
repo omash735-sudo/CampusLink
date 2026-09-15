@@ -49,12 +49,12 @@ export async function POST(request: Request) {
         isPublished: data.isPublished,
         sortOrder: data.sortOrder,
         publishedAt: data.isPublished ? new Date() : null,
-        createdBy: user === true ? null : user.id,
+        createdBy: user.id,
       })
       .returning();
 
     await logAudit({
-      adminId: user === true ? '' : user.id,
+      adminId: user.id,
       action: 'create_spotlight',
       entity: 'student_spotlight',
       entityId: row.id,
