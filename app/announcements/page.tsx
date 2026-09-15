@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { announcements } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import Link from 'next/link';
+import { getAnnouncementTypeLabel } from '@/lib/announcement-types';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AnnouncementsPage() {
   const announcementsList = await db
@@ -26,7 +29,9 @@ export default async function AnnouncementsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs bg-gray-100 px-2 py-0.5">{announcement.type || 'General'}</span>
+                    <span className="text-xs bg-gray-100 px-2 py-0.5">
+                      {getAnnouncementTypeLabel(announcement.type)}
+                    </span>
                     {announcement.priority === 'urgent' && (
                       <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5">Urgent</span>
                     )}
