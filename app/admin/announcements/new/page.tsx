@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ANNOUNCEMENT_TYPES } from '@/lib/announcement-types';
 
 export default function NewAnnouncementPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function NewAnnouncementPage() {
   const [form, setForm] = useState({
     title: '',
     content: '',
-    category: 'Academic',
+    type: 'general',
     priority: 'normal',
   });
 
@@ -33,14 +34,13 @@ export default function NewAnnouncementPage() {
     try {
       let imageUrl = '';
 
-      // Upload image if selected
       if (imageFile) {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', imageFile);
-        formData.append('type', 'announcement');
+        formData.append('type', 'announcements');
 
-        const uploadRes = await fetch('/api/upload', {
+        const uploadRes = await fetch('/api/admin/upload', {
           method: 'POST',
           body: formData,
         });
@@ -58,8 +58,11 @@ export default function NewAnnouncementPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          imageUrl,
+          title: form.title,
+          content: form.content,
+          type: form.type,
+          priority: form.priority,
+          imageUrl: imageUrl || null,
         }),
       });
 
@@ -131,17 +134,17 @@ export default function NewAnnouncementPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label-text">Category</label>
+              <label className="label-text">Type</label>
               <select
                 className="input-field"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
               >
-                <option value="Academic">Academic</option>
-                <option value="Student Life">Student Life</option>
-                <option value="Administrative">Administrative</option>
-                <option value="Events">Events</option>
-                <option value="Other">Other</option>
+                {ANNOUNCEMENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
