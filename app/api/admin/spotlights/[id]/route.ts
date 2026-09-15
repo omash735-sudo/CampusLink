@@ -57,7 +57,7 @@ export async function PUT(
       .returning();
 
     await logAudit({
-      adminId: user === true ? '' : user.id,
+      adminId: user.id,
       action: 'update_spotlight',
       entity: 'student_spotlight',
       entityId: params.id,
@@ -93,7 +93,7 @@ export async function DELETE(
       .where(eq(studentSpotlights.id, params.id));
 
     await logAudit({
-      adminId: user === true ? '' : user.id,
+      adminId: user.id,
       action: 'delete_spotlight',
       entity: 'student_spotlight',
       entityId: params.id,
