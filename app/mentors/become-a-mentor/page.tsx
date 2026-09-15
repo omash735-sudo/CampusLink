@@ -10,27 +10,39 @@ export default function BecomeMentorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [form, setForm] = useState({
-    bio: '',
+    introduction: '',
     expertise: '',
     subjects: '',
+    experience: '',
     mentorType: 'Student',
     availability: 'available',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    if (!agreed) {
+      setError('You must agree to the Mentor Terms before applying.');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch('/api/mentors/become', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          expertise: form.expertise.split(',').map((s: string) => s.trim()).filter(Boolean),
-          subjects: form.subjects.split(',').map((s: string) => s.trim()).filter(Boolean),
+          introduction: form.introduction,
+          expertise: form.expertise.split(',').map((s) => s.trim()).filter(Boolean),
+          subjects: form.subjects.split(',').map((s) => s.trim()).filter(Boolean),
+          experience: form.experience,
+          mentorType: form.mentorType,
+          availability: form.availability,
+          agreedToTerms: true,
         }),
       });
 
@@ -38,10 +50,6 @@ export default function BecomeMentorPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to apply');
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/student/dashboard');
-        router.refresh();
-      }, 3000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -53,13 +61,18 @@ export default function BecomeMentorPage() {
     return (
       <div className="min-h-screen bg-off-white flex items-center justify-center px-4">
         <div className="bg-white border border-gray-200 p-8 max-w-md text-center">
-          <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4 flex items-center justify-center text-2xl">✓</div>
-          <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
-          <p className="text-muted-text mb-4">
-            Your mentor application has been submitted and is pending review.
-            You'll receive a notification once it's approved.
+          <div className="h-12 w-12 border-2 border-primary-green bg-white mx-auto mb-4 flex items-center justify-center text-2xl">
+            ✓
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Application Submitted</h2>
+          <p className="text-muted-text mb-6">
+            Your mentor application has been received and is pending review.
+            You&apos;ll receive an email once a decision has been made.
           </p>
-          <Link href="/student/dashboard" className="text-primary-green hover:underline">
+          <Link
+            href="/student/dashboard"
+            className="bg-primary-green text-white px-6 py-3 font-medium hover:bg-deep-green transition-colors inline-block"
+          >
             Return to Dashboard
           </Link>
         </div>
@@ -75,33 +88,38 @@ export default function BecomeMentorPage() {
         </Link>
 
         <h1 className="text-3xl font-bold mt-4 mb-2">Become a Mentor</h1>
-        <p className="text-muted-text mb-8">Share your knowledge and experience with fellow students.</p>
+        <p className="text-muted-text mb-8">
+          Share your knowledge and experience with fellow students.
+        </p>
 
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-6">
           <div className="space-y-4">
             <div>
-              <label className="label-text">About You</label>
+              <label className="label-text">Introduction *</label>
               <textarea
-                rows={3}
+                rows={4}
                 className="input-field"
-                value={form.bio}
-                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                value={form.introduction}
+                onChange={(e) => setForm({ ...form, introduction: e.target.value })}
                 placeholder="Tell students about yourself and why you want to mentor..."
                 required
+                minLength={20}
               />
             </div>
 
             <div>
-              <label className="label-text">Areas of Expertise</label>
+              <label className="label-text">Areas of Expertise *</label>
               <input
                 type="text"
                 className="input-field"
                 value={form.expertise}
                 onChange={(e) => setForm({ ...form, expertise: e.target.value })}
-                placeholder="e.g. Academic Support, Career Guidance, Research"
+                placeholder="e.g. Career Development, Academic Support, Research"
                 required
               />
-              <p className="text-xs text-muted-text mt-1">Separate multiple areas with commas</p>
+              <p className="text-xs text-muted-text mt-1">
+                Separate multiple areas with commas
+              </p>
             </div>
 
             <div>
@@ -111,9 +129,22 @@ export default function BecomeMentorPage() {
                 className="input-field"
                 value={form.subjects}
                 onChange={(e) => setForm({ ...form, subjects: e.target.value })}
-                placeholder="e.g. Research Methods, Social Work Practice, Statistics"
+                placeholder="e.g. Research Methods, Statistics, CV Writing"
               />
-              <p className="text-xs text-muted-text mt-1">Separate multiple subjects with commas</p>
+              <p className="text-xs text-muted-text mt-1">
+                Separate multiple subjects with commas
+              </p>
+            </div>
+
+            <div>
+              <label className="label-text">Experience</label>
+              <textarea
+                rows={3}
+                className="input-field"
+                value={form.experience}
+                onChange={(e) => setForm({ ...form, experience: e.target.value })}
+                placeholder="Share your relevant experience..."
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -144,6 +175,31 @@ export default function BecomeMentorPage() {
               </div>
             </div>
 
+            <div className="border border-gray-200 p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="h-4 w-4 mt-0.5 flex-shrink-0"
+                  required
+                />
+                <span className="text-sm">
+                  I have read and agree to the{' '}
+                  <Link
+                    href="/mentors/terms"
+                    target="_blank"
+                    className="text-primary-green hover:underline"
+                  >
+                    Mentor Terms and Guidelines
+                  </Link>
+                  . I understand that CampusLink is an independent platform and
+                  that becoming a mentor does not make me a representative of
+                  CampusLink or any institution.
+                </span>
+              </label>
+            </div>
+
             {error && (
               <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
                 {error}
@@ -152,7 +208,7 @@ export default function BecomeMentorPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !agreed}
               className="bg-primary-green text-white px-6 py-3 font-medium hover:bg-deep-green transition-colors w-full disabled:opacity-50"
             >
               {loading ? 'Submitting...' : 'Submit Application'}
