@@ -1,14 +1,16 @@
 // app/api/admin/mentors/applications/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { campuslinkUsers } from '@/lib/db/schema';
+import { campuslinkUsers, mentors } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
-import { 
-  notifyMentorApplicationApproved, 
-  notifyMentorApplicationRejected 
-} from '@/lib/services/notification.service';
-import { sendMentorApprovalEmail, sendMentorRejectionEmail } from '@/lib/services/email.service';
+import { logAudit } from '@/lib/audit';
+import {
+  sendMentorApprovalEmail,
+  sendMentorRejectionEmail,
+} from '@/lib/services/email.service';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
@@ -21,7 +23,7 @@ export async function GET() {
     return NextResponse.json(applications);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch applications' },
+      { error: error.message || 'Failed' },
       { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
@@ -29,70 +31,85 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await request.json();
-    const { id, action, reason } = body;
+    const { userId, action, reason } = body;
 
-    if (!id || !action) {
-      return NextResponse.json(
-        { error: 'User ID and action are required' },
-        { status: 400 }
-      );
+    if (!userId || (action !== 'approve' && action !== 'reject')) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    let updated;
+    const [user] = await db
+      .select()
+      .from(campuslinkUsers)
+      .where(eq(campuslinkUsers.id, userId));
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     if (action === 'approve') {
-      [updated] = await db
+      await db
         .update(campuslinkUsers)
         .set({
           isMentor: true,
           mentorStatus: 'approved',
           updatedAt: new Date(),
         })
-        .where(eq(campuslinkUsers.id, id))
-        .returning();
+        .where(eq(campuslinkUsers.id, userId));
 
-      if (updated) {
-        // Send in-app notification
-        await notifyMentorApplicationApproved(id, updated.fullName);
-        // Send email notification
-        await sendMentorApprovalEmail(updated.email, updated.fullName);
+      await db
+        .update(mentors)
+        .set({ status: 'approved', updatedAt: new Date() })
+        .where(eq(mentors.userId, userId));
+
+      try {
+        await sendMentorApprovalEmail(user.email, user.fullName);
+      } catch (e) {
+        console.error('Approval email failed:', e);
       }
-    } else if (action === 'reject') {
-      [updated] = await db
+
+      await logAudit({
+        adminId: admin.id,
+        action: 'mentor_application_approved',
+        entity: 'campuslink_user',
+        entityId: userId,
+        newValue: { mentorStatus: 'approved' },
+      });
+    } else {
+      await db
         .update(campuslinkUsers)
         .set({
+          isMentor: false,
           mentorStatus: 'rejected',
           updatedAt: new Date(),
         })
-        .where(eq(campuslinkUsers.id, id))
-        .returning();
+        .where(eq(campuslinkUsers.id, userId));
 
-      if (updated) {
-        // Send in-app notification
-        await notifyMentorApplicationRejected(id, reason);
-        // Send email notification
-        await sendMentorRejectionEmail(updated.email, updated.fullName, reason);
+      await db
+        .update(mentors)
+        .set({ status: 'rejected', updatedAt: new Date() })
+        .where(eq(mentors.userId, userId));
+
+      try {
+        await sendMentorRejectionEmail(user.email, user.fullName, reason);
+      } catch (e) {
+        console.error('Rejection email failed:', e);
       }
-    } else {
-      return NextResponse.json(
-        { error: 'Invalid action. Must be "approve" or "reject"' },
-        { status: 400 }
-      );
+
+      await logAudit({
+        adminId: admin.id,
+        action: 'mentor_application_rejected',
+        entity: 'campuslink_user',
+        entityId: userId,
+        newValue: { mentorStatus: 'rejected', reason },
+      });
     }
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to update application' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { error: error.message || 'Failed' },
+      { status: error.message === 'Unauthorized' || error.message === 'Forbidden' ? 401 : 500 }
     );
   }
 }
