@@ -14,6 +14,11 @@ import {
   sendMentorshipRequestAcceptedEmail,
   sendMentorshipRequestDeclinedEmail,
 } from '@/lib/services/email.service';
+import {
+  notifyMentorshipRequestReceived,
+  notifyMentorshipRequestAccepted,
+  notifyMentorshipRequestDeclined,
+} from '@/lib/services/notification.service';
 
 export const runtime = 'nodejs';
 
@@ -58,7 +63,7 @@ export async function GET() {
   }
 }
 
-// POST — student sends a new request (from /mentors/[username]/request)
+// POST — student sends a new request
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
@@ -121,6 +126,12 @@ export async function POST(request: Request) {
       await sendMentorshipRequestEmail(mentorUser.email, mentorUser.fullName, user.fullName);
     } catch (e) {
       console.error('Mentorship request email failed:', e);
+    }
+
+    try {
+      await notifyMentorshipRequestReceived(mentorUser.id, user.id, user.fullName);
+    } catch (e) {
+      console.error('Mentorship request notification failed:', e);
     }
 
     return NextResponse.json({ success: true, request: row });
@@ -190,6 +201,16 @@ export async function PUT(request: Request) {
         }
       } catch (e) {
         console.error('Notification email failed:', e);
+      }
+
+      try {
+        if (action === 'accept') {
+          await notifyMentorshipRequestAccepted(req.studentId, user.fullName);
+        } else {
+          await notifyMentorshipRequestDeclined(req.studentId, user.fullName);
+        }
+      } catch (e) {
+        console.error('In-app notification failed:', e);
       }
     }
 
