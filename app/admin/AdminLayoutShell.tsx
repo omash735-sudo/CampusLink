@@ -37,7 +37,7 @@ const allNavItems: NavItem[] = [
   { name: 'Mentorships', href: '/admin/mentorships', icon: BriefcaseIcon, roles: ['admin'] },
   { name: 'Programmes', href: '/admin/programmes', icon: BookOpenIcon, roles: ['admin'] },
   { name: 'Courses', href: '/admin/courses', icon: BookOpenIcon, roles: ['admin'] },
-  { name: 'Resources', href: '/admin/resources', icon: BookOpenIcon, roles: ['admin'] },
+  { name: 'Academic Library', href: '/admin/resources', icon: BookOpenIcon, roles: ['admin', 'publications'] },
   { name: 'Events', href: '/admin/events', icon: CalendarIcon, roles: ['admin', 'publications'] },
   { name: 'Announcements', href: '/admin/announcements', icon: BellIcon, roles: ['admin', 'publications'] },
   { name: 'Campus', href: '/admin/campus', icon: MapPinIcon, roles: ['admin'] },
