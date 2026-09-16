@@ -2,51 +2,38 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth';
+import { eq, desc, and, sql } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const user = await requireAuth();
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const rows = await db
       .select()
       .from(notifications)
       .where(eq(notifications.userId, user.id))
       .orderBy(desc(notifications.createdAt))
       .limit(50);
-    return NextResponse.json(rows);
+
+    const [{ count } = { count: 0 }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(eq(notifications.userId, user.id), eq(notifications.read, false))
+      );
+
+    return NextResponse.json({
+      notifications: rows,
+      unreadCount: Number(count) || 0,
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
-}
-
-export async function PUT(request: Request) {
-  try {
-    const user = await requireAuth();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (id) {
-      await db
-        .update(notifications)
-        .set({ read: true })
-        .where(and(eq(notifications.id, id), eq(notifications.userId, user.id)));
-    } else {
-      await db
-        .update(notifications)
-        .set({ read: true })
-        .where(eq(notifications.userId, user.id));
-    }
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { status: 500 }
     );
   }
 }
