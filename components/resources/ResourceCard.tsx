@@ -11,7 +11,6 @@ interface ResourceCardProps {
     subject: string | null;
     fileType: string | null;
     fileUrl: string | null;
-    youtubeVideoId: string | null;
     coverImageUrl: string | null;
     author: string | null;
     source: string | null;
