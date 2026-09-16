@@ -4,17 +4,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const CATEGORIES = [
-  'Psychology',
-  'Social Work',
-  'Youth Development',
-  'Sociology',
-  'Research',
-  'Academic Writing',
-  'Study Skills',
-  'General',
-];
-
 const RIGHTS_TYPES = [
   { value: 'campuslink_original', label: 'CampusLink Original' },
   { value: 'own_material', label: 'My Own Material' },
@@ -57,9 +46,10 @@ export interface ResourceFormData {
 interface Props {
   initialData?: Partial<ResourceFormData>;
   mode: 'create' | 'edit';
+  categories: string[];
 }
 
-export function ResourceForm({ initialData, mode }: Props) {
+export function ResourceForm({ initialData, mode, categories }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -244,16 +234,13 @@ export function ResourceForm({ initialData, mode }: Props) {
               type="button"
               onClick={() => setForm({ ...form, resourceKind: kind })}
               disabled={mode === 'edit'}
-              className={`px-4 py-3 text-sm border transition-colors ${
+              className={`px-4 py-3 text-sm border transition-colors capitalize ${
                 form.resourceKind === kind
                   ? 'bg-primary-green text-white border-primary-green'
                   : 'border-gray-200 hover:border-primary-green'
               } ${mode === 'edit' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {kind === 'document' && '📄 Document'}
-              {kind === 'video' && '▶️ Video'}
-              {kind === 'article' && '📝 Article'}
-              {kind === 'publication' && '📰 Publication'}
+              {kind}
             </button>
           ))}
         </div>
@@ -310,10 +297,15 @@ export function ResourceForm({ initialData, mode }: Props) {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
               <option value="">Select category</option>
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+            {categories.length === 0 && (
+              <p className="text-xs text-muted-text mt-1">
+                No categories yet. Add them from Library Categories.
+              </p>
+            )}
           </div>
           <div>
             <label className="label-text">Subject</label>
@@ -344,7 +336,11 @@ export function ResourceForm({ initialData, mode }: Props) {
               className="input-field"
               value={form.source}
               onChange={(e) => setForm({ ...form, source: e.target.value })}
-              placeholder={form.resourceKind === 'video' ? 'e.g. YouTube' : 'e.g. Academic publication'}
+              placeholder={
+                form.resourceKind === 'video'
+                  ? 'e.g. YouTube'
+                  : 'e.g. Academic publication'
+              }
             />
           </div>
         </div>
@@ -365,10 +361,12 @@ export function ResourceForm({ initialData, mode }: Props) {
             <select
               className="input-field"
               value={form.year || ''}
-              onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                setForm({ ...form, year: parseInt(e.target.value) || 0 })
+              }
             >
               <option value="">—</option>
-              {[1,2,3,4,5].map((y) => (
+              {[1, 2, 3, 4, 5].map((y) => (
                 <option key={y} value={y}>Year {y}</option>
               ))}
             </select>
@@ -379,7 +377,9 @@ export function ResourceForm({ initialData, mode }: Props) {
               type="date"
               className="input-field"
               value={form.publicationDate}
-              onChange={(e) => setForm({ ...form, publicationDate: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, publicationDate: e.target.value })
+              }
             />
           </div>
         </div>
@@ -389,7 +389,11 @@ export function ResourceForm({ initialData, mode }: Props) {
           {form.coverImageUrl && (
             <div className="mb-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.coverImageUrl} alt="Cover" className="h-32 border border-gray-200" />
+              <img
+                src={form.coverImageUrl}
+                alt="Cover"
+                className="h-32 border border-gray-200"
+              />
               <button
                 type="button"
                 onClick={() => setForm({ ...form, coverImageUrl: '' })}
@@ -428,7 +432,7 @@ export function ResourceForm({ initialData, mode }: Props) {
 
             <input
               type="file"
-              accept=".pdf,.pptx,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".pdf,.pptx,.docx"
               onChange={handleDocUpload}
               disabled={uploading}
               className="input-field"
@@ -440,7 +444,9 @@ export function ResourceForm({ initialData, mode }: Props) {
                 <input
                   type="checkbox"
                   checked={form.downloadable}
-                  onChange={(e) => setForm({ ...form, downloadable: e.target.checked })}
+                  onChange={(e) =>
+                    setForm({ ...form, downloadable: e.target.checked })
+                  }
                 />
                 Downloadable
               </label>
@@ -448,7 +454,9 @@ export function ResourceForm({ initialData, mode }: Props) {
                 <input
                   type="checkbox"
                   checked={form.previewable}
-                  onChange={(e) => setForm({ ...form, previewable: e.target.checked })}
+                  onChange={(e) =>
+                    setForm({ ...form, previewable: e.target.checked })
+                  }
                 />
                 Show preview where supported
               </label>
@@ -504,7 +512,9 @@ export function ResourceForm({ initialData, mode }: Props) {
               <input
                 type="checkbox"
                 checked={form.showEmbeddedPlayer}
-                onChange={(e) => setForm({ ...form, showEmbeddedPlayer: e.target.checked })}
+                onChange={(e) =>
+                  setForm({ ...form, showEmbeddedPlayer: e.target.checked })
+                }
               />
               Show embedded player
             </label>
@@ -512,7 +522,9 @@ export function ResourceForm({ initialData, mode }: Props) {
               <input
                 type="checkbox"
                 checked={form.showYoutubeButton}
-                onChange={(e) => setForm({ ...form, showYoutubeButton: e.target.checked })}
+                onChange={(e) =>
+                  setForm({ ...form, showYoutubeButton: e.target.checked })
+                }
               />
               Show &quot;Watch on YouTube&quot; button
             </label>
@@ -539,7 +551,9 @@ export function ResourceForm({ initialData, mode }: Props) {
           <select
             className="input-field"
             value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+            onChange={(e) =>
+              setForm({ ...form, status: e.target.value as any })
+            }
           >
             <option value="draft">Draft</option>
             <option value="published">Published</option>
