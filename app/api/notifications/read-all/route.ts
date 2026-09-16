@@ -1,17 +1,19 @@
-// app/api/notifications/read-all/route.ts
 import { NextResponse } from 'next/server';
-import { markAllNotificationsAsRead } from '@/lib/services/notification.service';
-import { requireAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { notifications } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth';
+
+export const runtime = 'nodejs';
 
 export async function POST() {
-  try {
-    const user = await requireAuth();
-    await markAllNotificationsAsRead(user.id);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to mark all as read' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await db
+    .update(notifications)
+    .set({ read: true })
+    .where(eq(notifications.userId, user.id));
+
+  return NextResponse.json({ success: true });
 }
