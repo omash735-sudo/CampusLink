@@ -213,25 +213,47 @@ export const resourceCategories = pgTable('resource_categories', {
 // ==================== RESOURCES ====================
 export const resources = pgTable('resources', {
   id: uuid('id').primaryKey().defaultRandom(),
+  resourceKind: text('resource_kind').default('document').notNull(),
+
   title: text('title').notNull(),
   description: text('description'),
+
+  fileUrl: text('file_url'),
+  fileName: text('file_name'),
+  fileType: text('file_type'),
+  fileSize: integer('file_size'),
+  downloadable: boolean('downloadable').default(true).notNull(),
+  previewable: boolean('previewable').default(true).notNull(),
+
+  youtubeUrl: text('youtube_url'),
+  youtubeVideoId: text('youtube_video_id'),
+  showEmbeddedPlayer: boolean('show_embedded_player').default(true).notNull(),
+  showYoutubeButton: boolean('show_youtube_button').default(true).notNull(),
+
+  body: text('body'),
+  author: text('author'),
+  source: text('source'),
+  publicationDate: timestamp('publication_date'),
+  coverImageUrl: text('cover_image_url'),
+
+  category: text('category'),
   programmeId: uuid('programme_id').references(() => programmes.id),
   courseId: uuid('course_id').references(() => courses.id),
   year: integer('year'),
-  semester: text('semester'),
-  academicYear: text('academic_year'),
-  course: text('course'),
-  uploadedBy: uuid('uploaded_by').references(() => campuslinkUsers.id).notNull(),
-  fileUrl: text('file_url').notNull(),
-  fileName: text('file_name').notNull(),
-  fileType: text('file_type').notNull(),
-  fileSize: integer('file_size').notNull(),
+  subject: text('subject'),
+
+  rightsType: text('rights_type'),
+  rightsConfirmed: boolean('rights_confirmed').default(false).notNull(),
+
+  status: text('status').default('draft').notNull(),
+  featured: boolean('featured').default(false).notNull(),
+  archivedAt: timestamp('archived_at'),
+
+  uploadedBy: uuid('uploaded_by').references(() => campuslinkUsers.id),
+
   downloads: integer('downloads').default(0),
   viewCount: integer('view_count').default(0),
-  status: text('status').default('pending').notNull(),
-  isVerified: boolean('is_verified').default(false),
-  verifiedBy: uuid('verified_by').references(() => campuslinkUsers.id),
-  verifiedAt: timestamp('verified_at'),
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
