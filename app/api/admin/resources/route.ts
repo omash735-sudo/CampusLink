@@ -1,105 +1,104 @@
 // app/api/admin/resources/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { resources } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { requireAdmin } from '@/lib/auth';
+import { resources, campuslinkUsers } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth';
+import { resourceCreateSchema } from '@/lib/validation';
+import { extractYouTubeId } from '@/lib/youtube';
+import { logAudit } from '@/lib/audit';
+
+export const runtime = 'nodejs';
+
+async function requireAdminOrPublications() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  if (user.role !== 'admin' && user.role !== 'publications') return null;
+  return user;
+}
 
 export async function GET() {
-  try {
-    await requireAdmin();
-    const allResources = await db
-      .select()
-      .from(resources)
-      .orderBy(desc(resources.createdAt));
-    return NextResponse.json(allResources);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch resources' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rows = await db.select().from(resources).orderBy(desc(resources.createdAt));
+  return NextResponse.json(rows);
 }
 
 export async function POST(request: Request) {
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    await requireAdmin();
     const body = await request.json();
+    const data = resourceCreateSchema.parse(body);
 
-    const [resource] = await db
-      .insert(resources)
-      .values({
-        ...body,
-        status: 'pending',
-        downloads: 0,
-        viewCount: 0,
-        isVerified: false,
-      })
-      .returning();
+    const base: any = {
+      resourceKind: data.resourceKind,
+      title: data.title,
+      description: data.description || null,
+      category: data.category || null,
+      subject: data.subject || null,
+      programmeId: data.programmeId || null,
+      year: data.year || null,
+      author: data.author || null,
+      source: data.source || null,
+      publicationDate: data.publicationDate ? new Date(data.publicationDate) : null,
+      coverImageUrl: data.coverImageUrl || null,
+      featured: data.featured ?? false,
+      status: data.status || 'draft',
+      uploadedBy: user.id,
+    };
 
-    return NextResponse.json(resource);
+    if (data.resourceKind === 'document') {
+      Object.assign(base, {
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize,
+        downloadable: data.downloadable,
+        previewable: data.previewable,
+        rightsType: data.rightsType,
+        rightsConfirmed: true,
+      });
+    } else if (data.resourceKind === 'video') {
+      const videoId = extractYouTubeId(data.youtubeUrl);
+      if (!videoId) {
+        return NextResponse.json({ error: 'Could not extract YouTube video ID' }, { status: 400 });
+      }
+      Object.assign(base, {
+        youtubeUrl: data.youtubeUrl,
+        youtubeVideoId: videoId,
+        showEmbeddedPlayer: data.showEmbeddedPlayer,
+        showYoutubeButton: data.showYoutubeButton,
+      });
+    } else {
+      Object.assign(base, {
+        body: data.body,
+      });
+    }
+
+    const [row] = await db.insert(resources).values(base).returning();
+
+    await logAudit({
+      adminId: user.id,
+      action: `create_resource_${data.resourceKind}`,
+      entity: 'resource',
+      entityId: row.id,
+      newValue: { title: row.title, status: row.status },
+    });
+
+    return NextResponse.json({ success: true, resource: row });
   } catch (error: any) {
+    if (error?.name === 'ZodError') {
+      return NextResponse.json(
+        { error: error.issues?.[0]?.message || 'Invalid input' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: error.message || 'Failed to create resource' },
       { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: Request) {
-  try {
-    await requireAdmin();
-    const body = await request.json();
-    const { id, ...data } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Resource ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const [updated] = await db
-      .update(resources)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(resources.id, id))
-      .returning();
-
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Resource not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(updated);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to update resource' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    await requireAdmin();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Resource ID is required' },
-        { status: 400 }
-      );
-    }
-
-    await db.delete(resources).where(eq(resources.id, id));
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete resource' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
 }
