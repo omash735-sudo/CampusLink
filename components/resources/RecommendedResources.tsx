@@ -29,10 +29,8 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
       downloads: resources.downloads,
       viewCount: resources.viewCount,
       year: resources.year,
-      semester: resources.semester,
-      academicYear: resources.academicYear,
-      course: resources.course,
-      isVerified: resources.isVerified,
+      subject: resources.subject,
+      category: resources.category,
       createdAt: resources.createdAt,
       programme: {
         id: programmes.id,
@@ -50,7 +48,7 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
     .leftJoin(programmes, eq(resources.programmeId, programmes.id))
     .leftJoin(courses, eq(resources.courseId, courses.id))
     .where(and(
-      eq(resources.status, 'approved'),
+      eq(resources.status, 'published'),
       eq(programmes.name, user.programme)
     ))
     .orderBy(desc(resources.createdAt))
@@ -63,7 +61,6 @@ export async function RecommendedResources({ currentUserId }: { currentUserId: s
     ...resource,
     downloads: resource.downloads ?? 0,
     viewCount: resource.viewCount ?? 0,
-    isVerified: resource.isVerified ?? false,
     courseInfo: resource.courseInfo ? {
       ...resource.courseInfo,
       code: resource.courseInfo.code ?? '',
