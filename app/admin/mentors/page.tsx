@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { mentors, campuslinkUsers, mentorships } from '@/lib/db/schema';
-import { eq, desc, sql, and, count } from 'drizzle-orm';
+import { eq, desc, sql, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,6 @@ export default async function AdminMentorsPage() {
     .where(eq(mentors.status, 'approved'))
     .orderBy(desc(mentors.createdAt));
 
-  // Count active mentees per mentor
   const menteeCounts = await db
     .select({
       mentorId: mentorships.mentorId,
