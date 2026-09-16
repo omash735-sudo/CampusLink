@@ -36,7 +36,7 @@ import {
   campusTimeline,
   campusGallery
 } from '@/lib/db/schema';
-import { eq, desc, asc, and, or, like, sql } from 'drizzle-orm';  // ← removed `count`
+import { eq, desc, asc, and, or, like, sql } from 'drizzle-orm';
 
 // ==================== USERS ====================
 export async function getUsers() {
@@ -265,23 +265,28 @@ export async function getResourceById(id: string) {
 
 export async function createResource(data: any) {
   const [resource] = await db.insert(resources).values({
+    resourceKind: data.resourceKind || 'document',
     title: data.title,
-    description: data.description,
+    description: data.description || null,
     programmeId: data.programmeId || null,
     courseId: data.courseId || null,
     year: data.year || null,
-    semester: data.semester || null,
-    academicYear: data.academicYear || null,
-    course: data.course || null,
+    subject: data.subject || null,
+    category: data.category || null,
+    fileUrl: data.fileUrl || null,
+    fileName: data.fileName || null,
+    fileType: data.fileType || null,
+    fileSize: data.fileSize || null,
+    youtubeUrl: data.youtubeUrl || null,
+    youtubeVideoId: data.youtubeVideoId || null,
+    coverImageUrl: data.coverImageUrl || null,
+    body: data.body || null,
+    author: data.author || null,
+    source: data.source || null,
     uploadedBy: data.uploadedBy,
-    fileUrl: data.fileUrl,
-    fileName: data.fileName,
-    fileType: data.fileType,
-    fileSize: data.fileSize,
-    status: 'pending',
+    status: 'draft',
     downloads: 0,
     viewCount: 0,
-    isVerified: false,
   }).returning();
   return resource;
 }
@@ -289,19 +294,25 @@ export async function createResource(data: any) {
 export async function updateResource(id: string, data: any) {
   const [updated] = await db.update(resources)
     .set({ 
+      resourceKind: data.resourceKind,
       title: data.title,
-      description: data.description,
+      description: data.description || null,
       programmeId: data.programmeId || null,
       courseId: data.courseId || null,
       year: data.year || null,
-      semester: data.semester || null,
-      academicYear: data.academicYear || null,
-      course: data.course || null,
-      fileUrl: data.fileUrl,
-      fileName: data.fileName,
-      fileType: data.fileType,
-      fileSize: data.fileSize,
-      status: data.status || 'pending',
+      subject: data.subject || null,
+      category: data.category || null,
+      fileUrl: data.fileUrl || null,
+      fileName: data.fileName || null,
+      fileType: data.fileType || null,
+      fileSize: data.fileSize || null,
+      youtubeUrl: data.youtubeUrl || null,
+      youtubeVideoId: data.youtubeVideoId || null,
+      coverImageUrl: data.coverImageUrl || null,
+      body: data.body || null,
+      author: data.author || null,
+      source: data.source || null,
+      status: data.status || 'draft',
       updatedAt: new Date() 
     })
     .where(eq(resources.id, id))
@@ -313,9 +324,9 @@ export async function deleteResource(id: string) {
   await db.delete(resources).where(eq(resources.id, id));
 }
 
-export async function approveResource(id: string) {
+export async function publishResource(id: string) {
   const [updated] = await db.update(resources)
-    .set({ status: 'approved', isVerified: true, updatedAt: new Date() })
+    .set({ status: 'published', updatedAt: new Date() })
     .where(eq(resources.id, id))
     .returning();
   return updated;
@@ -331,14 +342,14 @@ export async function rejectResource(id: string) {
 
 export async function getResourceStats() {
   const total = await db.select({ count: sql<number>`count(*)` }).from(resources);
-  const approved = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'approved'));
-  const pending = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'pending'));
+  const published = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'published'));
+  const draft = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'draft'));
   const rejected = await db.select({ count: sql<number>`count(*)` }).from(resources).where(eq(resources.status, 'rejected'));
   
   return {
     total: total[0]?.count || 0,
-    approved: approved[0]?.count || 0,
-    pending: pending[0]?.count || 0,
+    published: published[0]?.count || 0,
+    draft: draft[0]?.count || 0,
     rejected: rejected[0]?.count || 0,
   };
 }
