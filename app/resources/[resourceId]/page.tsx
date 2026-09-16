@@ -1,197 +1,153 @@
 // app/resources/[resourceId]/page.tsx
 import { db } from '@/lib/db';
-import { resources, programmes, courses, savedResources, resourceViews } from '@/lib/db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { resources } from '@/lib/db/schema';
+import { eq, and, ne, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getCurrentUser } from '@/lib/auth';
-import { getFileSize } from '@/lib/utils';
+import { YouTubeEmbed } from '@/components/resources/YouTubeEmbed';
+import { youtubeWatchUrl } from '@/lib/youtube';
+import { incrementResourceView } from '@/lib/services/resource.service';
 
-export default async function ResourceDetailPage({ params }: { params: { resourceId: string } }) {
-  const currentUser = await getCurrentUser();
-  const resourceId = params.resourceId;
+export const dynamic = 'force-dynamic';
 
-  // Get resource
-  const resource = await db
-    .select({
-      id: resources.id,
-      title: resources.title,
-      description: resources.description,
-      fileUrl: resources.fileUrl,
-      fileName: resources.fileName,
-      fileType: resources.fileType,
-      fileSize: resources.fileSize,
-      downloads: resources.downloads,
-      viewCount: resources.viewCount,
-      year: resources.year,
-      semester: resources.semester,
-      academicYear: resources.academicYear,
-      course: resources.course,
-      isVerified: resources.isVerified,
-      createdAt: resources.createdAt,
-      programme: {
-        id: programmes.id,
-        name: programmes.name,
-        slug: programmes.slug,
-      },
-      courseInfo: {
-        id: courses.id,
-        name: courses.name,
-        slug: courses.slug,
-        code: courses.code,
-      },
-    })
+export default async function ResourceDetailPage({
+  params,
+}: {
+  params: { resourceId: string };
+}) {
+  const [resource] = await db
+    .select()
     .from(resources)
-    .leftJoin(programmes, eq(resources.programmeId, programmes.id))
-    .leftJoin(courses, eq(resources.courseId, courses.id))
-    .where(eq(resources.id, resourceId))
-    .then(res => res[0]);
+    .where(and(eq(resources.id, params.resourceId), eq(resources.status, 'published')));
 
-  if (!resource) {
-    notFound();
+  if (!resource) notFound();
+
+  // Best-effort view increment
+  try {
+    await incrementResourceView(resource.id);
+  } catch {
+    // ignore
   }
 
-  // Check if saved
-  let isSaved = false;
-  if (currentUser) {
-    const saved = await db
-      .select()
-      .from(savedResources)
-      .where(and(
-        eq(savedResources.userId, currentUser.id),
-        eq(savedResources.resourceId, resourceId)
-      ))
-      .then(res => res[0]);
-    isSaved = !!saved;
-  }
-
-  // Get related resources
-  const relatedResources = await db
-    .select({
-      id: resources.id,
-      title: resources.title,
-      fileType: resources.fileType,
-      downloads: resources.downloads,
-      viewCount: resources.viewCount,
-      createdAt: resources.createdAt,
-    })
+  const related = await db
+    .select()
     .from(resources)
-    .where(and(
-      eq(resources.status, 'approved'),
-      resource.programme ? eq(resources.programmeId, resource.programme.id) : sql`1=1`,
-      sql`id != ${resourceId}`
-    ))
-    .orderBy(desc(resources.downloads))
+    .where(
+      and(
+        eq(resources.status, 'published'),
+        ne(resources.id, resource.id),
+        resource.category ? eq(resources.category, resource.category) : undefined
+      )
+    )
+    .orderBy(desc(resources.createdAt))
     .limit(4);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <Link href="/resources" className="text-primary-green hover:underline text-sm">
-          ← Back to Resources
+          ← Back to Academic Library
         </Link>
 
-        {/* Resource Header */}
         <div className="bg-white border border-gray-200 p-6 mt-4">
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="text-sm bg-gray-100 px-3 py-1">{resource.fileType.toUpperCase()}</span>
-                {resource.isVerified && (
-                  <span className="text-sm bg-green-100 text-green-700 px-3 py-1">Verified</span>
-                )}
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold">{resource.title}</h1>
-              {resource.courseInfo && (
-                <p className="text-muted-text mt-1">{resource.courseInfo.name}</p>
-              )}
-              {resource.programme && (
-                <p className="text-muted-text">{resource.programme.name}</p>
-              )}
-            </div>
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  window.location.href = '/auth/login';
-                  return;
-                }
-                fetch('/api/resources/save', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ resourceId }),
-                });
-              }}
-              className={`px-4 py-2 border ${
-                isSaved ? 'bg-primary-green text-white border-primary-green' : 'border-gray-300 text-muted-text hover:border-primary-green'
-              } transition-colors`}
-            >
-              {isSaved ? 'Saved' : 'Save Resource'}
-            </button>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs bg-gray-100 px-2 py-0.5">
+              {resource.resourceKind === 'document'
+                ? (resource.fileType || 'DOCUMENT').toUpperCase()
+                : 'VIDEO'}
+            </span>
+            {resource.category && (
+              <span className="text-xs text-muted-text">{resource.category}</span>
+            )}
           </div>
+
+          <h1 className="text-2xl md:text-3xl font-bold">{resource.title}</h1>
 
           {resource.description && (
-            <p className="text-muted-text mt-4">{resource.description}</p>
+            <p className="text-muted-text mt-3">{resource.description}</p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-text">
-            <span>File: {resource.fileType.toUpperCase()}</span>
-            <span>Size: {getFileSize(resource.fileSize)}</span>
-            <span>Downloads: {resource.downloads}</span>
-            <span>Views: {resource.viewCount}</span>
-            {resource.academicYear && <span>Year: {resource.academicYear}</span>}
-            <span>Added: {new Date(resource.createdAt).toLocaleDateString()}</span>
-          </div>
+          {(resource.author || resource.source || resource.publicationDate) && (
+            <div className="mt-4 pt-4 border-t border-gray-100 text-sm text-muted-text space-y-1">
+              {resource.author && <p><strong>Author:</strong> {resource.author}</p>}
+              {resource.source && <p><strong>Source:</strong> {resource.source}</p>}
+              {resource.publicationDate && (
+                <p>
+                  <strong>Publication Date:</strong>{' '}
+                  {new Date(resource.publicationDate).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* File Preview / Download */}
-        <div className="bg-white border border-gray-200 p-6 mt-6">
-          <h2 className="text-lg font-semibold mb-4">Preview</h2>
-          <div className="border border-gray-200 bg-gray-50 p-8 text-center">
-            <p className="text-muted-text">Document preview would appear here</p>
-            <p className="text-sm text-muted-text mt-2">PDF viewer, Word document viewer, etc.</p>
+        {resource.resourceKind === 'video' && resource.youtubeVideoId && (
+          <div className="bg-white border border-gray-200 p-6 mt-6">
+            {resource.showEmbeddedPlayer && (
+              <YouTubeEmbed videoId={resource.youtubeVideoId} title={resource.title} />
+            )}
+            {resource.showYoutubeButton && (
+              <div className="mt-4 text-center">
+                <a
+                  href={youtubeWatchUrl(resource.youtubeVideoId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green/5 inline-block"
+                >
+                  Watch on YouTube
+                </a>
+              </div>
+            )}
           </div>
-          <div className="mt-4 flex gap-4">
-            <a
-              href={resource.fileUrl}
-              download
-              className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
-            >
-              Download
-            </a>
-            <a
-              href={resource.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-primary-green text-primary-green px-6 py-2 font-medium hover:bg-primary-green hover:text-white transition-colors"
-            >
-              Open in New Tab
-            </a>
-          </div>
-        </div>
+        )}
 
-        {/* Related Resources */}
-        {relatedResources.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-4">More Resources</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {relatedResources.map((r) => (
+        {resource.resourceKind === 'document' && resource.fileUrl && (
+          <div className="bg-white border border-gray-200 p-6 mt-6">
+            {resource.fileType === 'application/pdf' && resource.previewable ? (
+              <iframe
+                src={resource.fileUrl}
+                className="w-full h-[600px] border border-gray-200"
+                title={resource.title}
+              />
+            ) : (
+              <div className="border border-gray-200 bg-gray-50 p-8 text-center">
+                <p className="text-muted-text">
+                  Preview unavailable for {resource.fileType || 'this format'}.
+                </p>
+                <p className="text-xs text-muted-text mt-1">
+                  Download the file to view it in a compatible application.
+                </p>
+              </div>
+            )}
+
+            {resource.downloadable && (
+              <div className="mt-4 text-center">
+                <a
+                  href={resource.fileUrl}
+                  download={resource.fileName || undefined}
+                  className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green inline-block"
+                >
+                  Download
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {related.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-4">More in {resource.category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {related.map((r) => (
                 <Link
                   key={r.id}
                   href={`/resources/${r.id}`}
-                  className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
+                  className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors"
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <h3 className="font-medium text-sm line-clamp-1">{r.title}</h3>
-                      <div className="flex gap-3 mt-1 text-xs text-muted-text">
-                        <span>{r.fileType.toUpperCase()}</span>
-                        <span>Downloads: {r.downloads}</span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-muted-text">
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                  <h3 className="font-medium text-sm line-clamp-1">{r.title}</h3>
+                  <p className="text-xs text-muted-text mt-1">
+                    {r.resourceKind === 'video' ? 'Video' : (r.fileType || 'Document').toUpperCase()}
+                  </p>
                 </Link>
               ))}
             </div>
