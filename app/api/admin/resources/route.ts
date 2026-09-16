@@ -1,7 +1,7 @@
 // app/api/admin/resources/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { resources, campuslinkUsers } from '@/lib/db/schema';
+import { resources } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { resourceCreateSchema } from '@/lib/validation';
@@ -21,7 +21,11 @@ export async function GET() {
   const user = await requireAdminOrPublications();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const rows = await db.select().from(resources).orderBy(desc(resources.createdAt));
+  const rows = await db
+    .select()
+    .from(resources)
+    .orderBy(desc(resources.createdAt));
+
   return NextResponse.json(rows);
 }
 
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const data = resourceCreateSchema.parse(body);
+    const data = resourceCreateSchema.parse(body) as any;
 
     const base: any = {
       resourceKind: data.resourceKind,
@@ -43,7 +47,10 @@ export async function POST(request: Request) {
       year: data.year || null,
       author: data.author || null,
       source: data.source || null,
-      publicationDate: data.publicationDate ? new Date(data.publicationDate) : null,
+      publicationDate:
+        data.publicationDate && data.publicationDate !== ''
+          ? new Date(data.publicationDate)
+          : null,
       coverImageUrl: data.coverImageUrl || null,
       featured: data.featured ?? false,
       status: data.status || 'draft',
@@ -64,7 +71,10 @@ export async function POST(request: Request) {
     } else if (data.resourceKind === 'video') {
       const videoId = extractYouTubeId(data.youtubeUrl);
       if (!videoId) {
-        return NextResponse.json({ error: 'Could not extract YouTube video ID' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Could not extract YouTube video ID' },
+          { status: 400 }
+        );
       }
       Object.assign(base, {
         youtubeUrl: data.youtubeUrl,
