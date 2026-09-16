@@ -270,6 +270,8 @@ export const articleResourceSchema = z.object({
   body: z.string().min(50, 'Article body must be at least 50 characters'),
   category: z.string().max(80).optional().nullable(),
   subject: z.string().max(120).optional().nullable(),
+  programmeId: z.string().uuid().optional().nullable().or(z.literal('')),
+  year: z.number().int().min(1).max(8).optional().nullable(),
   author: z.string().max(200).optional().nullable(),
   source: z.string().max(200).optional().nullable(),
   publicationDate: z.string().optional().nullable(),
@@ -311,4 +313,13 @@ export const resourceUpdateSchema = z.object({
   fileName: z.string().optional().nullable(),
   fileType: z.string().optional().nullable(),
   fileSize: z.number().int().optional().nullable(),
+});
+
+// ==================== RESOURCE CATEGORY SCHEMA ====================
+
+export const resourceCategorySchema = z.object({
+  name: z.string().min(2, 'Name is required').max(60),
+  description: z.string().max(200).optional().nullable(),
+  sortOrder: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
 });
