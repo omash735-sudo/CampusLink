@@ -5,6 +5,7 @@ import { campuslinkUsers, mentors } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { sendMentorApplicationReceivedEmail } from '@/lib/services/email.service';
+import { notifyMentorApplicationSubmitted } from '@/lib/services/notification.service';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -67,6 +68,20 @@ export async function POST(request: Request) {
       await sendMentorApplicationReceivedEmail(user.email, user.fullName);
     } catch (e) {
       console.error('Mentor application email failed:', e);
+    }
+
+    // Notify all admins
+    try {
+      const admins = await db
+        .select()
+        .from(campuslinkUsers)
+        .where(eq(campuslinkUsers.role, 'admin'));
+
+      for (const admin of admins) {
+        await notifyMentorApplicationSubmitted(admin.id, user.id, user.fullName);
+      }
+    } catch (e) {
+      console.error('Admin notification failed:', e);
     }
 
     return NextResponse.json({ success: true, mentor });
