@@ -1,44 +1,36 @@
-// app/api/notifications/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { markNotificationAsRead, deleteNotification } from '@/lib/services/notification.service';
-import { requireAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { notifications } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth';
+
+export const runtime = 'nodejs';
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const user = await requireAuth();
-    const notification = await markNotificationAsRead(params.id, user.id);
-    
-    if (!notification) {
-      return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
-      );
-    }
-    
-    return NextResponse.json({ notification });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to mark notification as read' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await db
+    .update(notifications)
+    .set({ read: true })
+    .where(and(eq(notifications.id, params.id), eq(notifications.userId, user.id)));
+
+  return NextResponse.json({ success: true });
 }
 
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const user = await requireAuth();
-    await deleteNotification(params.id, user.id);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete notification' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await db
+    .delete(notifications)
+    .where(and(eq(notifications.id, params.id), eq(notifications.userId, user.id)));
+
+  return NextResponse.json({ success: true });
 }
