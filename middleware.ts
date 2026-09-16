@@ -43,6 +43,7 @@ const publicRoutes = [
   '/student-union',
   '/student-spotlight',
   '/clubs',
+  '/publications',
 ];
 
 const authRoutes = [
@@ -56,11 +57,17 @@ const authRoutes = [
 const openAdminRoutes = ['/admin/setup'];
 const openSuperAccessRoutes = ['/super-access'];
 
-// TEMPORARY bypass — Legal admin only, for content review.
-const TEMP_BYPASS_ENABLED = false;
-const TEMP_BYPASS_ROUTES = ['/admin/legal'];
+// TEMPORARY bypass — set TEMP_ADMIN_BYPASS to true to unlock the listed routes
+// without logging in. Flip to false and redeploy once you're done uploading.
+const TEMP_ADMIN_BYPASS = true;
+const TEMP_ADMIN_BYPASS_ROUTES = [
+  '/admin/resources',
+  '/admin/spotlights',
+  '/admin/clubs',
+  '/admin/student-union',
+  '/admin/legal',
+];
 
-// Routes Publications Officers may access under /admin
 const publicationsAllowedRoutes = [
   '/admin',
   '/admin/announcements',
@@ -68,6 +75,7 @@ const publicationsAllowedRoutes = [
   '/admin/student-union',
   '/admin/spotlights',
   '/admin/clubs',
+  '/admin/resources',
 ];
 
 const adminRoutes = ['/admin'];
@@ -83,9 +91,7 @@ const studentRoutes = [
 ];
 
 function matches(pathname: string, routes: string[]) {
-  return routes.some(
-    (r) => pathname === r || pathname.startsWith(r + '/')
-  );
+  return routes.some((r) => pathname === r || pathname.startsWith(r + '/'));
 }
 
 export function middleware(request: NextRequest) {
@@ -96,7 +102,7 @@ export function middleware(request: NextRequest) {
   if (matches(pathname, openSuperAccessRoutes)) return NextResponse.next();
   if (matches(pathname, openAdminRoutes)) return NextResponse.next();
 
-  if (TEMP_BYPASS_ENABLED && matches(pathname, TEMP_BYPASS_ROUTES)) {
+  if (TEMP_ADMIN_BYPASS && matches(pathname, TEMP_ADMIN_BYPASS_ROUTES)) {
     return NextResponse.next();
   }
 
