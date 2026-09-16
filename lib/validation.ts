@@ -63,18 +63,6 @@ export const eventSchema = z.object({
   status: z.enum(['draft', 'published']).default('draft'),
 });
 
-export const resourceSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().optional(),
-  programmeId: z.string().optional(),
-  year: z.number().optional(),
-  course: z.string().optional(),
-  fileUrl: z.string().url(),
-  fileName: z.string(),
-  fileType: z.string(),
-  fileSize: z.number(),
-});
-
 export const mentorSchema = z.object({
   expertise: z.array(z.string()).optional().default([]),
   subjects: z.array(z.string()).optional().default([]),
@@ -208,4 +196,119 @@ export const clubSchema = z.object({
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   sortOrder: z.number().int().min(0).default(0),
+});
+
+// ==================== RESOURCE LIBRARY SCHEMAS ====================
+
+const RESOURCE_KINDS = ['document', 'video', 'article', 'publication'] as const;
+const RESOURCE_STATUSES = ['draft', 'published', 'archived'] as const;
+
+const RIGHTS_TYPES = [
+  'campuslink_original',
+  'own_material',
+  'public_domain',
+  'licensed_redistribution',
+  'permission_obtained',
+  'other',
+] as const;
+
+export const resourceKindSchema = z.enum(RESOURCE_KINDS);
+export const resourceStatusSchema = z.enum(RESOURCE_STATUSES);
+export const rightsTypeSchema = z.enum(RIGHTS_TYPES);
+
+export const documentResourceSchema = z.object({
+  resourceKind: z.literal('document'),
+  title: z.string().min(3, 'Title is required').max(200),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.string().max(80).optional().nullable(),
+  subject: z.string().max(120).optional().nullable(),
+  programmeId: z.string().uuid().optional().nullable().or(z.literal('')),
+  year: z.number().int().min(1).max(8).optional().nullable(),
+  author: z.string().max(200).optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
+  publicationDate: z.string().optional().nullable(),
+  coverImageUrl: z.string().url().optional().nullable().or(z.literal('')),
+  downloadable: z.boolean().default(true),
+  previewable: z.boolean().default(true),
+  featured: z.boolean().default(false),
+  status: resourceStatusSchema.default('draft'),
+  rightsType: rightsTypeSchema,
+  rightsConfirmed: z.literal(true, {
+    errorMap: () => ({
+      message: 'You must confirm you have rights to distribute this material',
+    }),
+  }),
+  fileUrl: z.string().min(1, 'File is required'),
+  fileName: z.string().min(1),
+  fileType: z.string().min(1),
+  fileSize: z.number().int().min(1),
+});
+
+export const videoResourceSchema = z.object({
+  resourceKind: z.literal('video'),
+  title: z.string().min(3, 'Title is required').max(200),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.string().max(80).optional().nullable(),
+  subject: z.string().max(120).optional().nullable(),
+  programmeId: z.string().uuid().optional().nullable().or(z.literal('')),
+  year: z.number().int().min(1).max(8).optional().nullable(),
+  author: z.string().max(200).optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
+  publicationDate: z.string().optional().nullable(),
+  coverImageUrl: z.string().url().optional().nullable().or(z.literal('')),
+  showEmbeddedPlayer: z.boolean().default(true),
+  showYoutubeButton: z.boolean().default(true),
+  featured: z.boolean().default(false),
+  status: resourceStatusSchema.default('draft'),
+  youtubeUrl: z.string().url('Enter a valid YouTube URL'),
+});
+
+export const articleResourceSchema = z.object({
+  resourceKind: z.enum(['article', 'publication']),
+  title: z.string().min(3, 'Title is required').max(200),
+  description: z.string().max(500).optional().nullable(),
+  body: z.string().min(50, 'Article body must be at least 50 characters'),
+  category: z.string().max(80).optional().nullable(),
+  subject: z.string().max(120).optional().nullable(),
+  author: z.string().max(200).optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
+  publicationDate: z.string().optional().nullable(),
+  coverImageUrl: z.string().url().optional().nullable().or(z.literal('')),
+  featured: z.boolean().default(false),
+  status: resourceStatusSchema.default('draft'),
+});
+
+export const resourceCreateSchema = z.discriminatedUnion('resourceKind', [
+  documentResourceSchema,
+  videoResourceSchema,
+  articleResourceSchema,
+]);
+
+export const resourceUpdateSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(3).max(200).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.string().max(80).optional().nullable(),
+  subject: z.string().max(120).optional().nullable(),
+  programmeId: z.string().uuid().optional().nullable().or(z.literal('')),
+  year: z.number().int().min(1).max(8).optional().nullable(),
+  author: z.string().max(200).optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
+  publicationDate: z.string().optional().nullable(),
+  coverImageUrl: z.string().url().optional().nullable().or(z.literal('')),
+  body: z.string().optional().nullable(),
+  youtubeUrl: z.string().url().optional().nullable().or(z.literal('')),
+  youtubeVideoId: z.string().optional().nullable(),
+  showEmbeddedPlayer: z.boolean().optional(),
+  showYoutubeButton: z.boolean().optional(),
+  downloadable: z.boolean().optional(),
+  previewable: z.boolean().optional(),
+  featured: z.boolean().optional(),
+  status: resourceStatusSchema.optional(),
+  rightsType: rightsTypeSchema.optional().nullable(),
+  rightsConfirmed: z.boolean().optional(),
+  fileUrl: z.string().optional().nullable(),
+  fileName: z.string().optional().nullable(),
+  fileType: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
 });
