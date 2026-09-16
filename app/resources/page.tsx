@@ -1,16 +1,12 @@
 // app/resources/page.tsx
 import { db } from '@/lib/db';
-import { resources, programmes } from '@/lib/db/schema';
+import { resources } from '@/lib/db/schema';
 import { eq, and, desc, asc, ilike, or } from 'drizzle-orm';
 import Link from 'next/link';
 import { ResourceCard } from '@/components/resources/ResourceCard';
+import { getActiveResourceCategories } from '@/lib/resource-categories';
 
 export const dynamic = 'force-dynamic';
-
-const CATEGORIES = [
-  'Psychology','Social Work','Youth Development','Sociology','Research',
-  'Academic Writing','Study Skills','General',
-];
 
 export default async function ResourcesPage({
   searchParams,
@@ -20,6 +16,8 @@ export default async function ResourcesPage({
   const q = searchParams.q?.trim() || '';
   const kindFilter = searchParams.kind || 'all';
   const categoryFilter = searchParams.category || '';
+
+  const categories = await getActiveResourceCategories();
 
   const conditions: any[] = [
     eq(resources.status, 'published'),
@@ -96,10 +94,16 @@ export default async function ResourcesPage({
           </div>
           <div>
             <label className="label-text">Category</label>
-            <select name="category" defaultValue={categoryFilter} className="input-field">
+            <select
+              name="category"
+              defaultValue={categoryFilter}
+              className="input-field"
+            >
               <option value="">All Categories</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
@@ -131,9 +135,7 @@ export default async function ResourcesPage({
           </h2>
           {list.length === 0 ? (
             <div className="border border-gray-200 bg-white p-8 text-center">
-              <p className="text-muted-text">
-                No resources match your filters.
-              </p>
+              <p className="text-muted-text">No resources match your filters.</p>
               <Link
                 href="/resources"
                 className="text-primary-green hover:underline text-sm mt-2 inline-block"
