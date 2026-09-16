@@ -1,4 +1,5 @@
 // app/student/dashboard/page.tsx
+import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { announcements, events, resources, campuslinkUsers, programmes } from '@/lib/db/schema';
 import { eq, desc, asc, and } from 'drizzle-orm';
@@ -10,23 +11,12 @@ import {
   AcademicIcon,
   BookOpenIcon,
   MapPinIcon,
-  CalendarIcon,
 } from '@/components/icons';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StudentDashboard() {
-  // TEMP: fake user for visual testing. Auth is disabled in middleware.
-  const user = {
-    id: 'test-student-id',
-    email: 'student@test.com',
-    fullName: 'Test Student',
-    username: 'teststudent',
-    role: 'student',
-    programme: 'BSc Agricultural Economics',
-    year: 1,
-    avatar: null as string | null,
-    isMentor: false,
-    mentorStatus: 'not_applied',
-  };
+  const user = await requireAuth();
 
   // Get announcements
   const recentAnnouncements = await db
@@ -62,7 +52,7 @@ export default async function StudentDashboard() {
         .from(resources)
         .where(
           and(
-            eq(resources.status, 'approved'),
+            eq(resources.status, 'published'),
             eq(resources.programmeId, programmeId)
           )
         )
@@ -261,7 +251,7 @@ export default async function StudentDashboard() {
                         className="block hover:text-primary-green transition-colors"
                       >
                         <p className="font-medium text-sm">{resource.title}</p>
-                        <p className="text-xs text-muted-text">{resource.course}</p>
+                        <p className="text-xs text-muted-text">{resource.subject}</p>
                       </Link>
                     ))}
                   </div>
