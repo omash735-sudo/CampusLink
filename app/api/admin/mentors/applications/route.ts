@@ -9,6 +9,10 @@ import {
   sendMentorApprovalEmail,
   sendMentorRejectionEmail,
 } from '@/lib/services/email.service';
+import {
+  notifyMentorApplicationApproved,
+  notifyMentorApplicationRejected,
+} from '@/lib/services/notification.service';
 
 export const runtime = 'nodejs';
 
@@ -68,6 +72,12 @@ export async function PUT(request: Request) {
         console.error('Approval email failed:', e);
       }
 
+      try {
+        await notifyMentorApplicationApproved(userId, user.fullName);
+      } catch (e) {
+        console.error('Approval notification failed:', e);
+      }
+
       await logAudit({
         adminId: admin.id,
         action: 'mentor_application_approved',
@@ -94,6 +104,12 @@ export async function PUT(request: Request) {
         await sendMentorRejectionEmail(user.email, user.fullName, reason);
       } catch (e) {
         console.error('Rejection email failed:', e);
+      }
+
+      try {
+        await notifyMentorApplicationRejected(userId, reason);
+      } catch (e) {
+        console.error('Rejection notification failed:', e);
       }
 
       await logAudit({
