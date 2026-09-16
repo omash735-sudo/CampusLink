@@ -206,7 +206,8 @@ export const resourceCategories = pgTable('resource_categories', {
   name: text('name').unique().notNull(),
   slug: text('slug').unique().notNull(),
   description: text('description'),
-  icon: text('icon'),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
