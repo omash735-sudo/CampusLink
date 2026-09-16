@@ -11,7 +11,25 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const ALLOWED_TYPES = ['student-union', 'spotlights', 'clubs', 'general'];
+const IMAGE_TYPES = [
+  'student-union',
+  'spotlights',
+  'clubs',
+  'announcements',
+  'events',
+  'resource-covers',
+  'general',
+];
+
+const DOCUMENT_TYPES = ['resources'];
+
+const ALLOWED_DOC_MIMES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+];
+
+const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export async function POST(request: Request) {
   try {
@@ -25,30 +43,42 @@ export async function POST(request: Request) {
       !process.env.CLOUDINARY_API_KEY ||
       !process.env.CLOUDINARY_API_SECRET
     ) {
-      return NextResponse.json(
-        { error: 'Cloudinary is not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Cloudinary is not configured' }, { status: 500 });
     }
 
     const formData = await request.formData();
     const file = formData.get('file');
     const rawType = (formData.get('type') as string) || 'general';
-    const type = ALLOWED_TYPES.includes(rawType) ? rawType : 'general';
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
+    const isDocumentUpload = DOCUMENT_TYPES.includes(rawType);
+    const isImageUpload = IMAGE_TYPES.includes(rawType);
+
+    if (!isDocumentUpload && !isImageUpload) {
+      return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Image must be smaller than 5MB' },
-        { status: 400 }
-      );
+    // Validate MIME
+    if (isDocumentUpload) {
+      if (!ALLOWED_DOC_MIMES.includes(file.type)) {
+        return NextResponse.json(
+          { error: 'Only PDF, PPTX, and DOCX files are allowed' },
+          { status: 400 }
+        );
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        return NextResponse.json({ error: 'File must be smaller than 20MB' }, { status: 400 });
+      }
+    } else {
+      if (!ALLOWED_IMAGE_MIMES.includes(file.type)) {
+        return NextResponse.json({ error: 'Only JPG, PNG, and WebP images are allowed' }, { status: 400 });
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: 'Image must be smaller than 5MB' }, { status: 400 });
+      }
     }
 
     const arrayBuffer = await file.arrayBuffer();
@@ -57,8 +87,10 @@ export async function POST(request: Request) {
     const result = await new Promise<any>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: `campuslink/${type}`,
-          resource_type: 'image',
+          folder: `campuslink/${rawType}`,
+          resource_type: isDocumentUpload ? 'raw' : 'image',
+          use_filename: true,
+          unique_filename: true,
         },
         (error, result) => {
           if (error) reject(error);
@@ -72,7 +104,9 @@ export async function POST(request: Request) {
       success: true,
       url: result.secure_url,
       publicId: result.public_id,
-      filename: result.public_id,
+      filename: file.name,
+      mimetype: file.type,
+      size: file.size,
     });
   } catch (error: any) {
     console.error('Upload error:', error);
