@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { resources } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { ResourceForm } from '@/components/admin/ResourceForm';
+import { getActiveResourceCategories } from '@/lib/resource-categories';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,13 @@ export default async function EditResourcePage({
 }: {
   params: { id: string };
 }) {
-  const [row] = await db.select().from(resources).where(eq(resources.id, params.id));
+  const [row] = await db
+    .select()
+    .from(resources)
+    .where(eq(resources.id, params.id));
   if (!row) notFound();
+
+  const cats = await getActiveResourceCategories();
 
   return (
     <div className="space-y-6">
@@ -23,6 +29,7 @@ export default async function EditResourcePage({
       </div>
       <ResourceForm
         mode="edit"
+        categories={cats.map((c) => c.name)}
         initialData={{
           id: row.id,
           resourceKind: row.resourceKind as any,
