@@ -1,7 +1,7 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { getCurrentUser } from '@/lib/auth';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +18,7 @@ const IMAGE_TYPES = [
   'announcements',
   'events',
   'resource-covers',
+  'campus',            // ← added
   'general',
 ];
 
@@ -25,25 +26,28 @@ const DOCUMENT_TYPES = ['resources'];
 
 const ALLOWED_DOC_MIMES = [
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export async function POST(request: Request) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || (user.role !== 'admin' && user.role !== 'publications')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await requireAdminOrPublications();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
       !process.env.CLOUDINARY_API_SECRET
     ) {
-      return NextResponse.json({ error: 'Cloudinary is not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Cloudinary is not configured' },
+        { status: 500 }
+      );
     }
 
     const formData = await request.formData();
@@ -61,7 +65,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
     }
 
-    // Validate MIME
     if (isDocumentUpload) {
       if (!ALLOWED_DOC_MIMES.includes(file.type)) {
         return NextResponse.json(
@@ -70,14 +73,23 @@ export async function POST(request: Request) {
         );
       }
       if (file.size > 20 * 1024 * 1024) {
-        return NextResponse.json({ error: 'File must be smaller than 20MB' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'File must be smaller than 20MB' },
+          { status: 400 }
+        );
       }
     } else {
       if (!ALLOWED_IMAGE_MIMES.includes(file.type)) {
-        return NextResponse.json({ error: 'Only JPG, PNG, and WebP images are allowed' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Only JPG, PNG, and WebP images are allowed' },
+          { status: 400 }
+        );
       }
       if (file.size > 5 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Image must be smaller than 5MB' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Image must be smaller than 5MB' },
+          { status: 400 }
+        );
       }
     }
 
