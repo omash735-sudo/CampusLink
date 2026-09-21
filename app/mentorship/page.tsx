@@ -214,12 +214,9 @@ export default async function MentorshipPage() {
                       )}
 
                       {canMessage && (
-                        <Link
-                          href={`/messages/${m.mentorUsername || ''}`}
-                          className="text-sm text-primary-green hover:underline"
-                        >
-                          Message on CampusLink
-                        </Link>
+                        <span className="text-xs text-muted-text italic">
+                          CampusLink Messages coming soon
+                        </span>
                       )}
 
                       {noPreference && (
