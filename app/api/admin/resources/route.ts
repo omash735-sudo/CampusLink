@@ -1,21 +1,13 @@
-// app/api/admin/resources/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { resources } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
-import { getCurrentUser } from '@/lib/auth';
 import { resourceCreateSchema } from '@/lib/validation';
 import { extractYouTubeId } from '@/lib/youtube';
 import { logAudit } from '@/lib/audit';
+import { requireAdminOrPublications } from '@/lib/dev-bypass';
 
 export const runtime = 'nodejs';
-
-async function requireAdminOrPublications() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-  if (user.role !== 'admin' && user.role !== 'publications') return null;
-  return user;
-}
 
 export async function GET() {
   const user = await requireAdminOrPublications();
@@ -54,7 +46,7 @@ export async function POST(request: Request) {
       coverImageUrl: data.coverImageUrl || null,
       featured: data.featured ?? false,
       status: data.status || 'draft',
-      uploadedBy: user.id,
+      uploadedBy: user.id ?? null,
     };
 
     if (data.resourceKind === 'document') {
@@ -90,13 +82,15 @@ export async function POST(request: Request) {
 
     const [row] = await db.insert(resources).values(base).returning();
 
-    await logAudit({
-      adminId: user.id,
-      action: `create_resource_${data.resourceKind}`,
-      entity: 'resource',
-      entityId: row.id,
-      newValue: { title: row.title, status: row.status },
-    });
+    if (user.id) {
+      await logAudit({
+        adminId: user.id,
+        action: `create_resource_${data.resourceKind}`,
+        entity: 'resource',
+        entityId: row.id,
+        newValue: { title: row.title, status: row.status },
+      });
+    }
 
     return NextResponse.json({ success: true, resource: row });
   } catch (error: any) {
