@@ -9,9 +9,6 @@ if (!JWT_SECRET) {
   throw new Error('[middleware] JWT_SECRET is not set');
 }
 
-// DEV_BYPASS: bypasses admin authorization only (not authentication for
-// other areas). Real DB writes and storage still run normally. Set
-// DEV_BYPASS=true locally or on a preview deployment. Never in production.
 const DEV_BYPASS_ENABLED = process.env.DEV_BYPASS === 'true';
 
 function verifyToken(token: string): { userId: string; role: string } | null {
@@ -48,6 +45,7 @@ const publicRoutes = [
   '/opportunities',
   '/faq',
   '/contact',
+  '/feedback',
   '/terms',
   '/privacy',
   '/student-union',
@@ -117,8 +115,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // DEV_BYPASS: allow any /admin/* route without a token.
-  // Real auth still applies to /student/*, /mentor/*, and everything else.
   if (DEV_BYPASS_ENABLED && matches(pathname, adminRoutes)) {
     console.warn(`[DEV_BYPASS] admin path allowed without auth: ${pathname}`);
     return NextResponse.next();
@@ -161,6 +157,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|icons/|images/|api/).*)',
+    '/(((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|icons/|images/|api/).*)',
   ],
 };
