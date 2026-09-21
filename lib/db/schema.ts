@@ -480,6 +480,22 @@ export const feedback = pgTable('feedback', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ==================== PASSWORD RESET OTPS ====================
+export const passwordResetOtps = pgTable('password_reset_otps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => campuslinkUsers.id, { onDelete: 'cascade' }).notNull(),
+  email: text('email').notNull(),
+  otpHash: text('otp_hash').notNull(),
+  attempts: integer('attempts').default(0).notNull(),
+  maxAttempts: integer('max_attempts').default(5).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  verifiedAt: timestamp('verified_at'),
+  resetTokenHash: text('reset_token_hash'),
+  resetTokenExpiresAt: timestamp('reset_token_expires_at'),
+  consumedAt: timestamp('consumed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ==================== AUDIT LOGS ====================
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -664,6 +680,7 @@ export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) =>
   resourceReports: many(resourceReports),
   auditLogs: many(auditLogs),
   feedback: many(feedback),
+  passwordResetOtps: many(passwordResetOtps),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -952,6 +969,13 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
 export const feedbackRelations = relations(feedback, ({ one }) => ({
   user: one(campuslinkUsers, {
     fields: [feedback.userId],
+    references: [campuslinkUsers.id],
+  }),
+}));
+
+export const passwordResetOtpsRelations = relations(passwordResetOtps, ({ one }) => ({
+  user: one(campuslinkUsers, {
+    fields: [passwordResetOtps.userId],
     references: [campuslinkUsers.id],
   }),
 }));
