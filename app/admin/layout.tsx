@@ -1,5 +1,6 @@
 // app/admin/layout.tsx
 import { requireAdminOrPublications } from '@/lib/dev-auth';
+import { redirect } from 'next/navigation';
 import { AdminLayoutShell } from './AdminLayoutShell';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +12,18 @@ export default async function AdminLayout({
 }) {
   const user = await requireAdminOrPublications();
 
-  // requireAdminOrPublications returns null if not authorized and bypass is off.
-  // In that case, fall through with role='student' and let the shell's own
-  // redirect handle it — OR redirect here. Either works.
-  const role = user?.role || 'student';
+  if (!user) {
+    redirect('/auth/login');
+  }
 
-  return <AdminLayoutShell role={role}>{children}</AdminLayoutShell>;
+  return (
+    <AdminLayoutShell
+      role={user.role}
+      fullName={(user.fullName as string) || 'Admin'}
+      email={(user.email as string) || ''}
+      avatar={(user.avatar as string | null) ?? null}
+    >
+      {children}
+    </AdminLayoutShell>
+  );
 }
