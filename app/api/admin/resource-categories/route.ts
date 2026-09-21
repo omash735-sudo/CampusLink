@@ -4,7 +4,7 @@ import { resourceCategories } from '@/lib/db/schema';
 import { asc } from 'drizzle-orm';
 import { resourceCategorySchema } from '@/lib/validation';
 import { slugifyCategory } from '@/lib/resource-categories';
-import { requireAdminOrPublications } from '@/lib/dev-bypass';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
 
 export const runtime = 'nodejs';
 
