@@ -3,37 +3,28 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { events } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { requireAdminOrPublications } from '@/lib/auth';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
-  try {
-    await requireAdminOrPublications();
-    const allEvents = await db
-      .select()
-      .from(events)
-      .orderBy(desc(events.createdAt));
-    return NextResponse.json(allEvents);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch events' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const allEvents = await db.select().from(events).orderBy(desc(events.createdAt));
+  return NextResponse.json(allEvents);
 }
 
 export async function POST(request: Request) {
-  try {
-    await requireAdminOrPublications();
-    const body = await request.json();
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
+    const body = await request.json();
     const [event] = await db
       .insert(events)
-      .values({
-        ...body,
-        status: 'draft',
-      })
+      .values({ ...body, status: 'draft' })
       .returning();
-
     return NextResponse.json(event);
   } catch (error: any) {
     return NextResponse.json(
@@ -44,17 +35,13 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    await requireAdminOrPublications();
     const body = await request.json();
     const { id, ...data } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Event ID is required' },
-        { status: 400 }
-      );
-    }
+    if (!id) return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
 
     const [updated] = await db
       .update(events)
@@ -62,41 +49,24 @@ export async function PUT(request: Request) {
       .where(eq(events.id, id))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      );
-    }
-
+    if (!updated) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to update event' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: Request) {
-  try {
-    await requireAdminOrPublications();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Event ID is required' },
-        { status: 400 }
-      );
-    }
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
 
-    await db.delete(events).where(eq(events.id, id));
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete event' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  await db.delete(events).where(eq(events.id, id));
+  return NextResponse.json({ success: true });
 }
