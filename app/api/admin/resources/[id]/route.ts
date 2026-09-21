@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { resourceUpdateSchema } from '@/lib/validation';
 import { extractYouTubeId } from '@/lib/youtube';
 import { logAudit } from '@/lib/audit';
-import { requireAdminOrPublications } from '@/lib/dev-bypass';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
 
 export const runtime = 'nodejs';
 
@@ -74,7 +74,7 @@ export async function PUT(
     if (user.id) {
       await logAudit({
         adminId: user.id,
-        action: 'update_resource',
+        action: user.isBypass ? '[DEV_BYPASS] update_resource' : 'update_resource',
         entity: 'resource',
         entityId: params.id,
         previousValue: { status: existing.status, title: existing.title },
@@ -109,7 +109,7 @@ export async function DELETE(
   if (user.id) {
     await logAudit({
       adminId: user.id,
-      action: 'delete_resource',
+      action: user.isBypass ? '[DEV_BYPASS] delete_resource' : 'delete_resource',
       entity: 'resource',
       entityId: params.id,
     });
