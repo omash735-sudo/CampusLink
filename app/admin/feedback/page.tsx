@@ -37,7 +37,7 @@ export default async function AdminFeedbackPage({
   if (categoryFilter !== 'all') conditions.push(eq(feedback.category, categoryFilter));
   if (q) conditions.push(ilike(feedback.content, `%${q}%`));
 
-  const rows = await db
+  const rawRows = await db
     .select({
       id: feedback.id,
       content: feedback.content,
@@ -54,6 +54,13 @@ export default async function AdminFeedbackPage({
     .leftJoin(campuslinkUsers, eq(feedback.userId, campuslinkUsers.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(feedback.createdAt));
+
+  // Coalesce nullable DB columns to concrete types for the client component
+  const rows = rawRows.map((r) => ({
+    ...r,
+    category: r.category ?? 'general',
+    status: r.status ?? 'new',
+  }));
 
   const buildHref = (overrides: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
