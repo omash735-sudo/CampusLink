@@ -9,6 +9,11 @@ if (!JWT_SECRET) {
   throw new Error('[middleware] JWT_SECRET is not set');
 }
 
+// DEV_BYPASS: bypasses admin authorization only (not authentication for
+// other areas). Real DB writes and storage still run normally. Set
+// DEV_BYPASS=true locally or on a preview deployment. Never in production.
+const DEV_BYPASS_ENABLED = process.env.DEV_BYPASS === 'true';
+
 function verifyToken(token: string): { userId: string; role: string } | null {
   try {
     return jwt.verify(token, JWT_SECRET!) as { userId: string; role: string };
@@ -57,17 +62,6 @@ const authRoutes = [
 const openAdminRoutes = ['/admin/setup'];
 const openSuperAccessRoutes = ['/super-access'];
 
-// TEMPORARY bypass — set TEMP_ADMIN_BYPASS to true to unlock the listed routes
-// without logging in. Flip to false and redeploy once you're done uploading.
-const TEMP_ADMIN_BYPASS = true;
-const TEMP_ADMIN_BYPASS_ROUTES = [
-  '/admin/resources',
-  '/admin/spotlights',
-  '/admin/clubs',
-  '/admin/student-union',
-  '/admin/legal',
-];
-
 const publicationsAllowedRoutes = [
   '/admin',
   '/admin/announcements',
@@ -101,11 +95,6 @@ export function middleware(request: NextRequest) {
 
   if (matches(pathname, openSuperAccessRoutes)) return NextResponse.next();
   if (matches(pathname, openAdminRoutes)) return NextResponse.next();
-
-  if (TEMP_ADMIN_BYPASS && matches(pathname, TEMP_ADMIN_BYPASS_ROUTES)) {
-    return NextResponse.next();
-  }
-
   if (matches(pathname, publicRoutes)) return NextResponse.next();
 
   if (matches(pathname, authRoutes)) {
@@ -119,6 +108,13 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(target, request.url));
       }
     }
+    return NextResponse.next();
+  }
+
+  // DEV_BYPASS: allow any /admin/* route without a token.
+  // Real auth still applies to /student/*, /mentor/*, and everything else.
+  if (DEV_BYPASS_ENABLED && matches(pathname, adminRoutes)) {
+    console.warn(`[DEV_BYPASS] admin path allowed without auth: ${pathname}`);
     return NextResponse.next();
   }
 
