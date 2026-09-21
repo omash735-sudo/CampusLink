@@ -323,3 +323,33 @@ export const resourceCategorySchema = z.object({
   sortOrder: z.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
 });
+
+// ==================== PASSWORD RESET SCHEMAS ====================
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Enter a valid email address'),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email(),
+  otp: z
+    .string()
+    .length(6, 'OTP must be 6 digits')
+    .regex(/^[0-9]+$/, 'OTP must be numeric'),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Reset token is required'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+      .regex(/[a-z]/, 'Password must contain a lowercase letter')
+      .regex(/[0-9]/, 'Password must contain a number'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
