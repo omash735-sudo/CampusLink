@@ -5,7 +5,7 @@ import { desc } from 'drizzle-orm';
 import { resourceCreateSchema } from '@/lib/validation';
 import { extractYouTubeId } from '@/lib/youtube';
 import { logAudit } from '@/lib/audit';
-import { requireAdminOrPublications } from '@/lib/dev-bypass';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
 
 export const runtime = 'nodejs';
 
@@ -85,7 +85,9 @@ export async function POST(request: Request) {
     if (user.id) {
       await logAudit({
         adminId: user.id,
-        action: `create_resource_${data.resourceKind}`,
+        action: user.isBypass
+          ? `[DEV_BYPASS] create_resource_${data.resourceKind}`
+          : `create_resource_${data.resourceKind}`,
         entity: 'resource',
         entityId: row.id,
         newValue: { title: row.title, status: row.status },
