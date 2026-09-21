@@ -1,98 +1,161 @@
-// app/mentor/profile/page.tsx
-import Link from 'next/link';
-import { requireMentor } from '@/lib/auth';
+// app/profile/page.tsx
+import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { mentors } from '@/lib/db/schema';
+import { userCommunities, groups } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { ContactPreferencesForm } from './ContactPreferencesForm';
+import Link from 'next/link';
+import Image from 'next/image';
+import { SettingsIcon } from '@/components/icons';
 
 export const dynamic = 'force-dynamic';
 
-export default async function MentorProfilePage() {
-  const user = await requireMentor();
+export default async function ProfilePage() {
+  const user = await requireAuth();
 
-  const [mentor] = await db
-    .select()
-    .from(mentors)
-    .where(eq(mentors.userId, user.id))
-    .limit(1);
+  const userCommunitiesData = await db
+    .select({
+      groupId: userCommunities.communityId,
+      name: groups.name,
+      slug: groups.slug,
+    })
+    .from(userCommunities)
+    .leftJoin(groups, eq(userCommunities.communityId, groups.id))
+    .where(eq(userCommunities.userId, user.id))
+    .limit(10);
 
-  if (!mentor) {
-    return (
-      <div className="min-h-screen bg-off-white py-8">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <div className="bg-white border border-gray-200 p-8 text-center">
-            <h1 className="text-2xl font-bold mb-2">No Mentor Profile</h1>
-            <p className="text-muted-text">
-              We couldn&apos;t find a mentor profile for your account.
-            </p>
-            <Link
-              href="/mentor"
-              className="text-primary-green hover:underline text-sm mt-4 inline-block"
-            >
-              ← Back to Mentor Dashboard
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const interests: string[] = user.interests ?? [];
+  const communities = userCommunitiesData.filter(
+    (c): c is { groupId: string; name: string; slug: string } =>
+      !!c.name && !!c.slug
+  );
 
   return (
     <div className="min-h-screen bg-off-white py-8">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <div className="mb-6">
-          <Link
-            href="/mentor"
-            className="text-primary-green hover:underline text-sm"
-          >
-            ← Back to Mentor Dashboard
-          </Link>
-          <h1 className="text-3xl font-bold mt-2">Mentor Profile</h1>
-          <p className="text-muted-text mt-1">
-            Manage how mentees reach you and what information appears on your
-            public mentor card.
-          </p>
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Profile</h1>
+          <div className="flex gap-3">
+            <Link
+              href="/profile/edit"
+              className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
+            >
+              Edit Profile
+            </Link>
+            <Link
+              href="/settings"
+              className="border border-gray-200 bg-white px-4 py-2 text-sm font-medium hover:border-primary-green transition-colors flex items-center gap-2"
+            >
+              <SettingsIcon className="h-4 w-4" />
+              Settings
+            </Link>
+          </div>
         </div>
 
-        {/* Read-only summary */}
-        <div className="bg-white border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Your Details</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-text">Name</span>
-              <span className="font-medium text-right">{user.fullName}</span>
+        <div className="bg-white border border-gray-200 overflow-hidden">
+          <div className="h-32 bg-primary-green/10"></div>
+
+          <div className="px-6 pb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 -mt-12">
+              <div className="h-24 w-24 rounded-full border-4 border-white bg-primary-green/10 flex items-center justify-center text-3xl font-bold text-primary-green overflow-hidden">
+                {user.avatar ? (
+                  <Image
+                    src={user.avatar}
+                    alt={user.fullName}
+                    width={96}
+                    height={96}
+                    className="object-cover"
+                  />
+                ) : (
+                  user.fullName
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)
+                )}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{user.fullName}</h2>
+                <p className="text-muted-text">@{user.username}</p>
+                <p className="text-muted-text mt-1">
+                  {user.programme || 'No programme'} • Year {user.year || '?'}
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-text">Programme</span>
-              <span className="font-medium text-right">
-                {user.programme || 'Not set'}
-              </span>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div>
+                <h3 className="font-semibold mb-2">About</h3>
+                <p className="text-sm text-muted-text">
+                  {user.bio || 'No bio yet. Tell other students about yourself.'}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Interests</h3>
+                {interests.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {interests.map((interest) => (
+                      <span
+                        key={interest}
+                        className="text-xs bg-gray-100 px-3 py-1"
+                      >
+                        {interest}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-text">
+                    No interests added yet.
+                  </p>
+                )}
+              </div>
+
+              {communities.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Communities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {communities.map((community) => (
+                      <Link
+                        key={community.groupId}
+                        href={`/community/${community.slug}`}
+                        className="text-xs bg-primary-green/10 text-primary-green px-3 py-1 hover:bg-primary-green hover:text-white transition-colors"
+                      >
+                        {community.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Academic</h3>
+                <div className="space-y-1 text-sm text-muted-text">
+                  <p>Programme: {user.programme || 'Not set'}</p>
+                  <p>Year: {user.year || 'Not set'}</p>
+                  <p>Campus: {user.campus || 'City Campus'}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-text">Mentor type</span>
-              <span className="font-medium text-right">
-                {user.mentorType || 'Not set'}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-text">Availability</span>
-              <span className="font-medium text-right">
-                {mentor.availability || 'available'}
-              </span>
+
+            <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap gap-4">
+              <Link
+                href={`/profile/${user.username}`}
+                className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
+              >
+                View Public Profile
+              </Link>
+              {user.isMentor && user.mentorStatus === 'approved' && (
+                <Link
+                  href="/mentor"
+                  className="border border-blue-500 text-blue-500 px-6 py-2 text-sm font-medium hover:bg-blue-500 hover:text-white transition-colors"
+                >
+                  Go to Mentor Dashboard
+                </Link>
+              )}
             </div>
           </div>
-          <p className="text-xs text-muted-text mt-4">
-            Editing your name, programme, expertise and introduction isn&apos;t
-            available yet. Contact an administrator if you need changes.
-          </p>
         </div>
-
-        {/* Contact preferences form */}
-        <ContactPreferencesForm
-          initialPreferredContactMethod={mentor.preferredContactMethod}
-          initialContactWhatsapp={mentor.contactWhatsapp}
-        />
       </div>
     </div>
   );
