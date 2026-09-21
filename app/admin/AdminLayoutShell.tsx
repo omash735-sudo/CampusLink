@@ -1,7 +1,7 @@
 // app/admin/AdminLayoutShell.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -45,7 +45,7 @@ const allNavItems: NavItem[] = [
   { name: 'Student Union', href: '/admin/student-union', icon: UserGroupIcon, roles: ['admin', 'publications'] },
   { name: 'Spotlights', href: '/admin/spotlights', icon: AcademicIcon, roles: ['admin', 'publications'] },
   { name: 'Clubs', href: '/admin/clubs', icon: UserGroupIcon, roles: ['admin', 'publications'] },
-  { name: 'Publications', href: '/admin/publications', icon: UsersIcon, roles: ['admin'] },
+  { name: 'Publications', href: '/admin/publications', icon: UsersIcon, roles: ['admin', 'publications'] },
   { name: 'Reports', href: '/admin/reports', icon: FlagIcon, roles: ['admin'] },
   { name: 'Feedback', href: '/admin/feedback', icon: ChatIcon, roles: ['admin'] },
   { name: 'Activity', href: '/admin/activity', icon: BellIcon, roles: ['admin'] },
@@ -53,17 +53,37 @@ const allNavItems: NavItem[] = [
   { name: 'Settings', href: '/admin/settings', icon: SettingsIcon, roles: ['admin'] },
 ];
 
+function initialsFrom(fullName: string): string {
+  return (
+    fullName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'A'
+  );
+}
+
 export function AdminLayoutShell({
   children,
   role,
+  fullName,
+  email,
+  avatar,
 }: {
   children: React.ReactNode;
   role: string;
+  fullName: string;
+  email: string;
+  avatar: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -75,6 +95,31 @@ export function AdminLayoutShell({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  // Close dropdown on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Close dropdown on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -94,7 +139,7 @@ export function AdminLayoutShell({
   );
 
   const badgeLabel = isPublications ? 'Publications' : 'Admin';
-  const avatarLetter = isPublications ? 'P' : 'A';
+  const initials = initialsFrom(fullName);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -132,16 +177,6 @@ export function AdminLayoutShell({
             </Link>
           ))}
         </nav>
-
-        <div className="flex-shrink-0 p-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full transition-colors"
-          >
-            <LogOutIcon className="h-4 w-4" />
-            Sign Out
-          </button>
-        </div>
       </aside>
 
       {isMobile && sidebarOpen && (
@@ -159,11 +194,76 @@ export function AdminLayoutShell({
           >
             {sidebarOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
-          <div className="flex items-center gap-3 ml-auto">
-            <span className="text-sm text-gray-500">{badgeLabel}</span>
-            <div className="h-8 w-8 rounded-full bg-primary-green/10 flex items-center justify-center text-sm font-semibold text-primary-green">
-              {avatarLetter}
-            </div>
+
+          <div className="flex items-center gap-3 ml-auto relative" ref={menuRef}>
+            <span className="text-sm text-gray-500 hidden sm:inline">{badgeLabel}</span>
+
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Open account menu"
+              className="flex items-center rounded-full hover:bg-gray-100 p-1 transition-colors"
+            >
+              {avatar ? (
+                <Image
+                  src={avatar}
+                  alt={fullName}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <span className="h-8 w-8 rounded-full bg-primary-green/10 flex items-center justify-center text-sm font-semibold text-primary-green">
+                  {initials}
+                </span>
+              )}
+            </button>
+
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 shadow-lg z-50"
+              >
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-primary-text truncate">
+                    {fullName}
+                  </p>
+                  <p className="text-xs text-muted-text truncate">{email}</p>
+                </div>
+
+                <Link
+                  href="/admin/profile"
+                  role="menuitem"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <UsersIcon className="h-4 w-4" />
+                  Profile
+                </Link>
+
+                {!isPublications && (
+                  <Link
+                    href="/admin/settings"
+                    role="menuitem"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <SettingsIcon className="h-4 w-4" />
+                    Settings
+                  </Link>
+                )}
+
+                <div className="border-t border-gray-100">
+                  <button
+                    onClick={handleLogout}
+                    role="menuitem"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                  >
+                    <LogOutIcon className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
