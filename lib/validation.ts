@@ -353,3 +353,23 @@ export const resetPasswordSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
+
+// ==================== FEEDBACK SCHEMAS ====================
+
+const FEEDBACK_CATEGORIES = ['general', 'bug', 'feature', 'content', 'other'] as const;
+const FEEDBACK_STATUSES = ['new', 'reviewed', 'resolved'] as const;
+
+export const feedbackCategorySchema = z.enum(FEEDBACK_CATEGORIES);
+export const feedbackStatusSchema = z.enum(FEEDBACK_STATUSES);
+
+export const feedbackSubmitSchema = z.object({
+  content: z
+    .string()
+    .min(10, 'Feedback must be at least 10 characters')
+    .max(2000, 'Feedback is too long'),
+  category: feedbackCategorySchema.default('general'),
+});
+
+export const feedbackUpdateSchema = z.object({
+  status: feedbackStatusSchema,
+});
