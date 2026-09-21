@@ -373,3 +373,37 @@ export const feedbackSubmitSchema = z.object({
 export const feedbackUpdateSchema = z.object({
   status: feedbackStatusSchema,
 });
+
+// ==================== MENTOR CONTACT SCHEMAS ====================
+
+const MENTOR_CONTACT_METHODS = ['whatsapp', 'campuslink', 'both'] as const;
+
+export const mentorContactMethodSchema = z.enum(MENTOR_CONTACT_METHODS);
+
+export const mentorContactUpdateSchema = z
+  .object({
+    preferredContactMethod: mentorContactMethodSchema,
+    contactWhatsapp: z
+      .string()
+      .max(30)
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.preferredContactMethod === 'whatsapp' ||
+        data.preferredContactMethod === 'both'
+      ) {
+        const cleaned = (data.contactWhatsapp || '').replace(/\D/g, '');
+        return cleaned.length >= 9;
+      }
+      return true;
+    },
+    {
+      message:
+        'A WhatsApp number is required when WhatsApp is a contact method',
+      path: ['contactWhatsapp'],
+    }
+  );
