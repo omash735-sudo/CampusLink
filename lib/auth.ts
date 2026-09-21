@@ -116,6 +116,13 @@ export function clearAuthCookie() {
   cookies().delete('auth_token');
 }
 
+/**
+ * Role-based landing page after login.
+ *
+ * IMPORTANT: keep this in sync with getRedirectPathForRole() in middleware.ts.
+ * Middleware runs on Edge and can't import this file (bcrypt/db deps), so the
+ * rule is duplicated. Change one → change both.
+ */
 export function getRedirectPath(user: {
   role?: string | null;
   isMentor?: boolean | null;
