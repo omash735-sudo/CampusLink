@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 const CATEGORIES = [
   'academic',
@@ -204,26 +205,13 @@ export function LocationForm({ initial }: { initial?: LocationFormData }) {
           />
         </div>
 
-        <div>
-          <label className="label-text">Image URL</label>
-          <input
-            type="text"
-            className="input-field"
-            value={form.imageUrl}
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            placeholder="https://..."
-          />
-          {form.imageUrl && (
-            <div className="mt-3 w-full max-w-sm h-40 bg-gray-100 border border-gray-200 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={form.imageUrl}
-                alt="Preview"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-        </div>
+        <ImageUpload
+          value={form.imageUrl}
+          onChange={(url) => setForm({ ...form, imageUrl: url })}
+          label="Location image"
+          uploadType="campus"
+          helpText="JPG, PNG, or WebP. Max 5MB. Shown on the location card and detail page."
+        />
       </div>
 
       {/* Details */}
