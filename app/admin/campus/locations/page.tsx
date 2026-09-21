@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { campusLocations } from '@/lib/db/schema';
-import { asc, and, eq, ilike, sql } from 'drizzle-orm';
+import { asc, and, eq, ilike } from 'drizzle-orm';
 import { LocationRow } from './LocationRow';
 
 export const dynamic = 'force-dynamic';
@@ -22,11 +22,25 @@ export default async function AdminCampusLocationsPage({
   if (publishedFilter === 'published') conditions.push(eq(campusLocations.isPublished, true));
   if (publishedFilter === 'draft') conditions.push(eq(campusLocations.isPublished, false));
 
-  const rows = await db
+  const rawRows = await db
     .select()
     .from(campusLocations)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(asc(campusLocations.sortOrder), asc(campusLocations.name));
+
+  // Coalesce nullable DB columns + serialize dates for the client component
+  const rows = rawRows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    category: r.category,
+    shortDescription: r.shortDescription,
+    imageUrl: r.imageUrl,
+    isFeatured: r.isFeatured ?? false,
+    isPublished: r.isPublished ?? false,
+    sortOrder: r.sortOrder ?? 0,
+    updatedAt: r.updatedAt.toISOString(),
+  }));
 
   const categories = await db
     .selectDistinct({ category: campusLocations.category })
