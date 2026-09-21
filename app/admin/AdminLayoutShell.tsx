@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   HomeIcon,
   UsersIcon,
@@ -103,7 +104,14 @@ export function AdminLayoutShell({
         } flex flex-col`}
       >
         <div className="flex items-center gap-2 p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="h-8 w-8 border-2 border-primary-green bg-white"></div>
+          <Image
+            src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+            alt="CampusLink"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+            priority
+          />
           <span className="text-lg font-semibold text-primary-green">CampusLink</span>
           <span className="text-xs bg-gray-100 px-2 py-0.5">{badgeLabel}</span>
         </div>
