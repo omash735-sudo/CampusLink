@@ -3,29 +3,27 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { announcements } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { requireAdminOrPublications } from '@/lib/auth';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
-  try {
-    await requireAdminOrPublications();
-    const allAnnouncements = await db
-      .select()
-      .from(announcements)
-      .orderBy(desc(announcements.createdAt));
-    return NextResponse.json(allAnnouncements);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch announcements' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const allAnnouncements = await db
+    .select()
+    .from(announcements)
+    .orderBy(desc(announcements.createdAt));
+  return NextResponse.json(allAnnouncements);
 }
 
 export async function POST(request: Request) {
-  try {
-    const user = await requireAdminOrPublications();
-    const body = await request.json();
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
+    const body = await request.json();
     const [announcement] = await db
       .insert(announcements)
       .values({
@@ -34,32 +32,27 @@ export async function POST(request: Request) {
         type: body.type || 'general',
         priority: body.priority || 'normal',
         imageUrl: body.imageUrl || null,
-        authorId: user.id,
+        authorId: user.id ?? null,
         isPublished: false,
       })
       .returning();
-
     return NextResponse.json(announcement);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to create announcement' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { status: 500 }
     );
   }
 }
 
 export async function PUT(request: Request) {
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    await requireAdminOrPublications();
     const body = await request.json();
     const { id, ...data } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Announcement ID is required' },
-        { status: 400 }
-      );
-    }
+    if (!id) return NextResponse.json({ error: 'Announcement ID is required' }, { status: 400 });
 
     const [updated] = await db
       .update(announcements)
@@ -67,41 +60,24 @@ export async function PUT(request: Request) {
       .where(eq(announcements.id, id))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Announcement not found' },
-        { status: 404 }
-      );
-    }
-
+    if (!updated) return NextResponse.json({ error: 'Announcement not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to update announcement' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: Request) {
-  try {
-    await requireAdminOrPublications();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+  const user = await requireAdminOrPublications();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Announcement ID is required' },
-        { status: 400 }
-      );
-    }
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'Announcement ID is required' }, { status: 400 });
 
-    await db.delete(announcements).where(eq(announcements.id, id));
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete announcement' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
-    );
-  }
+  await db.delete(announcements).where(eq(announcements.id, id));
+  return NextResponse.json({ success: true });
 }
