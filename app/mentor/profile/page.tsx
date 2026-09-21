@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+type ContactMethod = 'whatsapp' | 'campuslink' | 'both';
+
 interface MentorProfile {
   introduction: string;
   expertise: string[];
@@ -12,6 +14,8 @@ interface MentorProfile {
   mentorType: string;
   availability: string;
   experience: string;
+  preferredContactMethod: ContactMethod;
+  contactWhatsapp: string;
 }
 
 export default function MentorProfilePage() {
@@ -29,6 +33,8 @@ export default function MentorProfilePage() {
     mentorType: 'Student',
     availability: 'available',
     experience: '',
+    preferredContactMethod: 'whatsapp',
+    contactWhatsapp: '',
   });
 
   useEffect(() => {
@@ -47,6 +53,9 @@ export default function MentorProfilePage() {
           mentorType: data.mentorType || 'Student',
           availability: data.availability || 'available',
           experience: data.experience || '',
+          preferredContactMethod:
+            (data.preferredContactMethod as ContactMethod) || 'whatsapp',
+          contactWhatsapp: data.contactWhatsapp || '',
         });
       }
     } catch (err) {
@@ -68,18 +77,50 @@ export default function MentorProfilePage() {
     setForm({ ...form, [field]: form[field].filter((t) => t !== value) });
   };
 
+  const needsWhatsapp =
+    form.preferredContactMethod === 'whatsapp' ||
+    form.preferredContactMethod === 'both';
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
     setSuccess('');
+
     try {
-      const res = await fetch('/api/mentors/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      // Fire both endpoints in parallel. If either fails, we report the error.
+      const [profileRes, contactRes] = await Promise.all([
+        fetch('/api/mentors/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            introduction: form.introduction,
+            expertise: form.expertise,
+            subjects: form.subjects,
+            mentorType: form.mentorType,
+            availability: form.availability,
+            experience: form.experience,
+          }),
+        }),
+        fetch('/api/mentor/contact-preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            preferredContactMethod: form.preferredContactMethod,
+            contactWhatsapp: needsWhatsapp ? form.contactWhatsapp : '',
+          }),
+        }),
+      ]);
+
+      const profileData = await profileRes.json();
+      const contactData = await contactRes.json();
+
+      if (!profileRes.ok) {
+        throw new Error(profileData.error || 'Failed to save profile');
+      }
+      if (!contactRes.ok) {
+        throw new Error(contactData.error || 'Failed to save contact preferences');
+      }
+
       setSuccess('Profile updated successfully.');
       router.refresh();
     } catch (err: any) {
@@ -98,14 +139,17 @@ export default function MentorProfilePage() {
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <Link href="/mentor" className="text-primary-green hover:underline text-sm">
+            <Link
+              href="/mentor"
+              className="text-primary-green hover:underline text-sm"
+            >
               ← Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold mt-2">Mentor Profile</h1>
           </div>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || (needsWhatsapp && !form.contactWhatsapp.trim())}
             className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
@@ -123,14 +167,17 @@ export default function MentorProfilePage() {
           </div>
         )}
 
-        <div className="bg-white border border-gray-200 p-6 space-y-6">
+        {/* Profile content */}
+        <div className="bg-white border border-gray-200 p-6 space-y-6 mb-6">
           <div>
             <label className="label-text">Introduction</label>
             <textarea
               rows={4}
               className="input-field"
               value={form.introduction}
-              onChange={(e) => setForm({ ...form, introduction: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, introduction: e.target.value })
+              }
               placeholder="Tell students about yourself..."
             />
           </div>
@@ -139,9 +186,15 @@ export default function MentorProfilePage() {
             <label className="label-text">Areas of Expertise</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {form.expertise.map((item) => (
-                <span key={item} className="bg-gray-100 px-3 py-1 text-sm flex items-center gap-2">
+                <span
+                  key={item}
+                  className="bg-gray-100 px-3 py-1 text-sm flex items-center gap-2"
+                >
                   {item}
-                  <button onClick={() => removeTag('expertise', item)} className="text-muted-text hover:text-red-500">
+                  <button
+                    onClick={() => removeTag('expertise', item)}
+                    className="text-muted-text hover:text-red-500"
+                  >
                     ×
                   </button>
                 </span>
@@ -175,9 +228,15 @@ export default function MentorProfilePage() {
             <label className="label-text">Subjects / Courses</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {form.subjects.map((item) => (
-                <span key={item} className="bg-primary-green/10 text-primary-green px-3 py-1 text-sm flex items-center gap-2">
+                <span
+                  key={item}
+                  className="bg-primary-green/10 text-primary-green px-3 py-1 text-sm flex items-center gap-2"
+                >
                   {item}
-                  <button onClick={() => removeTag('subjects', item)} className="text-primary-green hover:text-red-500">
+                  <button
+                    onClick={() => removeTag('subjects', item)}
+                    className="text-primary-green hover:text-red-500"
+                  >
                     ×
                   </button>
                 </span>
@@ -224,7 +283,9 @@ export default function MentorProfilePage() {
               <select
                 className="input-field"
                 value={form.mentorType}
-                onChange={(e) => setForm({ ...form, mentorType: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, mentorType: e.target.value })
+                }
               >
                 <option value="Student">Student Mentor</option>
                 <option value="Alumni">Alumni Mentor</option>
@@ -237,7 +298,9 @@ export default function MentorProfilePage() {
               <select
                 className="input-field"
                 value={form.availability}
-                onChange={(e) => setForm({ ...form, availability: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, availability: e.target.value })
+                }
               >
                 <option value="available">Available</option>
                 <option value="limited">Limited Availability</option>
@@ -245,6 +308,111 @@ export default function MentorProfilePage() {
               </select>
             </div>
           </div>
+        </div>
+
+        {/* Contact preferences */}
+        <div className="bg-white border border-gray-200 p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold">Contact Preferences</h2>
+            <p className="text-sm text-muted-text mt-1">
+              Choose how your mentees should reach you. This appears on your
+              active mentorships so students know the right channel.
+            </p>
+          </div>
+
+          <fieldset className="space-y-3">
+            <legend className="sr-only">Preferred contact method</legend>
+
+            <label className="flex items-start gap-3 cursor-pointer border border-gray-200 p-4 hover:border-primary-green transition-colors">
+              <input
+                type="radio"
+                name="method"
+                value="whatsapp"
+                checked={form.preferredContactMethod === 'whatsapp'}
+                onChange={() =>
+                  setForm({ ...form, preferredContactMethod: 'whatsapp' })
+                }
+                className="mt-1"
+              />
+              <div>
+                <p className="font-medium text-sm">WhatsApp</p>
+                <p className="text-xs text-muted-text mt-0.5">
+                  Mentees reach you through WhatsApp. Your number is only
+                  shared with students you are actively mentoring.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer border border-gray-200 p-4 hover:border-primary-green transition-colors">
+              <input
+                type="radio"
+                name="method"
+                value="campuslink"
+                checked={form.preferredContactMethod === 'campuslink'}
+                onChange={() =>
+                  setForm({ ...form, preferredContactMethod: 'campuslink' })
+                }
+                className="mt-1"
+              />
+              <div>
+                <p className="font-medium text-sm">
+                  CampusLink Messages{' '}
+                  <span className="text-xs font-normal text-orange-600">
+                    (coming soon)
+                  </span>
+                </p>
+                <p className="text-xs text-muted-text mt-0.5">
+                  Messaging inside CampusLink. This feature is not yet live — if
+                  you pick this option, mentees won&apos;t be able to reach you
+                  until it launches.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer border border-gray-200 p-4 hover:border-primary-green transition-colors">
+              <input
+                type="radio"
+                name="method"
+                value="both"
+                checked={form.preferredContactMethod === 'both'}
+                onChange={() =>
+                  setForm({ ...form, preferredContactMethod: 'both' })
+                }
+                className="mt-1"
+              />
+              <div>
+                <p className="font-medium text-sm">
+                  Both{' '}
+                  <span className="text-xs font-normal text-orange-600">
+                    (CampusLink Messages coming soon)
+                  </span>
+                </p>
+                <p className="text-xs text-muted-text mt-0.5">
+                  Students can reach you on either channel. Until CampusLink
+                  Messages launches, WhatsApp will be the only working option.
+                </p>
+              </div>
+            </label>
+          </fieldset>
+
+          {needsWhatsapp && (
+            <div>
+              <label className="label-text">WhatsApp Number</label>
+              <input
+                type="tel"
+                className="input-field"
+                value={form.contactWhatsapp}
+                onChange={(e) =>
+                  setForm({ ...form, contactWhatsapp: e.target.value })
+                }
+                placeholder="+265 98 123 4567"
+              />
+              <p className="text-xs text-muted-text mt-1">
+                Include your country code. Only students with an active
+                mentorship will see this.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
