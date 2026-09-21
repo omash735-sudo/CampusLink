@@ -2,13 +2,12 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Navigation } from '@/components/Navigation';
-import { Footer } from '@/components/Footer';
+import { ConditionalChrome } from '@/components/ConditionalChrome';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CampusLink - Connect. Discover. Belong.',
+  title: 'CampusLink | Connect. Discover. Belong.',
   description: 'Your digital community for LUANAR City Campus',
   icons: {
     icon: 'https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png',
@@ -24,9 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen flex flex-col bg-white`}>
-        <Navigation />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <ConditionalChrome>{children}</ConditionalChrome>
       </body>
     </html>
   );
