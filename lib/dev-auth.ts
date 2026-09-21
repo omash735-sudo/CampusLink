@@ -12,6 +12,7 @@ export type AuthUser = {
   email: string;
   fullName: string;
   username: string;
+  avatar?: string | null;
   isBypass: boolean;
   [key: string]: unknown;
 };
@@ -42,13 +43,14 @@ async function resolveBypassUser(): Promise<AuthUser> {
     email: 'dev-bypass@localhost',
     fullName: 'Developer (bypass)',
     username: 'dev-bypass',
+    avatar: null,
     isBypass: true,
   };
   return cachedBypassUser;
 }
 
 /**
- * Admin/publications authorization gate.
+ * Admin OR publications gate.
  *
  * DEV_BYPASS=true  → returns a bypass admin without checking session.
  * DEV_BYPASS unset → real auth via getCurrentUser() + role check.
@@ -59,12 +61,32 @@ async function resolveBypassUser(): Promise<AuthUser> {
 export async function requireAdminOrPublications(): Promise<AuthUser | null> {
   if (DEV_BYPASS_ENABLED) {
     const u = await resolveBypassUser();
-    console.warn(`[DEV_BYPASS] admin auth bypassed — acting as ${u.email}`);
+    console.warn(`[DEV_BYPASS] admin/publications auth bypassed — acting as ${u.email}`);
     return u;
   }
 
   const user = await getCurrentUser();
   if (!user) return null;
   if (user.role !== 'admin' && user.role !== 'publications') return null;
+  return { ...user, isBypass: false } as AuthUser;
+}
+
+/**
+ * Strict admin-only gate.
+ *
+ * Use this for admin API routes that publications should NOT access
+ * (mentors, mentorships, users, programmes, courses, reports, feedback,
+ * activity, legal, campus).
+ */
+export async function requireAdminOnly(): Promise<AuthUser | null> {
+  if (DEV_BYPASS_ENABLED) {
+    const u = await resolveBypassUser();
+    console.warn(`[DEV_BYPASS] admin-only auth bypassed — acting as ${u.email}`);
+    return u;
+  }
+
+  const user = await getCurrentUser();
+  if (!user) return null;
+  if (user.role !== 'admin') return null;
   return { ...user, isBypass: false } as AuthUser;
 }
