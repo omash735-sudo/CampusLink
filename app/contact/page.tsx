@@ -1,4 +1,5 @@
 // app/contact/page.tsx
+import Link from 'next/link';
 import { ContactCard } from '@/components/contact/ContactCard';
 
 const CONTACT_EMAIL = 'campuslinkmw@gmail.com';
@@ -61,6 +62,23 @@ export default function ContactPage() {
             href={whatsappHref}
             external
           />
+        </div>
+
+        {/* Feedback form link */}
+        <div className="bg-white border border-gray-200 p-6 mb-8 text-center">
+          <h2 className="font-semibold text-primary-text mb-2">
+            Prefer a form?
+          </h2>
+          <p className="text-sm text-muted-text mb-4">
+            Submit a bug report, feature suggestion, or any structured
+            feedback through our feedback form — it goes straight to the team.
+          </p>
+          <Link
+            href="/feedback"
+            className="inline-block bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
+          >
+            Open feedback form →
+          </Link>
         </div>
 
         {/* Closing note */}
