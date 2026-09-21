@@ -96,10 +96,16 @@ export function ContactPreferencesForm({
             className="mt-1"
           />
           <div>
-            <p className="font-medium text-sm">CampusLink Messages</p>
+            <p className="font-medium text-sm">
+              CampusLink Messages{' '}
+              <span className="text-xs font-normal text-orange-600">
+                (coming soon)
+              </span>
+            </p>
             <p className="text-xs text-muted-text mt-0.5">
-              Messaging inside CampusLink. <em>(Coming soon — no messages will
-              be delivered yet.)</em>
+              Messaging inside CampusLink. This feature is not yet live — if
+              you pick this option, mentees won&apos;t be able to reach you
+              until it launches.
             </p>
           </div>
         </label>
@@ -114,9 +120,15 @@ export function ContactPreferencesForm({
             className="mt-1"
           />
           <div>
-            <p className="font-medium text-sm">Both</p>
+            <p className="font-medium text-sm">
+              Both{' '}
+              <span className="text-xs font-normal text-orange-600">
+                (CampusLink Messages coming soon)
+              </span>
+            </p>
             <p className="text-xs text-muted-text mt-0.5">
-              Students can reach you on either WhatsApp or CampusLink.
+              Students can reach you on either channel. Until CampusLink
+              Messages launches, WhatsApp will be the only working option.
             </p>
           </div>
         </label>
