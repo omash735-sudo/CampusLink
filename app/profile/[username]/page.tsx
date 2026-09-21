@@ -7,22 +7,31 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getCurrentUser } from '@/lib/auth';
 
-export default async function PublicProfilePage({ params }: { params: { username: string } }) {
+export const dynamic = 'force-dynamic';
+
+export default async function PublicProfilePage({
+  params,
+}: {
+  params: { username: string };
+}) {
   const currentUser = await getCurrentUser();
-  
+
   const user = await db
     .select()
     .from(campuslinkUsers)
-    .where(and(
-      eq(campuslinkUsers.username, params.username),
-      eq(campuslinkUsers.isActive, true)
-    ))
-    .then(res => res[0]);
+    .where(
+      and(
+        eq(campuslinkUsers.username, params.username),
+        eq(campuslinkUsers.isActive, true)
+      )
+    )
+    .then((res) => res[0]);
 
   if (!user) notFound();
 
   const userCommunitiesData = await db
     .select({
+      groupId: userCommunities.communityId,
       name: groups.name,
       slug: groups.slug,
     })
@@ -31,8 +40,11 @@ export default async function PublicProfilePage({ params }: { params: { username
     .where(eq(userCommunities.userId, user.id))
     .limit(10);
 
-  const communities = userCommunitiesData.map(c => c.name).filter((name): name is string => name !== null && name !== undefined);
-  const mockInterests = user.interests || ['Technology', 'Research', 'Social Work'];
+  const interests: string[] = user.interests ?? [];
+  const communities = userCommunitiesData.filter(
+    (c): c is { groupId: string; name: string; slug: string } =>
+      !!c.name && !!c.slug
+  );
 
   const isOwnProfile = currentUser?.id === user.id;
 
@@ -50,17 +62,32 @@ export default async function PublicProfilePage({ params }: { params: { username
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 -mt-12">
               <div className="h-20 w-20 rounded-full border-4 border-white bg-primary-green/10 flex items-center justify-center text-2xl font-bold text-primary-green overflow-hidden">
                 {user.avatar ? (
-                  <Image src={user.avatar} alt={user.fullName} width={80} height={80} className="object-cover" />
+                  <Image
+                    src={user.avatar}
+                    alt={user.fullName}
+                    width={80}
+                    height={80}
+                    className="object-cover"
+                  />
                 ) : (
-                  user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                  user.fullName
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)
                 )}
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{user.fullName}</h2>
                 <p className="text-muted-text">@{user.username}</p>
-                <p className="text-muted-text mt-1">{user.programme || 'No programme'} • Year {user.year || '?'}</p>
+                <p className="text-muted-text mt-1">
+                  {user.programme || 'No programme'} • Year {user.year || '?'}
+                </p>
                 {user.isMentor && user.mentorStatus === 'approved' && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 mt-1 inline-block">Mentor</span>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 mt-1 inline-block">
+                    Mentor
+                  </span>
                 )}
               </div>
             </div>
@@ -75,21 +102,36 @@ export default async function PublicProfilePage({ params }: { params: { username
 
               <div>
                 <h3 className="font-semibold mb-2">Interests</h3>
-                <div className="flex flex-wrap gap-2">
-                  {mockInterests.map((interest: string) => (
-                    <span key={interest} className="text-xs bg-gray-100 px-3 py-1">{interest}</span>
-                  ))}
-                </div>
+                {interests.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {interests.map((interest) => (
+                      <span
+                        key={interest}
+                        className="text-xs bg-gray-100 px-3 py-1"
+                      >
+                        {interest}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-text">
+                    No interests added yet.
+                  </p>
+                )}
               </div>
 
               {communities.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">Communities</h3>
                   <div className="flex flex-wrap gap-2">
-                    {communities.map((community: string) => (
-                      <span key={community} className="text-xs bg-primary-green/10 text-primary-green px-3 py-1">
-                        {community}
-                      </span>
+                    {communities.map((community) => (
+                      <Link
+                        key={community.groupId}
+                        href={`/community/${community.slug}`}
+                        className="text-xs bg-primary-green/10 text-primary-green px-3 py-1 hover:bg-primary-green hover:text-white transition-colors"
+                      >
+                        {community.name}
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -107,15 +149,15 @@ export default async function PublicProfilePage({ params }: { params: { username
             <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap gap-3">
               {!isOwnProfile && (
                 <>
-                  <Link 
-                    href="/connect" 
+                  <Link
+                    href="/connect"
                     className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green transition-colors"
                   >
                     Connect
                   </Link>
                   {user.isMentor && user.mentorStatus === 'approved' && (
-                    <Link 
-                      href={`/mentors/${user.username}`} 
+                    <Link
+                      href="/mentors"
                       className="border border-primary-green text-primary-green px-6 py-2 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
                     >
                       Request Mentorship
