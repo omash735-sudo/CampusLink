@@ -344,3 +344,95 @@ export async function sendMentorshipRequestDeclinedEmail(
     `,
   });
 }
+
+// ==================== PASSWORD RESET EMAILS ====================
+
+export async function sendPasswordResetOtpEmail(
+  email: string,
+  name: string,
+  otp: string
+) {
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink — Your password reset code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Password Reset</h1>
+        <p>Dear ${name},</p>
+        <p>You requested to reset your CampusLink password. Use the code below to continue:</p>
+        <div style="margin: 24px 0; padding: 16px; background: #f3f4f6; text-align: center;">
+          <span style="font-size: 32px; letter-spacing: 8px; font-weight: bold; color: #176B3A;">${otp}</span>
+        </div>
+        <p>This code expires in <strong>10 minutes</strong>.</p>
+        <p style="color: #64706A; font-size: 14px;">
+          If you didn't request this, you can safely ignore this email — your password will not change.
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+    text: `Your CampusLink password reset code is: ${otp}\n\nThis code expires in 10 minutes. If you didn't request this, ignore this email.`,
+  });
+}
+
+export async function sendPasswordResetInstructionsEmail(
+  email: string,
+  name: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink — Password reset instructions',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Password Reset Instructions</h1>
+        <p>Dear ${name},</p>
+        <p>An administrator has sent you password reset instructions for your CampusLink account.</p>
+        <p>To reset your password, click the button below and follow the steps. You'll receive a 6-digit code by email to verify your identity.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/auth/forgot-password" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Reset My Password
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          If you didn't ask for this, contact the CampusLink team.
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+    text: `An administrator has sent you password reset instructions for CampusLink.\n\nReset your password at: ${appUrl}/auth/forgot-password`,
+  });
+}
+
+export async function sendPasswordChangedConfirmationEmail(
+  email: string,
+  name: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: 'CampusLink — Your password was changed',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Password Changed</h1>
+        <p>Dear ${name},</p>
+        <p>This is a confirmation that your CampusLink password was successfully changed on ${new Date().toLocaleString()}.</p>
+        <p>If this wasn't you, please contact the CampusLink team immediately.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/auth/login" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Sign In
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
