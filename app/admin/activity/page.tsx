@@ -172,25 +172,25 @@ export default async function AdminActivityPage({
                     {row.entityId ? `id: ${row.entityId}` : 'no entity id'}
                   </p>
 
-                  {(row.previousValue || row.newValue) && (
+                  {(row.previousValue != null || row.newValue != null) && (
                     <details className="mt-2 text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">
                         View changes
                       </summary>
                       <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {row.previousValue && (
+                        {row.previousValue != null && (
                           <div>
                             <p className="font-medium text-gray-600 mb-1">Before</p>
                             <pre className="bg-gray-50 p-2 overflow-auto text-[11px]">
-                              {JSON.stringify(row.previousValue, null, 2)}
+                              {JSON.stringify(row.previousValue as any, null, 2)}
                             </pre>
                           </div>
                         )}
-                        {row.newValue && (
+                        {row.newValue != null && (
                           <div>
                             <p className="font-medium text-gray-600 mb-1">After</p>
                             <pre className="bg-gray-50 p-2 overflow-auto text-[11px]">
-                              {JSON.stringify(row.newValue, null, 2)}
+                              {JSON.stringify(row.newValue as any, null, 2)}
                             </pre>
                           </div>
                         )}
