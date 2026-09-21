@@ -129,6 +129,8 @@ export const mentors = pgTable('mentors', {
   experience: text('experience'),
   rating: integer('rating').default(0),
   reviewCount: integer('review_count').default(0),
+  preferredContactMethod: text('preferred_contact_method'), // 'whatsapp' | 'campuslink' | 'both' | null
+  contactWhatsapp: text('contact_whatsapp'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
