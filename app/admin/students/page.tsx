@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SearchIcon, FilterIcon } from '@/components/icons';
 import { getUsers, updateUser, deleteUser } from '@/lib/services/admin.service';
+import { RecoveryModal } from './RecoveryModal';
 
 interface User {
   id: string;
@@ -28,6 +29,7 @@ export default function AdminStudentsPage() {
   const [programmeFilter, setProgrammeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [recoveryTarget, setRecoveryTarget] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -202,6 +204,12 @@ export default function AdminStudentsPage() {
                   View
                 </Link>
                 <button
+                  onClick={() => setRecoveryTarget(user)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Recovery
+                </button>
+                <button
                   onClick={() => handleStatusChange(user.id, !user.isActive)}
                   className={`text-sm ${user.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
                 >
@@ -217,6 +225,15 @@ export default function AdminStudentsPage() {
         <div className="bg-white border border-gray-200 p-8 text-center">
           <p className="text-gray-500">No users found matching your criteria.</p>
         </div>
+      )}
+
+      {recoveryTarget && (
+        <RecoveryModal
+          userId={recoveryTarget.id}
+          userEmail={recoveryTarget.email}
+          userName={recoveryTarget.fullName}
+          onClose={() => setRecoveryTarget(null)}
+        />
       )}
     </div>
   );
