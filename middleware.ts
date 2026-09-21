@@ -33,6 +33,11 @@ function checkSuperAccess(token: string | undefined): boolean {
   }
 }
 
+function getRedirectPathForRole(role: string | undefined): string {
+  if (role === 'admin' || role === 'publications') return '/admin';
+  return '/student/dashboard';
+}
+
 const publicRoutes = [
   '/',
   '/about',
@@ -56,6 +61,7 @@ const authRoutes = [
   '/auth/register',
   '/auth/register-success',
   '/auth/forgot-password',
+  '/auth/verify-otp',
   '/auth/reset-password',
 ];
 
@@ -70,6 +76,8 @@ const publicationsAllowedRoutes = [
   '/admin/spotlights',
   '/admin/clubs',
   '/admin/resources',
+  '/admin/resource-categories',
+  '/admin/publications',
 ];
 
 const adminRoutes = ['/admin'];
@@ -101,11 +109,9 @@ export function middleware(request: NextRequest) {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded) {
-        const target =
-          decoded.role === 'admin' || decoded.role === 'publications'
-            ? '/admin'
-            : '/student/dashboard';
-        return NextResponse.redirect(new URL(target, request.url));
+        return NextResponse.redirect(
+          new URL(getRedirectPathForRole(decoded.role), request.url)
+        );
       }
     }
     return NextResponse.next();
