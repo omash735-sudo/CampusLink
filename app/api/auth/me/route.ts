@@ -1,16 +1,21 @@
 // app/api/auth/me/route.ts
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { resolveAuth } from '@/lib/auth/resolve-auth';
 
-export async function GET() {
+export const runtime = 'nodejs';
+
+export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const auth = await resolveAuth(request);
+
+    if (!auth.authenticated) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Never expose the password hash
-    const { passwordHash, ...safeUser } = user;
+    // Strip passwordHash before returning.
+    // All other user fields are passed through unchanged so existing
+    // consumers (Navigation.tsx and any other clients) keep working.
+    const { passwordHash, ...safeUser } = auth.user;
 
     return NextResponse.json({ user: safeUser });
   } catch (error: any) {
