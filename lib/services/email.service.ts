@@ -27,7 +27,21 @@ export async function sendEmail(data: EmailData) {
       html: data.html,
       text: data.text || '',
     });
-    return { success: true, messageId: info.messageId };
+
+    // Surface the raw SMTP server acknowledgment so callers can diagnose
+    // silent drops (e.g. "250 OK" but no delivery).
+    if (info.rejected && info.rejected.length > 0) {
+      console.error('[email] Some recipients rejected:', info.rejected);
+    }
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted as string[],
+      rejected: info.rejected as string[],
+      envelope: info.envelope,
+    };
   } catch (error) {
     console.error('Email send error:', error);
     return { success: false, error };
