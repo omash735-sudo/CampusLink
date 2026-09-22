@@ -26,11 +26,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    if (user.isActive === false) {
-      // Inactive accounts can't reset — but still don't leak. Log internally.
-      console.warn(`[forgot-password] inactive account attempted reset: ${email}`);
-      return NextResponse.json({ success: true });
-    }
+    // Note: we deliberately allow inactive accounts to reset their password.
+    // They won't be able to log in until activated (getCurrentUser() enforces
+    // is_active), but they can still set a new password in advance.
 
     const { otp } = await createOtpRecord(user.id, user.email);
 
