@@ -20,6 +20,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(form),
       });
 
@@ -85,6 +86,14 @@ export default function LoginPage() {
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
+            </div>
+            <div className="text-right mt-1">
+              <Link
+                href="/auth/forgot-password"
+                className="text-xs text-primary-green hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
           </div>
 
