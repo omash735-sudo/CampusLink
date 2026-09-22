@@ -50,6 +50,7 @@ const allNavItems: NavItem[] = [
   { name: 'Feedback', href: '/admin/feedback', icon: ChatIcon, roles: ['admin'] },
   { name: 'Activity', href: '/admin/activity', icon: BellIcon, roles: ['admin'] },
   { name: 'Legal', href: '/admin/legal', icon: FlagIcon, roles: ['admin'] },
+  { name: 'Diagnostics', href: '/admin/diagnostics', icon: SettingsIcon, roles: ['admin'] },
   { name: 'Settings', href: '/admin/settings', icon: SettingsIcon, roles: ['admin'] },
 ];
 
@@ -242,14 +243,24 @@ export function AdminLayoutShell({
                 </Link>
 
                 {!isPublications && (
-                  <Link
-                    href="/admin/settings"
-                    role="menuitem"
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    Settings
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin/settings"
+                      role="menuitem"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                      Settings
+                    </Link>
+                    <Link
+                      href="/admin/diagnostics"
+                      role="menuitem"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                      Diagnostics
+                    </Link>
+                  </>
                 )}
 
                 <div className="border-t border-gray-100">
