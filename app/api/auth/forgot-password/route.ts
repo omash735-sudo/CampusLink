@@ -22,20 +22,17 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!user) {
-      // Silently succeed
       return NextResponse.json({ success: true });
     }
 
-    // Note: we deliberately allow inactive accounts to reset their password.
-    // They won't be able to log in until activated (getCurrentUser() enforces
-    // is_active), but they can still set a new password in advance.
-
     const { otp } = await createOtpRecord(user.id, user.email);
 
-    // Fire-and-forget; don't block the response on email delivery
-    sendPasswordResetOtpEmail(user.email, user.fullName, otp).catch((err) => {
+    // Must await — Vercel freezes the function the moment we return.
+    try {
+      await sendPasswordResetOtpEmail(user.email, user.fullName, otp);
+    } catch (err) {
       console.error('[forgot-password] email send failed:', err);
-    });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -46,7 +43,6 @@ export async function POST(request: Request) {
       );
     }
     console.error('[forgot-password] error:', error);
-    // Still return 200 to avoid leaking
     return NextResponse.json({ success: true });
   }
 }
