@@ -1,23 +1,36 @@
 // app/campus/gallery/page.tsx
 import { db } from '@/lib/db';
 import { campusGallery } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import Image from 'next/image';
+import { eq, desc, and } from 'drizzle-orm';
+import Link from 'next/link';
 
-export default async function CampusGalleryPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function CampusGalleryPage({
+  searchParams,
+}: {
+  searchParams: { category?: string };
+}) {
+  const category = searchParams.category || '';
+
+  const conditions: any[] = [eq(campusGallery.isPublished, true)];
+  if (category) conditions.push(eq(campusGallery.category, category));
+
   const images = await db
     .select()
     .from(campusGallery)
-    .where(eq(campusGallery.isPublished, true))
+    .where(and(...conditions))
     .orderBy(desc(campusGallery.createdAt));
 
   const categories = await db
-    .selectDistinct({
-      category: campusGallery.category,
-    })
+    .selectDistinct({ category: campusGallery.category })
     .from(campusGallery)
     .where(eq(campusGallery.isPublished, true))
     .orderBy(campusGallery.category);
+
+  const validCategories = categories
+    .map((c) => c.category)
+    .filter((c): c is string => !!c);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
@@ -28,11 +41,28 @@ export default async function CampusGalleryPage() {
         </p>
 
         <div className="flex flex-wrap gap-2 mb-8">
-          <span className="px-3 py-1 text-sm bg-primary-green text-white">All</span>
-          {categories.map((cat) => (
-            <span key={cat.category} className="px-3 py-1 text-sm border border-gray-300">
-              {cat.category}
-            </span>
+          <Link
+            href="/campus/gallery"
+            className={`px-3 py-1 text-sm border transition-colors ${
+              !category
+                ? 'bg-primary-green text-white border-primary-green'
+                : 'border-gray-300 hover:border-primary-green'
+            }`}
+          >
+            All
+          </Link>
+          {validCategories.map((cat) => (
+            <Link
+              key={cat}
+              href={`/campus/gallery?category=${cat}`}
+              className={`px-3 py-1 text-sm border transition-colors capitalize ${
+                category === cat
+                  ? 'bg-primary-green text-white border-primary-green'
+                  : 'border-gray-300 hover:border-primary-green'
+              }`}
+            >
+              {cat}
+            </Link>
           ))}
         </div>
 
@@ -44,13 +74,14 @@ export default async function CampusGalleryPage() {
                 className="border border-gray-200 bg-white overflow-hidden hover:border-primary-green transition-colors"
               >
                 <div className="aspect-square relative bg-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={image.imageUrl}
                     alt={image.title || 'Campus image'}
                     className="w-full h-full object-cover"
                   />
                   {image.category && (
-                    <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5">
+                    <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 capitalize">
                       {image.category}
                     </span>
                   )}
@@ -65,7 +96,19 @@ export default async function CampusGalleryPage() {
           </div>
         ) : (
           <div className="border border-gray-200 bg-white p-8 text-center">
-            <p className="text-muted-text">No gallery images available yet.</p>
+            <p className="text-muted-text">
+              {category
+                ? `No images in "${category}" yet.`
+                : 'No gallery images available yet.'}
+            </p>
+            {category && (
+              <Link
+                href="/campus/gallery"
+                className="text-primary-green hover:underline text-sm mt-2 inline-block"
+              >
+                View all images →
+              </Link>
+            )}
           </div>
         )}
       </div>
