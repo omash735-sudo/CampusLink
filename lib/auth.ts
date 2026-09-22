@@ -1,4 +1,14 @@
 // lib/auth.ts
+//
+// Compatibility shim.
+//
+// The real auth logic now lives in lib/auth/*. This file re-exports the
+// public surface so existing imports (`@/lib/auth`) keep working while
+// we migrate callers in Batch 3.
+//
+// Once Batch 3 is done, this file can be deleted and its callers
+// updated to import from `@/lib/auth` (which resolves to lib/auth/index.ts).
+
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
@@ -12,6 +22,39 @@ if (!JWT_SECRET) {
   throw new Error('[lib/auth] JWT_SECRET is not set');
 }
 
+// ---------------------------------------------------------------------------
+// Re-export the new centralized API
+// ---------------------------------------------------------------------------
+
+export { resolveAuth } from './auth/resolve-auth';
+export type { AuthUser, AuthResult } from './auth/resolve-auth';
+export { verifyToken } from './auth/verify-token';
+export type { TokenPayload } from './auth/verify-token';
+export { getCurrentUser, getUserByToken } from './auth/get-current-user';
+export {
+  canAccess,
+  explainDenial,
+  isPublic,
+  PUBLIC_ROUTES,
+  PUBLIC_PREEMPT_ROUTES,
+  AUTH_ROUTE_RULES,
+  API_ROUTE_RULES,
+} from './auth/authorization';
+export type { Rule } from './auth/authorization';
+export {
+  ALL_ROLES,
+  LANDING_PATH,
+  FALLBACK_LANDING,
+  coerceRole,
+  landingFor,
+} from './auth/roles';
+export type { Role } from './auth/roles';
+export { requireUserFor, requireAuthFor, requireAnyAuth } from './auth/guards';
+
+// ---------------------------------------------------------------------------
+// Passwords
+// ---------------------------------------------------------------------------
+
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
@@ -20,44 +63,40 @@ export async function comparePassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
+// ---------------------------------------------------------------------------
+// Tokens
+// ---------------------------------------------------------------------------
+
 export function signToken(userId: string, role: string = 'student') {
   return jwt.sign({ userId, role }, JWT_SECRET!, { expiresIn: '7d' });
 }
 
-export function verifyToken(token: string) {
-  try {
-    return jwt.verify(token, JWT_SECRET!) as { userId: string; role: string };
-  } catch {
-    return null;
-  }
-}
-
-export async function getCurrentUser() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('auth_token')?.value;
-
-  if (!token) return null;
-
-  const decoded = verifyToken(token);
-  if (!decoded) return null;
-
-  const user = await db
-    .select()
-    .from(campuslinkUsers)
-    .where(eq(campuslinkUsers.id, decoded.userId));
-
-  const found = user[0];
-  if (!found) return null;
-
-  if (found.isActive === false) return null;
-
-  return found;
-}
+// ---------------------------------------------------------------------------
+// Legacy require* helpers
+//
+// Kept for compatibility with any caller we haven't migrated yet.
+// New code should use:
+//   - requireUserFor(pagePath)          for server components
+//   - requireAuthFor(request, apiPath)  for API routes
+//
+// These throw on failure, matching their previous behavior.
+// ---------------------------------------------------------------------------
 
 export async function requireAuth() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
-  return user;
+  const cookieStore = cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  if (!token) throw new Error('Unauthorized');
+
+  const decoded = jwt.verify(token, JWT_SECRET!) as { userId: string };
+  const [found] = await db
+    .select()
+    .from(campuslinkUsers)
+    .where(eq(campuslinkUsers.id, decoded.userId))
+    .limit(1);
+
+  if (!found) throw new Error('Unauthorized');
+  if (found.isActive === false) throw new Error('Unauthorized');
+  return found;
 }
 
 export async function requireAdmin() {
@@ -94,6 +133,10 @@ export async function requireMentor() {
   throw new Error('Mentor access required');
 }
 
+// ---------------------------------------------------------------------------
+// Admin existence check (used by /admin/setup)
+// ---------------------------------------------------------------------------
+
 export async function adminExists(): Promise<boolean> {
   const result = await db
     .select({ count: sql<number>`count(*)` })
@@ -101,6 +144,10 @@ export async function adminExists(): Promise<boolean> {
     .where(eq(campuslinkUsers.role, 'admin'));
   return (result[0]?.count || 0) > 0;
 }
+
+// ---------------------------------------------------------------------------
+// Cookies
+// ---------------------------------------------------------------------------
 
 export function setAuthCookie(token: string) {
   cookies().set('auth_token', token, {
@@ -116,13 +163,10 @@ export function clearAuthCookie() {
   cookies().delete('auth_token');
 }
 
-/**
- * Role-based landing page after login.
- *
- * IMPORTANT: keep this in sync with getRedirectPathForRole() in middleware.ts.
- * Middleware runs on Edge and can't import this file (bcrypt/db deps), so the
- * rule is duplicated. Change one → change both.
- */
+// ---------------------------------------------------------------------------
+// Redirect path (kept for callers that still import it)
+// ---------------------------------------------------------------------------
+
 export function getRedirectPath(user: {
   role?: string | null;
   isMentor?: boolean | null;
@@ -132,6 +176,10 @@ export function getRedirectPath(user: {
   if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
   return '/student/dashboard';
 }
+
+// ---------------------------------------------------------------------------
+// Super access (unchanged)
+// ---------------------------------------------------------------------------
 
 const SUPER_ACCESS_COOKIE = 'super_access_token';
 const SUPER_ACCESS_TTL_SECONDS = 60 * 60;
