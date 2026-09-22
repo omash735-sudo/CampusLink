@@ -3,14 +3,26 @@
 
 import { useState } from 'react';
 
+type Result =
+  | {
+      kind: 'ok';
+      message: string;
+      details: Record<string, any>;
+      warning?: string;
+    }
+  | {
+      kind: 'err';
+      message: string;
+      code?: string;
+      response?: string;
+      hint?: string;
+    }
+  | null;
+
 export function TestEmailPanel({ defaultTo = '' }: { defaultTo?: string }) {
   const [to, setTo] = useState(defaultTo);
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<
-    | { kind: 'ok'; message: string; elapsed: number }
-    | { kind: 'err'; message: string; hint?: string }
-    | null
-  >(null);
+  const [result, setResult] = useState<Result>(null);
 
   const handleSend = async () => {
     setSending(true);
@@ -24,17 +36,28 @@ export function TestEmailPanel({ defaultTo = '' }: { defaultTo?: string }) {
       });
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         setResult({
           kind: 'err',
           message: data.error || 'Failed',
+          code: data.code,
+          response: data.response,
           hint: data.hint,
         });
       } else {
         setResult({
           kind: 'ok',
-          message: `Delivered. Message ID: ${data.messageId}`,
-          elapsed: data.elapsedMs,
+          message: `Server accepted the message.`,
+          details: {
+            to: data.to,
+            from: data.from,
+            messageId: data.messageId,
+            response: data.response,
+            accepted: data.accepted,
+            rejected: data.rejected,
+            elapsedMs: data.elapsedMs,
+          },
+          warning: data.warning,
         });
       }
     } catch (err: any) {
@@ -70,23 +93,57 @@ export function TestEmailPanel({ defaultTo = '' }: { defaultTo?: string }) {
 
       {result && (
         <div
-          className={`p-3 text-sm border ${
+          className={`p-3 text-sm border space-y-2 ${
             result.kind === 'ok'
               ? 'border-green-300 bg-green-50 text-green-800'
               : 'border-red-300 bg-red-50 text-red-700'
           }`}
         >
-          <p>{result.message}</p>
-          {result.kind === 'ok' && (
-            <p className="text-xs mt-1 opacity-75">
-              Took {result.elapsed}ms
+          <p className="font-medium">{result.message}</p>
+
+          {result.kind === 'err' && result.code && (
+            <p className="text-xs">Code: {result.code}</p>
+          )}
+          {result.kind === 'err' && result.response && (
+            <p className="text-xs break-words">
+              Server: {result.response}
             </p>
           )}
           {result.kind === 'err' && result.hint && (
-            <p className="text-xs mt-2 opacity-90">{result.hint}</p>
+            <p className="text-xs opacity-90">{result.hint}</p>
+          )}
+
+          {result.kind === 'ok' && result.warning && (
+            <p className="text-xs bg-yellow-100 border border-yellow-300 text-yellow-900 p-2">
+              {result.warning}
+            </p>
+          )}
+
+          {result.kind === 'ok' && (
+            <details>
+              <summary className="cursor-pointer text-xs opacity-80">
+                Server response details
+              </summary>
+              <pre className="mt-1 text-[11px] bg-white/60 p-2 overflow-auto">
+                {JSON.stringify(result.details, null, 2)}
+              </pre>
+            </details>
           )}
         </div>
       )}
+
+      <div className="text-xs text-gray-500 border-t border-gray-100 pt-3 space-y-1">
+        <p className="font-medium">If it says &quot;accepted&quot; but nothing arrives:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li>Check spam, promotions, and updates tabs — not just inbox.</li>
+          <li>
+            Confirm <code className="bg-gray-100 px-1">SMTP_FROM</code> matches{' '}
+            <code className="bg-gray-100 px-1">SMTP_USER</code> in the details above.
+          </li>
+          <li>Send to a different provider (Outlook, iCloud) to rule out Gmail-to-Gmail filtering.</li>
+          <li>Google sometimes throttles or silently drops first-time senders from a fresh Gmail SMTP connection.</li>
+        </ul>
+      </div>
     </div>
   );
 }
