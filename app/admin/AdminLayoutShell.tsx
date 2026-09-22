@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -79,7 +79,6 @@ export function AdminLayoutShell({
   email: string;
   avatar: string | null;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -123,11 +122,16 @@ export function AdminLayoutShell({
   }, [pathname]);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'super_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/auth/login');
-    router.refresh();
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // ignore — we're logging out either way
+    }
+    // Full page reload so the layout + navbar re-fetch auth state
+    window.location.href = '/auth/login';
   };
 
   if (pathname === '/admin/setup') {
