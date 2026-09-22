@@ -1,7 +1,7 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { getCurrentUser } from '@/lib/auth';
+import { requireAdminOrPublications } from '@/lib/dev-auth';
 
 export const runtime = 'nodejs';
 
@@ -17,16 +17,18 @@ const ALLOWED_TYPES = [
   'clubs',
   'announcements',
   'events',
+  'campus',
   'general',
 ];
 
 export async function POST(request: Request) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || (user.role !== 'admin' && user.role !== 'publications')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await requireAdminOrPublications();
+  if (!user) {
+    console.warn('[upload] rejected: no admin/publications user');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
