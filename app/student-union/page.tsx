@@ -1,34 +1,40 @@
 // app/student-union/page.tsx
 import Link from 'next/link';
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import { studentUnionMembers } from '@/lib/db/schema';
 import { eq, asc, desc, and } from 'drizzle-orm';
 
-export const dynamic = 'force-dynamic';
+const getMembers = unstable_cache(
+  async () => {
+    const [latest] = await db
+      .select({ academicYear: studentUnionMembers.academicYear })
+      .from(studentUnionMembers)
+      .where(eq(studentUnionMembers.isActive, true))
+      .orderBy(desc(studentUnionMembers.academicYear))
+      .limit(1);
 
-async function getMembers() {
-  const [latest] = await db
-    .select({ academicYear: studentUnionMembers.academicYear })
-    .from(studentUnionMembers)
-    .where(eq(studentUnionMembers.isActive, true))
-    .orderBy(desc(studentUnionMembers.academicYear))
-    .limit(1);
+    if (!latest) return { year: null, members: [] as typeof studentUnionMembers.$inferSelect[] };
 
-  if (!latest) return { year: null, members: [] };
-
-  const members = await db
-    .select()
-    .from(studentUnionMembers)
-    .where(
-      and(
-        eq(studentUnionMembers.isActive, true),
-        eq(studentUnionMembers.academicYear, latest.academicYear)
+    const members = await db
+      .select()
+      .from(studentUnionMembers)
+      .where(
+        and(
+          eq(studentUnionMembers.isActive, true),
+          eq(studentUnionMembers.academicYear, latest.academicYear)
+        )
       )
-    )
-    .orderBy(asc(studentUnionMembers.sortOrder));
+      .orderBy(asc(studentUnionMembers.sortOrder));
 
-  return { year: latest.academicYear, members };
-}
+    return { year: latest.academicYear, members };
+  },
+  ['student-union-members'],
+  {
+    revalidate: 86400, // 24 hours
+    tags: ['student-union'],
+  }
+);
 
 export default async function StudentUnionPage() {
   const { year, members } = await getMembers();
