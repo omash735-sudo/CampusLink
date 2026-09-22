@@ -2,23 +2,17 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
-import { passwordResetOtps, campuslinkUsers } from '@/lib/db/schema';
+import { passwordResetOtps } from '@/lib/db/schema';
 import { and, eq, isNull, lt, or, desc } from 'drizzle-orm';
 
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_TTL_MINUTES = 15;
 
-/**
- * Generate a 6-digit numeric OTP, uniformly distributed.
- */
 export function generateOtp(): string {
   return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
 }
 
-/**
- * Generate a random opaque reset token (returned to user, hashed in DB).
- */
 export function generateResetToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -31,12 +25,12 @@ export async function verifySecret(secret: string, hash: string): Promise<boolea
   return bcrypt.compare(secret, hash);
 }
 
-/**
- * Create a new OTP record for a user. Invalidates any previous
- * unconsumed OTPs for the same user.
- */
+/** SHA-256 hash for the reset token — deterministic so we can query by it. */
+function hashResetToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
 export async function createOtpRecord(userId: string, email: string) {
-  // Invalidate previous unconsumed OTPs for this user
   await db
     .update(passwordResetOtps)
     .set({ consumedAt: new Date() })
@@ -65,10 +59,6 @@ export async function createOtpRecord(userId: string, email: string) {
   return { record: row, otp };
 }
 
-/**
- * Find the most recent active OTP record for an email.
- * "Active" = not consumed, not verified yet.
- */
 export async function findActiveOtp(email: string) {
   const [row] = await db
     .select()
@@ -85,10 +75,6 @@ export async function findActiveOtp(email: string) {
   return row ?? null;
 }
 
-/**
- * Verify an OTP. Increments attempts on failure.
- * On success, marks verifiedAt and issues a reset token.
- */
 export async function verifyOtpAndIssueResetToken(
   email: string,
   otp: string
@@ -120,9 +106,8 @@ export async function verifyOtpAndIssueResetToken(
     return { ok: false, reason: 'invalid' };
   }
 
-  // Success — issue reset token
   const resetToken = generateResetToken();
-  const resetTokenHash = await hashSecret(resetToken);
+  const resetTokenHash = hashResetToken(resetToken);
   const resetTokenExpiresAt = new Date(
     Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000
   );
@@ -140,8 +125,8 @@ export async function verifyOtpAndIssueResetToken(
 }
 
 /**
- * Validate a reset token and return the associated user ID.
- * Does NOT consume the token — reset-password does that on success.
+ * Look up the reset token row directly by its deterministic SHA-256 hash.
+ * O(1) query — no scanning, no limit, no race.
  */
 export async function resolveResetToken(
   token: string
@@ -149,34 +134,29 @@ export async function resolveResetToken(
   | { ok: true; recordId: string; userId: string; email: string }
   | { ok: false }
 > {
-  // We can't query by token hash directly (bcrypt is non-deterministic).
-  // So: find recent unexpired reset-token records, compare each.
-  const candidates = await db
+  const tokenHash = hashResetToken(token);
+
+  const [record] = await db
     .select()
     .from(passwordResetOtps)
     .where(
       and(
-        isNull(passwordResetOtps.consumedAt),
-        // resetTokenExpiresAt > now
-        or(
-          isNull(passwordResetOtps.resetTokenHash),
-          // we'll filter in JS since drizzle can't compare easily here
-        )!
+        eq(passwordResetOtps.resetTokenHash, tokenHash),
+        isNull(passwordResetOtps.consumedAt)
       )
     )
-    .orderBy(desc(passwordResetOtps.createdAt))
-    .limit(20);
+    .limit(1);
 
-  for (const rec of candidates) {
-    if (!rec.resetTokenHash || !rec.resetTokenExpiresAt) continue;
-    if (rec.resetTokenExpiresAt.getTime() < Date.now()) continue;
-    const matches = await verifySecret(token, rec.resetTokenHash);
-    if (matches) {
-      return { ok: true, recordId: rec.id, userId: rec.userId, email: rec.email };
-    }
-  }
+  if (!record) return { ok: false };
+  if (!record.resetTokenExpiresAt) return { ok: false };
+  if (record.resetTokenExpiresAt.getTime() < Date.now()) return { ok: false };
 
-  return { ok: false };
+  return {
+    ok: true,
+    recordId: record.id,
+    userId: record.userId,
+    email: record.email,
+  };
 }
 
 export async function consumeResetToken(recordId: string) {
@@ -186,10 +166,6 @@ export async function consumeResetToken(recordId: string) {
     .where(eq(passwordResetOtps.id, recordId));
 }
 
-/**
- * Optional cleanup: delete consumed/expired OTP rows older than 24 hours.
- * Call from a cron or on each new OTP creation.
- */
 export async function cleanupExpiredOtps() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   await db
