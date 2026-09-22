@@ -21,7 +21,7 @@ interface EmailData {
 export async function sendEmail(data: EmailData) {
   try {
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@campuslink.com',
+      from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@campuslink.com',
       to: data.to,
       subject: data.subject,
       html: data.html,
