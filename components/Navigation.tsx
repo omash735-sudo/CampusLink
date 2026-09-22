@@ -4,11 +4,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 export function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +15,7 @@ export function Navigation() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
@@ -31,11 +30,16 @@ export function Navigation() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    localStorage.removeItem('userRole');
-    router.push('/');
-    router.refresh();
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // ignore — we're logging out either way
+    }
+    // Full page reload so the navbar re-fetches /api/auth/me
+    window.location.href = '/';
   };
 
   let navLinks = [];
@@ -82,7 +86,6 @@ export function Navigation() {
     <nav className="border-b border-gray-200 bg-white">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <Image
               src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
@@ -95,7 +98,6 @@ export function Navigation() {
             <span className="text-xl font-semibold text-primary-green">CampusLink</span>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
             {navLinks.map((link) => (
               <Link
@@ -133,7 +135,6 @@ export function Navigation() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 text-primary-text hover:text-primary-green md:hidden"
@@ -145,7 +146,6 @@ export function Navigation() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="border-t border-gray-200 py-4 md:hidden">
             <div className="flex flex-col space-y-3">
