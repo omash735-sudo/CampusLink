@@ -45,10 +45,13 @@ export async function POST(request: Request) {
 
     await consumeResetToken(resolved.recordId);
 
-    // Notify user their password was changed
-    sendPasswordChangedConfirmationEmail(user.email, user.fullName).catch((err) => {
+    // Notify user their password was changed.
+    // Must await — Vercel freezes the function the moment we return.
+    try {
+      await sendPasswordChangedConfirmationEmail(user.email, user.fullName);
+    } catch (err) {
       console.error('[reset-password] confirmation email failed:', err);
-    });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
