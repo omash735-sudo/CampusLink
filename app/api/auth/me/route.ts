@@ -8,7 +8,11 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ user });
+
+    // Never expose the password hash
+    const { passwordHash, ...safeUser } = user;
+
+    return NextResponse.json({ user: safeUser });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to get user' },
