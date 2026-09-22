@@ -6,42 +6,61 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default async function CampusLocationPage({ params }: { params: { slug: string } }) {
+export const dynamic = 'force-dynamic';
+
+export default async function CampusLocationPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
   const location = await db
     .select()
     .from(campusLocations)
-    .where(and(
-      eq(campusLocations.slug, params.slug),
-      eq(campusLocations.isPublished, true)
-    ))
-    .then(res => res[0]);
+    .where(
+      and(
+        eq(campusLocations.slug, params.slug),
+        eq(campusLocations.isPublished, true)
+      )
+    )
+    .then((res) => res[0]);
 
   if (!location) {
     notFound();
   }
 
   const nearby = await db
-    .select({
-      nearby: campusLocations,
-    })
+    .select({ nearby: campusLocations })
     .from(campusLocationNearby)
-    .leftJoin(campusLocations, eq(campusLocationNearby.nearbyLocationId, campusLocations.id))
-    .where(eq(campusLocationNearby.locationId, location.id))
-    .then(res => res.map(r => r.nearby));
+    .leftJoin(
+      campusLocations,
+      eq(campusLocationNearby.nearbyLocationId, campusLocations.id)
+    )
+    .where(
+      and(
+        eq(campusLocationNearby.locationId, location.id),
+        eq(campusLocations.isPublished, true)
+      )
+    )
+    .then((res) => res.map((r) => r.nearby).filter(Boolean));
 
   const gallery = await db
     .select()
     .from(campusGallery)
-    .where(and(
-      eq(campusGallery.locationId, location.id),
-      eq(campusGallery.isPublished, true)
-    ))
+    .where(
+      and(
+        eq(campusGallery.locationId, location.id),
+        eq(campusGallery.isPublished, true)
+      )
+    )
     .orderBy(campusGallery.sortOrder);
 
   return (
     <div className="min-h-screen bg-off-white py-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Link href="/campus/explore" className="text-primary-green hover:underline text-sm">
+        <Link
+          href="/campus/explore"
+          className="text-primary-green hover:underline text-sm"
+        >
           ← Back to Campus
         </Link>
 
@@ -64,7 +83,9 @@ export default async function CampusLocationPage({ params }: { params: { slug: s
           <div className="p-6">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold">{location.name}</h1>
-              <span className="text-sm bg-gray-100 px-3 py-1 capitalize">{location.category}</span>
+              <span className="text-sm bg-gray-100 px-3 py-1 capitalize">
+                {location.category}
+              </span>
             </div>
 
             {location.shortDescription && (
@@ -88,7 +109,9 @@ export default async function CampusLocationPage({ params }: { params: { slug: s
               {location.openingHours && (
                 <div className="border border-gray-200 p-4">
                   <h3 className="font-semibold text-sm">Opening Hours</h3>
-                  <p className="text-muted-text text-sm">{location.openingHours}</p>
+                  <p className="text-muted-text text-sm">
+                    {location.openingHours}
+                  </p>
                 </div>
               )}
               {location.contactInfo && (
@@ -100,7 +123,9 @@ export default async function CampusLocationPage({ params }: { params: { slug: s
               {location.accessibilityInfo && (
                 <div className="border border-gray-200 p-4">
                   <h3 className="font-semibold text-sm">Accessibility</h3>
-                  <p className="text-muted-text text-sm">{location.accessibilityInfo}</p>
+                  <p className="text-muted-text text-sm">
+                    {location.accessibilityInfo}
+                  </p>
                 </div>
               )}
             </div>
@@ -121,7 +146,11 @@ export default async function CampusLocationPage({ params }: { params: { slug: s
             <h2 className="text-xl font-bold mb-4">Gallery</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {gallery.map((image) => (
-                <div key={image.id} className="aspect-square border border-gray-200 bg-gray-100 overflow-hidden">
+                <div
+                  key={image.id}
+                  className="aspect-square border border-gray-200 bg-gray-100 overflow-hidden"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={image.imageUrl}
                     alt={image.title || location.name}
@@ -137,18 +166,21 @@ export default async function CampusLocationPage({ params }: { params: { slug: s
           <div className="mt-6">
             <h2 className="text-xl font-bold mb-4">Nearby Locations</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {nearby.map((nearbyLocation) => (
-                nearbyLocation && (
-                  <Link
-                    key={nearbyLocation.id}
-                    href={`/campus/locations/${nearbyLocation.slug}`}
-                    className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
-                  >
-                    <h3 className="font-semibold">{nearbyLocation.name}</h3>
-                    <p className="text-sm text-muted-text capitalize">{nearbyLocation.category}</p>
-                  </Link>
-                )
-              ))}
+              {nearby.map(
+                (nearbyLocation) =>
+                  nearbyLocation && (
+                    <Link
+                      key={nearbyLocation.id}
+                      href={`/campus/locations/${nearbyLocation.slug}`}
+                      className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
+                    >
+                      <h3 className="font-semibold">{nearbyLocation.name}</h3>
+                      <p className="text-sm text-muted-text capitalize">
+                        {nearbyLocation.category}
+                      </p>
+                    </Link>
+                  )
+              )}
             </div>
           </div>
         )}
