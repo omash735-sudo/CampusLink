@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { events } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdminOrPublications } from '@/lib/dev-auth';
+import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -29,6 +30,13 @@ export async function PUT(
   try {
     const body = await request.json();
 
+    const [existing] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, params.id))
+      .limit(1);
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
     const [event] = await db
       .update(events)
       .set({
@@ -46,7 +54,17 @@ export async function PUT(
       .where(eq(events.id, params.id))
       .returning();
 
-    if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (user.id) {
+      await logAudit({
+        adminId: user.id,
+        action: user.isBypass ? '[DEV_BYPASS] update_event' : 'update_event',
+        entity: 'event',
+        entityId: params.id,
+        previousValue: { title: existing.title, status: existing.status },
+        newValue: { title: event.title, status: event.status },
+      });
+    }
+
     return NextResponse.json(event);
   } catch (error: any) {
     return NextResponse.json(
@@ -63,6 +81,24 @@ export async function DELETE(
   const user = await requireAdminOrPublications();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const [existing] = await db
+    .select()
+    .from(events)
+    .where(eq(events.id, params.id))
+    .limit(1);
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
   await db.delete(events).where(eq(events.id, params.id));
+
+  if (user.id) {
+    await logAudit({
+      adminId: user.id,
+      action: user.isBypass ? '[DEV_BYPASS] delete_event' : 'delete_event',
+      entity: 'event',
+      entityId: params.id,
+      previousValue: { title: existing.title },
+    });
+  }
+
   return NextResponse.json({ success: true });
 }
