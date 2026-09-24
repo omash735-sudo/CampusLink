@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            'Your account is pending activation. Access to CampusLink will be enabled once authorization is complete.',
+            'Your account has been suspended. Please contact CampusLink support if you believe this is a mistake.',
           code: 'ACCOUNT_RESTRICTED',
         },
         { status: 403 }
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
         role: user.role,
         isMentor: user.isMentor,
         mentorStatus: user.mentorStatus,
+        publicationsStatus: user.publicationsStatus,
       },
       redirectTo: getRedirectPath(user),
     });
