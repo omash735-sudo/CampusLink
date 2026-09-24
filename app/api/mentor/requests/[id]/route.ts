@@ -1,9 +1,11 @@
 // app/api/mentors/requests/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { mentorshipRequests, mentorships, campuslinkUsers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { mentorshipRequests, mentorships, mentors } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireMentor } from '@/lib/auth';
+
+export const runtime = 'nodejs';
 
 export async function PUT(
   request: Request,
@@ -22,52 +24,48 @@ export async function PUT(
     }
 
     // Get the request
-    const requestData = await db
+    const [requestData] = await db
       .select()
       .from(mentorshipRequests)
       .where(eq(mentorshipRequests.id, params.id))
-      .then(res => res[0]);
+      .limit(1);
 
     if (!requestData) {
-      return NextResponse.json(
-        { error: 'Request not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    // Verify the mentor owns this request
-    const mentor = await db
+    // Look up the mentor profile belonging to this user
+    const [mentorProfile] = await db
       .select()
-      .from(campuslinkUsers)
-      .where(eq(campuslinkUsers.id, user.id))
-      .then(res => res[0]);
+      .from(mentors)
+      .where(eq(mentors.userId, user.id))
+      .limit(1);
 
-    if (!mentor || mentor.id !== requestData.mentorId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+    if (!mentorProfile || mentorProfile.id !== requestData.mentorId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     if (action === 'accept') {
-      // Update request status
-      await db.update(mentorshipRequests)
+      await db
+        .update(mentorshipRequests)
         .set({ status: 'accepted', updatedAt: new Date() })
         .where(eq(mentorshipRequests.id, params.id));
 
-      // Create mentorship record
-      const [mentorship] = await db.insert(mentorships).values({
-        mentorId: requestData.mentorId,
-        studentId: requestData.studentId,
-        requestId: requestData.id,
-        status: 'active',
-        startedAt: new Date(),
-      }).returning();
+      const [mentorship] = await db
+        .insert(mentorships)
+        .values({
+          mentorId: requestData.mentorId,
+          studentId: requestData.studentId,
+          requestId: requestData.id,
+          status: 'active',
+          startedAt: new Date(),
+        })
+        .returning();
 
       return NextResponse.json({ mentorship, status: 'accepted' });
     } else {
-      // Decline
-      await db.update(mentorshipRequests)
+      await db
+        .update(mentorshipRequests)
         .set({ status: 'declined', updatedAt: new Date() })
         .where(eq(mentorshipRequests.id, params.id));
 
@@ -76,7 +74,7 @@ export async function PUT(
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to process request' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { status: error.status === 401 ? 401 : 500 }
     );
   }
 }
