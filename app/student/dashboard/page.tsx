@@ -15,8 +15,23 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Greeting based on Malawi local time (UTC+2, no DST).
+ * Vercel server functions run in UTC, so we shift the hour manually.
+ * All CampusLink users are in Malawi, so this matches their real local time.
+ */
+function getGreeting(): string {
+  const now = new Date();
+  const malawiHour = (now.getUTCHours() + 2) % 24;
+
+  if (malawiHour < 12) return 'Good morning';
+  if (malawiHour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default async function StudentDashboard() {
   const user = await requireAuth();
+  const greeting = getGreeting();
 
   const recentAnnouncements = await db
     .select()
@@ -123,7 +138,7 @@ export default async function StudentDashboard() {
                   Student Dashboard
                 </p>
                 <h1 className="text-2xl md:text-3xl font-bold text-primary-text mt-1">
-                  Good morning, {user.fullName.split(' ')[0]}
+                  {greeting}, {user.fullName.split(' ')[0]}
                 </h1>
                 <p className="text-sm text-muted-text mt-1">
                   {user.programme || 'No programme'}
