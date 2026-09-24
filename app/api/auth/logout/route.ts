@@ -5,7 +5,7 @@ import { clearAuthCookie, clearSuperAccessCookie } from '@/lib/auth';
 export const runtime = 'nodejs';
 
 export async function POST() {
-  clearAuthCookie();
-  clearSuperAccessCookie();
+  await clearAuthCookie();
+  await clearSuperAccessCookie();
   return NextResponse.json({ success: true });
 }
