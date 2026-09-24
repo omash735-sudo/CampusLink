@@ -2,26 +2,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
 
 interface Community {
   id: string;
   name: string;
   slug: string;
-  description: string;
-  category: string;
-  whatsappLink: string;
+  description: string | null;
+  category: string | null;
+  whatsappLink: string | null;
+  status: string;
   isActive: boolean;
   memberCount: number;
+  submittedBy: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewNotes: string | null;
   createdAt: string;
 }
+
+type Tab = 'pending' | 'approved' | 'rejected';
 
 export default function AdminCommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Community | null>(null);
+  const [tab, setTab] = useState<Tab>('pending');
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -31,106 +37,89 @@ export default function AdminCommunitiesPage() {
   });
 
   useEffect(() => {
-    loadCommunities();
+    load();
   }, []);
 
-  const loadCommunities = async () => {
+  const load = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/communities');
-      const data = await res.json();
-      if (res.ok) {
-        setCommunities(data);
-      }
-    } catch (error) {
-      console.error('Failed to load communities:', error);
+      if (res.ok) setCommunities(await res.json());
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const url = editing 
-        ? `/api/admin/communities/${editing.id}`
-        : '/api/admin/communities';
-      const method = editing ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        }),
-      });
-
-      if (res.ok) {
-        await loadCommunities();
-        setShowForm(false);
-        setEditing(null);
-        setForm({ name: '', description: '', category: '', whatsappLink: '', isActive: true });
-      }
-    } catch (error) {
-      console.error('Failed to save community:', error);
+    const res = await fetch('/api/admin/communities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...form,
+        slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      }),
+    });
+    if (res.ok) {
+      setShowForm(false);
+      setForm({ name: '', description: '', category: '', whatsappLink: '', isActive: true });
+      await load();
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this community?')) return;
-    try {
-      await fetch(`/api/admin/communities/${id}`, { method: 'DELETE' });
-      await loadCommunities();
-    } catch (error) {
-      console.error('Failed to delete:', error);
-    }
-  };
-
-  const handleEdit = (community: Community) => {
-    setEditing(community);
-    setForm({
-      name: community.name,
-      description: community.description || '',
-      category: community.category || '',
-      whatsappLink: community.whatsappLink || '',
-      isActive: community.isActive,
+    await fetch(`/api/admin/communities/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
     });
-    setShowForm(true);
+    await load();
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between">
-          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 p-4">
-              <div className="h-6 w-32 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-4 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleApprove = async (id: string) => {
+    await fetch(`/api/admin/communities/${id}/approve`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    await load();
+  };
+
+  const handleReject = async (id: string) => {
+    const reviewNotes = prompt('Reason for rejection (optional):') || '';
+    await fetch(`/api/admin/communities/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ reviewNotes: reviewNotes || null }),
+    });
+    await load();
+  };
+
+  const byTab = (t: Tab) =>
+    communities.filter((c) => c.status === t);
+
+  const tabs: { key: Tab; label: string; count: number }[] = [
+    { key: 'pending', label: 'Pending', count: byTab('pending').length },
+    { key: 'approved', label: 'Approved', count: byTab('approved').length },
+    { key: 'rejected', label: 'Rejected', count: byTab('rejected').length },
+  ];
+
+  const visible = byTab(tab);
+
+  if (loading) return <div className="p-8">Loading…</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Communities</h1>
-          <p className="text-sm text-gray-500">{communities.length} total communities</p>
+          <p className="text-sm text-gray-500">
+            {communities.length} total · {byTab('pending').length} pending review
+          </p>
         </div>
         <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditing(null);
-            setForm({ name: '', description: '', category: '', whatsappLink: '', isActive: true });
-          }}
+          onClick={() => setShowForm(!showForm)}
           className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1"
         >
           <PlusIcon className="h-4 w-4" />
@@ -138,138 +127,150 @@ export default function AdminCommunitiesPage() {
         </button>
       </div>
 
-      {/* Form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            {editing ? 'Edit Community' : 'Add Community'}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label-text">Name *</label>
-              <input
-                type="text"
-                required
-                className="input-field"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Social Work Students"
-              />
-            </div>
-            <div>
-              <label className="label-text">Description</label>
-              <textarea
-                rows={3}
-                className="input-field"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Community description..."
-              />
-            </div>
-            <div>
-              <label className="label-text">Category</label>
-              <input
-                type="text"
-                className="input-field"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                placeholder="e.g. Academic, Social, Sports"
-              />
-            </div>
-            <div>
-              <label className="label-text">WhatsApp Link</label>
-              <input
-                type="url"
-                className="input-field"
-                value={form.whatsappLink}
-                onChange={(e) => setForm({ ...form, whatsappLink: e.target.value })}
-                placeholder="https://chat.whatsapp.com/..."
-              />
-              <p className="text-xs text-muted-text mt-1">WhatsApp group invite link</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <label htmlFor="isActive" className="text-sm">Active</label>
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
-              >
-                {editing ? 'Update' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditing(null);
-                }}
-                className="border border-gray-300 px-6 py-2 font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+        <form onSubmit={handleCreate} className="bg-white border border-gray-200 p-6 space-y-4">
+          <h2 className="font-semibold">Add Community (pre-approved)</h2>
+          <input
+            required
+            className="input-field"
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <textarea
+            className="input-field"
+            rows={3}
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+          <input
+            className="input-field"
+            placeholder="Category"
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          />
+          <input
+            required
+            className="input-field"
+            placeholder="https://chat.whatsapp.com/..."
+            value={form.whatsappLink}
+            onChange={(e) => setForm({ ...form, whatsappLink: e.target.value })}
+          />
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="bg-primary-green text-white px-6 py-2 text-sm font-medium hover:bg-deep-green"
+            >
+              Create
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="border border-gray-300 px-6 py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
 
-      {/* Communities Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {communities.map((community) => (
-          <div key={community.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">{community.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 ${
-                    community.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {community.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                {community.description && (
-                  <p className="text-sm text-gray-500 mt-1">{community.description}</p>
-                )}
-                <p className="text-sm text-gray-500">{community.category || 'No category'}</p>
-                {community.whatsappLink && (
-                  <p className="text-sm text-gray-500 truncate">WhatsApp: {community.whatsappLink}</p>
-                )}
-                <p className="text-xs text-gray-400 mt-1">{community.memberCount} members</p>
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-2">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 text-sm ${
+              tab === t.key
+                ? 'bg-primary-green text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {t.label} ({t.count})
+          </button>
+        ))}
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="bg-white border border-gray-200 p-8 text-center">
+          <p className="text-gray-500">No communities in this tab.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {visible.map((c) => (
+            <div
+              key={c.id}
+              className="bg-white border border-gray-200 p-5 flex flex-col"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold">{c.name}</h3>
+                <span className={`text-xs px-2 py-0.5 ${
+                  c.status === 'approved' ? 'bg-green-100 text-green-700'
+                  : c.status === 'pending' ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-700'
+                }`}>
+                  {c.status}
+                </span>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button
-                  onClick={() => handleEdit(community)}
-                  className="text-sm text-gray-500 hover:text-gray-700"
+
+              {c.description && (
+                <p className="text-sm text-gray-500 mt-1 line-clamp-3">{c.description}</p>
+              )}
+
+              {c.category && (
+                <p className="text-xs text-gray-400 mt-1">{c.category}</p>
+              )}
+
+              {c.whatsappLink && (
+                <a
+                  href={c.whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary-green hover:underline mt-1 truncate"
                 >
-                  Edit
-                </button>
+                  {c.whatsappLink}
+                </a>
+              )}
+
+              {c.status === 'pending' && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Submitted {c.submittedAt ? new Date(c.submittedAt).toLocaleDateString() : ''}
+                </p>
+              )}
+
+              {c.reviewNotes && (
+                <p className="text-xs text-red-700 mt-1">
+                  Rejection reason: {c.reviewNotes}
+                </p>
+              )}
+
+              <div className="flex gap-3 mt-3 pt-3 border-t border-gray-100 text-sm">
+                {c.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(c.id)}
+                      className="text-green-600 hover:underline font-medium"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(c.id)}
+                      className="text-red-600 hover:underline font-medium"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
                 <button
-                  onClick={() => handleDelete(community.id)}
-                  className="text-sm text-red-500 hover:text-red-700"
+                  onClick={() => handleDelete(c.id)}
+                  className="text-gray-500 hover:text-red-600 ml-auto"
                 >
                   Delete
                 </button>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {communities.length === 0 && !showForm && (
-        <div className="bg-white border border-gray-200 p-8 text-center">
-          <p className="text-gray-500">No communities found.</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="text-primary-green hover:underline text-sm mt-2 inline-block"
-          >
-            Add your first community
-          </button>
+          ))}
         </div>
       )}
     </div>
