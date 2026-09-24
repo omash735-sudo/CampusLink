@@ -5,14 +5,11 @@ import { resolveAuth } from '@/lib/auth/resolve-auth';
 import {
   isPublic,
   canAccess,
+  canAccessAsMentor,
   explainDenial,
   AUTH_ROUTE_RULES,
 } from '@/lib/auth/authorization';
 import { landingFor } from '@/lib/auth/roles';
-
-// ---------------------------------------------------------------------------
-// Route classification
-// ---------------------------------------------------------------------------
 
 const AUTH_ROUTES = [
   '/auth/login',
@@ -33,21 +30,13 @@ function isAuthRoute(pathname: string): boolean {
   return matchesAny(pathname, AUTH_ROUTES);
 }
 
-// ---------------------------------------------------------------------------
-// Middleware
-// ---------------------------------------------------------------------------
-
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // 1. Public routes — no authentication required
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
-  // 2. Auth-only routes (login, register, forgot, etc.)
-  //    If already authenticated → redirect to their landing page.
-  //    If not → allow through so they can sign in.
   if (isAuthRoute(pathname)) {
     const auth = await resolveAuth(request);
     if (auth.authenticated) {
@@ -58,7 +47,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Everything else requires authentication + authorization
   const auth = await resolveAuth(request);
 
   if (!auth.authenticated) {
@@ -67,7 +55,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (!canAccess(auth.user.role, pathname, AUTH_ROUTE_RULES)) {
+  // Combined check: role-based rules OR mentor-flag rules.
+  const allowed =
+    canAccess(auth.user.role, pathname, AUTH_ROUTE_RULES) ||
+    canAccessAsMentor(auth.user, pathname);
+
+  if (!allowed) {
     explainDenial(auth.user.role, pathname, AUTH_ROUTE_RULES);
     return NextResponse.redirect(
       new URL(landingFor(auth.user.role), request.url)
