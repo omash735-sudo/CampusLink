@@ -6,24 +6,16 @@ export type Rule = {
   allow: Role[];
 };
 
-// ---------------------------------------------------------------------------
-// Pattern matching
-// ---------------------------------------------------------------------------
-// '/admin'         → exact
-// '/admin/**'      → '/admin' and everything under it
-// '/admin/*'       → '/admin/x' but not '/admin/x/y'
-// ---------------------------------------------------------------------------
-
 function matchPattern(pattern: string, pathname: string): boolean {
   if (pattern === pathname) return true;
 
   if (pattern.endsWith('/**')) {
-    const prefix = pattern.slice(0, -3); // strip '/**'
+    const prefix = pattern.slice(0, -3);
     return pathname === prefix || pathname.startsWith(prefix + '/');
   }
 
   if (pattern.endsWith('/*')) {
-    const prefix = pattern.slice(0, -2); // strip '/*'
+    const prefix = pattern.slice(0, -2);
     if (!pathname.startsWith(prefix + '/')) return false;
     const rest = pathname.slice(prefix.length + 1);
     return rest.length > 0 && !rest.includes('/');
@@ -31,10 +23,6 @@ function matchPattern(pattern: string, pathname: string): boolean {
 
   return false;
 }
-
-// ---------------------------------------------------------------------------
-// Public routes — no authentication required
-// ---------------------------------------------------------------------------
 
 export const PUBLIC_ROUTES: string[] = [
   '/',
@@ -72,41 +60,27 @@ export const PUBLIC_ROUTES: string[] = [
   '/super-access',
 ];
 
-/**
- * Explicit authenticated pre-emptions that would otherwise be swept up
- * by a public wildcard above. These must be checked BEFORE PUBLIC_ROUTES.
- * Example: '/resources/upload' must not become public just because
- * '/resources/**' is public.
- */
 export const PUBLIC_PREEMPT_ROUTES: string[] = [
   '/resources/upload',
 ];
 
 export function isPublic(pathname: string): boolean {
-  // Pre-emptions beat public wildcards.
   if (PUBLIC_PREEMPT_ROUTES.some((p) => matchPattern(p, pathname))) {
     return false;
   }
   return PUBLIC_ROUTES.some((p) => matchPattern(p, pathname));
 }
 
-// ---------------------------------------------------------------------------
-// Authenticated route rules for pages
-// ---------------------------------------------------------------------------
-
 export const AUTH_ROUTE_RULES: Rule[] = [
-  // --- Explicit authenticated pre-emptions (before public wildcards) ---
   { pattern: '/resources/upload', allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/messages',         allow: ['student', 'mentor', 'admin'] },
   { pattern: '/messages/**',      allow: ['student', 'mentor', 'admin'] },
   { pattern: '/notifications',    allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/notifications/**', allow: ['student', 'mentor', 'publications', 'admin'] },
 
-  // --- Mentor ---
   { pattern: '/mentor',    allow: ['mentor', 'admin'] },
   { pattern: '/mentor/**', allow: ['mentor', 'admin'] },
 
-  // --- Student ---
   { pattern: '/student/**',     allow: ['student', 'admin'] },
   { pattern: '/connect',        allow: ['student', 'mentor', 'admin'] },
   { pattern: '/connect/**',     allow: ['student', 'mentor', 'admin'] },
@@ -117,13 +91,11 @@ export const AUTH_ROUTE_RULES: Rule[] = [
   { pattern: '/community/**',   allow: ['student', 'admin'] },
   { pattern: '/groups/**',      allow: ['student', 'admin'] },
 
-  // --- Any authenticated user ---
   { pattern: '/profile',    allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/profile/**', allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/settings',   allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/settings/**', allow: ['student', 'mentor', 'publications', 'admin'] },
 
-  // --- Publications (must appear BEFORE the /admin/** catch-all) ---
   { pattern: '/admin',                        allow: ['publications', 'admin'] },
   { pattern: '/admin/publications',           allow: ['publications', 'admin'] },
   { pattern: '/admin/publications/**',        allow: ['publications', 'admin'] },
@@ -144,16 +116,10 @@ export const AUTH_ROUTE_RULES: Rule[] = [
   { pattern: '/admin/profile',                allow: ['publications', 'admin'] },
   { pattern: '/admin/profile/**',             allow: ['publications', 'admin'] },
 
-  // --- Admin catch-all ---
   { pattern: '/admin/**', allow: ['admin'] },
 ];
 
-// ---------------------------------------------------------------------------
-// Authenticated route rules for API endpoints
-// ---------------------------------------------------------------------------
-
 export const API_ROUTE_RULES: Rule[] = [
-  // Publications can manage content/media — upload included.
   { pattern: '/api/admin/upload',                  allow: ['publications', 'admin'] },
   { pattern: '/api/admin/publications',            allow: ['publications', 'admin'] },
   { pattern: '/api/admin/publications/**',         allow: ['publications', 'admin'] },
@@ -172,24 +138,12 @@ export const API_ROUTE_RULES: Rule[] = [
   { pattern: '/api/admin/resource-categories',     allow: ['publications', 'admin'] },
   { pattern: '/api/admin/resource-categories/**',  allow: ['publications', 'admin'] },
 
-  // Everything else under /api/admin is admin-only
   { pattern: '/api/admin/**', allow: ['admin'] },
 
-  // Mentor API
   { pattern: '/api/mentor',    allow: ['mentor', 'admin'] },
   { pattern: '/api/mentor/**', allow: ['mentor', 'admin'] },
 ];
 
-// ---------------------------------------------------------------------------
-// The authorization decision — pure function of (role, pathname, rules)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns true if `role` may access `pathname` under `rules`.
- *
- * Deny-by-default: if no rule matches, returns false.
- * Any newly added route must be explicitly allowed by a rule.
- */
 export function canAccess(
   role: Role,
   pathname: string,
@@ -204,10 +158,30 @@ export function canAccess(
 }
 
 /**
- * Development aid: if canAccess denies because no rule matched, log it
- * so a missing rule is obvious rather than silent.
- * Never logs in production.
+ * Mentor-flag authorization check.
+ *
+ * Runs alongside canAccess(). A user whose DB flags are
+ * isMentor === true and mentorStatus === 'approved' gets access
+ * to /mentor/* regardless of their base role (which stays 'student').
+ *
+ * Non-mentors get false here — canAccess is still the primary gate
+ * for their role-based routes.
  */
+export function canAccessAsMentor(
+  user: { isMentor?: boolean | null; mentorStatus?: string | null },
+  pathname: string
+): boolean {
+  const isApprovedMentor =
+    user.isMentor === true && user.mentorStatus === 'approved';
+  if (!isApprovedMentor) return false;
+
+  if (pathname === '/mentor' || pathname.startsWith('/mentor/')) {
+    return true;
+  }
+
+  return false;
+}
+
 export function explainDenial(
   role: Role,
   pathname: string,
