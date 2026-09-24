@@ -5,7 +5,6 @@ import { resolveAuth } from '@/lib/auth/resolve-auth';
 import {
   isPublic,
   canAccess,
-  canAccessAsMentor,
   explainDenial,
   AUTH_ROUTE_RULES,
 } from '@/lib/auth/authorization';
@@ -55,13 +54,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Combined check: role-based rules OR mentor-flag rules.
-  const allowed =
-    canAccess(auth.user.role, pathname, AUTH_ROUTE_RULES) ||
-    canAccessAsMentor(auth.user, pathname);
+  // Role + flag check. canAccess now honors isMentor/mentorStatus and
+  // publicationsStatus, so no separate canAccessAsMentor call is needed.
+  const allowed = canAccess(auth.user, pathname, AUTH_ROUTE_RULES);
 
   if (!allowed) {
-    explainDenial(auth.user.role, pathname, AUTH_ROUTE_RULES);
+    explainDenial(auth.user, pathname, AUTH_ROUTE_RULES);
     return NextResponse.redirect(
       new URL(landingFor(auth.user.role), request.url)
     );
