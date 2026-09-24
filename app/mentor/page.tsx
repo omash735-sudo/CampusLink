@@ -15,12 +15,18 @@ import {
   UserGroupIcon,
   CalendarIcon,
   BellIcon,
+  BookOpenIcon,
 } from '@/components/icons';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MentorDashboard() {
   const user = await requireMentor();
+
+  const isApprovedPublications =
+    user.role === 'admin' ||
+    user.role === 'publications' ||
+    user.publicationsStatus === 'approved';
 
   const mentor = await db
     .select()
@@ -113,6 +119,40 @@ export default async function MentorDashboard() {
               ← Back to Student Dashboard
             </Link>
           </div>
+
+          {/* ---------- Publications Mode banner ---------- */}
+          {isApprovedPublications && (
+            <div className="relative overflow-hidden bg-gradient-to-r from-purple-50/80 to-white/60 backdrop-blur-md border border-purple-200/80 shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-5 md:p-6 mb-6">
+              <div
+                aria-hidden="true"
+                className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-purple-400/10 blur-3xl"
+              />
+
+              <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <BookOpenIcon className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-base md:text-lg font-bold text-primary-text">
+                      Publications Mode
+                    </h2>
+                    <p className="text-sm text-muted-text mt-0.5 max-w-xl">
+                      You&apos;re also an approved Publications Officer. Switch
+                      to the content dashboard to manage announcements, events,
+                      spotlights, clubs, student union and resources.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/admin"
+                  className="bg-purple-600 text-white px-5 py-2.5 text-sm font-medium hover:bg-purple-700 transition-colors flex-shrink-0"
+                >
+                  Open Publications Dashboard →
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-between items-center mb-8">
             <div>
