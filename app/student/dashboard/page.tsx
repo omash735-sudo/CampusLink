@@ -18,7 +18,6 @@ export const dynamic = 'force-dynamic';
 export default async function StudentDashboard() {
   const user = await requireAuth();
 
-  // Get announcements
   const recentAnnouncements = await db
     .select()
     .from(announcements)
@@ -26,7 +25,6 @@ export default async function StudentDashboard() {
     .orderBy(desc(announcements.publishedAt))
     .limit(5);
 
-  // Get upcoming events
   const upcomingEvents = await db
     .select()
     .from(events)
@@ -34,7 +32,6 @@ export default async function StudentDashboard() {
     .orderBy(asc(events.startDate))
     .limit(5);
 
-  // Get programme ID for user's programme
   let programmeId: string | undefined;
   if (user.programme) {
     const programme = await db
@@ -45,7 +42,6 @@ export default async function StudentDashboard() {
     programmeId = programme?.id;
   }
 
-  // Get recommended resources based on user's programme
   const recommendedResources = programmeId
     ? await db
         .select()
@@ -60,7 +56,6 @@ export default async function StudentDashboard() {
         .limit(4)
     : [];
 
-  // Get students from same programme
   const cohortStudents = await db
     .select({
       id: campuslinkUsers.id,
@@ -78,6 +73,9 @@ export default async function StudentDashboard() {
       )
     )
     .limit(6);
+
+  const isApprovedMentor =
+    user.isMentor === true && user.mentorStatus === 'approved';
 
   return (
     <>
@@ -120,6 +118,29 @@ export default async function StudentDashboard() {
               </Link>
             </div>
           </div>
+
+          {isApprovedMentor && (
+            <div className="bg-white border-2 border-blue-200 p-6 mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-primary-text">
+                    Mentor Mode
+                  </h2>
+                  <p className="text-sm text-muted-text mt-1">
+                    You&apos;re an approved CampusLink mentor. Switch to your
+                    mentor dashboard to manage requests, mentees and your
+                    mentor profile.
+                  </p>
+                </div>
+                <Link
+                  href="/mentor"
+                  className="bg-blue-500 text-white px-5 py-2 text-sm font-medium hover:bg-blue-600 transition-colors flex-shrink-0"
+                >
+                  Open Mentor Dashboard →
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <QuickAction href="/connect" icon={UsersIcon} label="Find Students" />
