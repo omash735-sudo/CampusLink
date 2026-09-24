@@ -129,7 +129,7 @@ export const mentors = pgTable('mentors', {
   experience: text('experience'),
   rating: integer('rating').default(0),
   reviewCount: integer('review_count').default(0),
-  preferredContactMethod: text('preferred_contact_method'), // 'whatsapp' | 'campuslink' | 'both' | null
+  preferredContactMethod: text('preferred_contact_method'),
   contactWhatsapp: text('contact_whatsapp'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -337,6 +337,21 @@ export const groups = pgTable('groups', {
   avatar: text('avatar'),
   cover: text('cover'),
   memberCount: integer('member_count').default(0),
+
+  // Review workflow — 'pending' | 'approved' | 'rejected'
+  // Admin-created groups default to 'approved'.
+  // Student-submitted groups start as 'pending'.
+  status: text('status').default('approved').notNull(),
+
+  // Submission metadata
+  submittedBy: uuid('submitted_by').references(() => campuslinkUsers.id),
+  submittedAt: timestamp('submitted_at'),
+
+  // Review metadata
+  reviewedBy: uuid('reviewed_by').references(() => campuslinkUsers.id),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewNotes: text('review_notes'),
+
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -683,6 +698,8 @@ export const campuslinkUsersRelations = relations(campuslinkUsers, ({ many }) =>
   auditLogs: many(auditLogs),
   feedback: many(feedback),
   passwordResetOtps: many(passwordResetOtps),
+  submittedGroups: many(groups, { relationName: 'submittedGroups' }),
+  reviewedGroups: many(groups, { relationName: 'reviewedGroups' }),
 }));
 
 export const programmesRelations = relations(programmes, ({ many }) => ({
@@ -908,6 +925,19 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     references: [comments.id],
   }),
   replies: many(comments),
+}));
+
+export const groupsRelations = relations(groups, ({ one }) => ({
+  submitter: one(campuslinkUsers, {
+    fields: [groups.submittedBy],
+    references: [campuslinkUsers.id],
+    relationName: 'submittedGroups',
+  }),
+  reviewer: one(campuslinkUsers, {
+    fields: [groups.reviewedBy],
+    references: [campuslinkUsers.id],
+    relationName: 'reviewedGroups',
+  }),
 }));
 
 export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
