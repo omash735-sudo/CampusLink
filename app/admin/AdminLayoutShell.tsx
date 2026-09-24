@@ -73,12 +73,18 @@ export function AdminLayoutShell({
   fullName,
   email,
   avatar,
+  isMentor,
+  mentorStatus,
+  publicationsStatus,
 }: {
   children: React.ReactNode;
   role: string;
   fullName: string;
   email: string;
   avatar: string | null;
+  isMentor?: boolean | null;
+  mentorStatus?: string | null;
+  publicationsStatus?: string | null;
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -139,12 +145,23 @@ export function AdminLayoutShell({
     return <>{children}</>;
   }
 
-  const isPublications = role === 'publications';
+  // A user with role='admin' always sees the admin nav set.
+  // A user whose role is something else but publicationsStatus='approved'
+  // (e.g. a stacked mentor+publications user) also sees the publications
+  // nav set — but only the publications subset, not the admin-only items.
+  const isAdmin = role === 'admin';
+  const isPublications =
+    !isAdmin && (role === 'publications' || publicationsStatus === 'approved');
+  const isApprovedMentor = isMentor === true && mentorStatus === 'approved';
+
+  // Effective role for nav filtering: admin → 'admin', else 'publications'
+  const effectiveRole: 'admin' | 'publications' = isAdmin ? 'admin' : 'publications';
+
   const navItems = allNavItems.filter((item) =>
-    item.roles.includes(role as 'admin' | 'publications')
+    item.roles.includes(effectiveRole)
   );
 
-  const badgeLabel = isPublications ? 'Publications' : 'Admin';
+  const badgeLabel = isAdmin ? 'Admin' : 'Publications';
   const initials = initialsFrom(fullName);
 
   return (
@@ -238,6 +255,29 @@ export function AdminLayoutShell({
                   <p className="text-xs text-muted-text truncate">{email}</p>
                 </div>
 
+                {/* Dashboard switcher */}
+                <Link
+                  href="/student/dashboard"
+                  role="menuitem"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <HomeIcon className="h-4 w-4" />
+                  Back to Student Dashboard
+                </Link>
+
+                {isApprovedMentor && (
+                  <Link
+                    href="/mentor"
+                    role="menuitem"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <AcademicIcon className="h-4 w-4" />
+                    Mentor Dashboard
+                  </Link>
+                )}
+
+                <div className="border-t border-gray-100" />
+
                 <Link
                   href="/admin/profile"
                   role="menuitem"
@@ -247,7 +287,7 @@ export function AdminLayoutShell({
                   Profile
                 </Link>
 
-                {!isPublications && (
+                {isAdmin && (
                   <>
                     <Link
                       href="/admin/settings"
