@@ -168,7 +168,9 @@ export async function resolveAuth(request?: Request): Promise<AuthResult> {
     return { authenticated: false, reason: 'no_cookie' };
   }
 
-  const decoded = verifyToken(token);
+  // verifyToken() is async because it runs on jose/Web Crypto so it
+  // works in the Edge runtime (middleware). See lib/auth/verify-token.ts.
+  const decoded = await verifyToken(token);
   if (!decoded) {
     return { authenticated: false, reason: 'invalid_token' };
   }
