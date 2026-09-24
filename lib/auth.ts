@@ -25,8 +25,18 @@ if (!JWT_SECRET) {
 
 export { resolveAuth } from './auth/resolve-auth';
 export type { AuthUser, AuthResult } from './auth/resolve-auth';
+
+// NOTE: verifyToken is now ASYNC (it uses jose/Web Crypto so it works in the
+// Edge runtime — see lib/auth/verify-token.ts). Any caller importing it from
+// '@/lib/auth' MUST await it:
+//
+//     const payload = await verifyToken(token);
+//
+// Calling it without await returns a Promise, which is always truthy, so
+// `if (payload)` checks would silently succeed for invalid tokens.
 export { verifyToken } from './auth/verify-token';
 export type { TokenPayload } from './auth/verify-token';
+
 export { getCurrentUser, getUserByToken } from './auth/get-current-user';
 export {
   canAccess,
