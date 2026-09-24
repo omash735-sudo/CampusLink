@@ -20,7 +20,8 @@ export async function getCurrentUser() {
  * Also shares verification + DB lookup logic.
  */
 export async function getUserByToken(token: string) {
-  const decoded = verifyToken(token);
+  // verifyToken() is async (jose/Web Crypto) — see lib/auth/verify-token.ts.
+  const decoded = await verifyToken(token);
   if (!decoded) return null;
 
   const [found] = await db
