@@ -71,31 +71,52 @@ export function isPublic(pathname: string): boolean {
   return PUBLIC_ROUTES.some((p) => matchPattern(p, pathname));
 }
 
+/**
+ * Authenticated route rules.
+ *
+ * Option C: publications officers can access BOTH:
+ *   - the admin content area (`/admin/publications`, `/admin/announcements`,
+ *     `/admin/events`, `/admin/student-union`, `/admin/spotlights`,
+ *     `/admin/clubs`, `/admin/resources`, `/admin/resource-categories`,
+ *     `/admin/profile`)
+ *   - the student-facing routes (`/student/**`, `/connect`, `/mentorship`,
+ *     `/mentors`, `/community`, `/groups`, `/profile`, `/settings`,
+ *     `/notifications`, `/messages`)
+ *
+ * Publications does NOT overlap with mentor — `/mentor/*` stays
+ * exclusive to `mentor` and `admin`.
+ */
 export const AUTH_ROUTE_RULES: Rule[] = [
+  // --- Shared infrastructure routes ---
   { pattern: '/resources/upload', allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/messages',         allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/messages/**',      allow: ['student', 'mentor', 'admin'] },
+  { pattern: '/messages',         allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/messages/**',      allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/notifications',    allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/notifications/**', allow: ['student', 'mentor', 'publications', 'admin'] },
 
+  // --- Mentor only ---
   { pattern: '/mentor',    allow: ['mentor', 'admin'] },
   { pattern: '/mentor/**', allow: ['mentor', 'admin'] },
 
-  { pattern: '/student/**',     allow: ['student', 'admin'] },
-  { pattern: '/connect',        allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/connect/**',     allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/mentorship',     allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/mentorship/**',  allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/mentors',        allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/mentors/**',     allow: ['student', 'mentor', 'admin'] },
-  { pattern: '/community/**',   allow: ['student', 'admin'] },
-  { pattern: '/groups/**',      allow: ['student', 'admin'] },
+  // --- Student routes (publications allowed via Option C) ---
+  { pattern: '/student/**',     allow: ['student', 'publications', 'admin'] },
+  { pattern: '/connect',        allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/connect/**',     allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/mentorship',     allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/mentorship/**',  allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/mentors',        allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/mentors/**',     allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/community/**',   allow: ['student', 'publications', 'admin'] },
+  { pattern: '/groups/**',      allow: ['student', 'publications', 'admin'] },
 
+  // --- Any authenticated user ---
   { pattern: '/profile',    allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/profile/**', allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/settings',   allow: ['student', 'mentor', 'publications', 'admin'] },
   { pattern: '/settings/**', allow: ['student', 'mentor', 'publications', 'admin'] },
 
+  // --- Publications-accessible admin content area ---
+  // (must appear BEFORE the /admin/** catch-all)
   { pattern: '/admin',                        allow: ['publications', 'admin'] },
   { pattern: '/admin/publications',           allow: ['publications', 'admin'] },
   { pattern: '/admin/publications/**',        allow: ['publications', 'admin'] },
@@ -116,10 +137,15 @@ export const AUTH_ROUTE_RULES: Rule[] = [
   { pattern: '/admin/profile',                allow: ['publications', 'admin'] },
   { pattern: '/admin/profile/**',             allow: ['publications', 'admin'] },
 
+  // --- Admin only (catch-all) ---
   { pattern: '/admin/**', allow: ['admin'] },
 ];
 
+/**
+ * API route rules — mirrors the page rules above.
+ */
 export const API_ROUTE_RULES: Rule[] = [
+  // --- Publications-accessible admin APIs ---
   { pattern: '/api/admin/upload',                  allow: ['publications', 'admin'] },
   { pattern: '/api/admin/publications',            allow: ['publications', 'admin'] },
   { pattern: '/api/admin/publications/**',         allow: ['publications', 'admin'] },
@@ -138,8 +164,10 @@ export const API_ROUTE_RULES: Rule[] = [
   { pattern: '/api/admin/resource-categories',     allow: ['publications', 'admin'] },
   { pattern: '/api/admin/resource-categories/**',  allow: ['publications', 'admin'] },
 
+  // --- Admin only ---
   { pattern: '/api/admin/**', allow: ['admin'] },
 
+  // --- Mentor APIs ---
   { pattern: '/api/mentor',    allow: ['mentor', 'admin'] },
   { pattern: '/api/mentor/**', allow: ['mentor', 'admin'] },
 ];
