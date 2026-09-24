@@ -28,8 +28,6 @@ export async function sendEmail(data: EmailData) {
       text: data.text || '',
     });
 
-    // Surface the raw SMTP server acknowledgment so callers can diagnose
-    // silent drops (e.g. "250 OK" but no delivery).
     if (info.rejected && info.rejected.length > 0) {
       console.error('[email] Some recipients rejected:', info.rejected);
     }
@@ -51,6 +49,8 @@ export async function sendEmail(data: EmailData) {
 // ==================== EMAIL TEMPLATES ====================
 
 export async function sendMentorApprovalEmail(email: string, name: string) {
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
   return sendEmail({
     to: email,
     subject: '🎉 You are now a CampusLink Mentor!',
@@ -59,18 +59,34 @@ export async function sendMentorApprovalEmail(email: string, name: string) {
         <h1 style="color: #176B3A;">Mentor Application Approved!</h1>
         <p>Dear ${name},</p>
         <p>Congratulations! Your mentor application has been approved. You are now officially a CampusLink Mentor.</p>
+
+        <p style="background: #f3f4f6; padding: 12px 16px; margin: 20px 0;">
+          <strong>You do not need a separate account.</strong><br>
+          Your CampusLink student account is your mentor account too — just
+          sign in the way you normally do.
+        </p>
+
         <p>What you can do now:</p>
         <ul>
-          <li>Access your mentor dashboard</li>
           <li>Manage mentorship requests</li>
           <li>View your mentees</li>
+          <li>Set your availability</li>
           <li>Share your expertise</li>
         </ul>
+
         <p style="margin-top: 20px;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/mentor" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
-            Go to Mentor Dashboard
+          <a href="${appUrl}/student/dashboard" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            Go to Your Dashboard
           </a>
         </p>
+
+        <p style="color: #64706A; font-size: 14px; margin-top: 16px;">
+          Once you're signed in, click <strong>Mentor Mode</strong> on your
+          student dashboard, or open
+          <a href="${appUrl}/mentor" style="color: #176B3A;">${appUrl}/mentor</a>
+          directly.
+        </p>
+
         <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
           Best regards,<br>
           The CampusLink Team
