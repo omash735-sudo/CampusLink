@@ -35,92 +35,118 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-off-white flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md border border-gray-200 bg-white p-8">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
-              alt="CampusLink"
-              width={48}
-              height={48}
-              className="h-12 w-12"
-              priority
-            />
-          </div>
-          <h1 className="text-2xl font-bold">Welcome Back</h1>
-          <p className="text-muted-text mt-2">
-            Sign in to your CampusLink account
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label-text">Email Address</label>
-            <input
-              type="email"
-              required
-              className="input-field"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="john@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="label-text">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="input-field pr-12"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Enter your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-text hover:text-primary-green transition-colors"
-              >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </div>
-            <div className="text-right mt-1">
-              <Link
-                href="/auth/forgot-password"
-                className="text-xs text-primary-green hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-          </div>
-
-          {error && (
-            <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
-            disabled={loading}
+    <div className="min-h-screen bg-off-white relative">
+      {/* Back to Home — top-left */}
+      <div className="absolute top-4 left-4 md:top-6 md:left-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-green hover:underline"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Back to Home
+        </Link>
+      </div>
 
-          <p className="text-center text-sm text-muted-text">
-            Don't have an account?{' '}
-            <Link
-              href="/auth/register"
-              className="text-primary-green hover:underline font-medium"
+      <div className="flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md border border-gray-200 bg-white p-8">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="https://res.cloudinary.com/dfsvnaslv/image/upload/v1788726475/icon-mark-transparent_qnuzur.png"
+                alt="CampusLink"
+                width={48}
+                height={48}
+                className="h-12 w-12"
+                priority
+              />
+            </div>
+            <h1 className="text-2xl font-bold">Welcome Back</h1>
+            <p className="text-muted-text mt-2">
+              Sign in to your CampusLink account
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="label-text">Email Address</label>
+              <input
+                type="email"
+                required
+                className="input-field"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="john@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="label-text">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="input-field pr-12"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-text hover:text-primary-green transition-colors"
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+              <div className="text-right mt-1">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs text-primary-green hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
+
+            {error && (
+              <div className="border border-red-400 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="bg-primary-green text-white w-full py-3 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
+              disabled={loading}
             >
-              Create one
-            </Link>
-          </p>
-        </form>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            <p className="text-center text-sm text-muted-text">
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/auth/register"
+                className="text-primary-green hover:underline font-medium"
+              >
+                Create one
+              </Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
