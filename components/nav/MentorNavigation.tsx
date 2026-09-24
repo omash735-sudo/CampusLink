@@ -37,6 +37,9 @@ export function MentorNavigation({ user }: { user: NavUser }) {
             <span className="text-xl font-semibold text-primary-green">
               CampusLink
             </span>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5">
+              Mentor
+            </span>
           </Link>
 
           <div className="hidden md:flex md:items-center md:space-x-6">
@@ -57,7 +60,7 @@ export function MentorNavigation({ user }: { user: NavUser }) {
               fullName={user.fullName}
               email={user.email}
               avatar={user.avatar}
-              profileHref="/profile"
+              profileHref="/mentor/profile"
               settingsHref="/settings"
             />
           </div>
@@ -95,7 +98,7 @@ export function MentorNavigation({ user }: { user: NavUser }) {
                   fullName={user.fullName}
                   email={user.email}
                   avatar={user.avatar}
-                  profileHref="/profile"
+                  profileHref="/mentor/profile"
                   settingsHref="/settings"
                 />
                 <span className="text-sm text-muted-text truncate">
