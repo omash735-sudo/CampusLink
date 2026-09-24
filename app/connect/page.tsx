@@ -21,10 +21,10 @@ interface InterestWithCount {
 export default async function ConnectPage() {
   try {
     const currentUser = await getCurrentUser();
-    
+
     // Get programmes for filter
     const programmesList = await db.select().from(programmes).where(eq(programmes.isActive, true));
-    
+
     // Get popular interests
     let popularInterests: InterestWithCount[] = [];
     try {
@@ -60,7 +60,7 @@ export default async function ConnectPage() {
       .orderBy(desc(campuslinkUsers.createdAt))
       .limit(12);
 
-    // Get communities
+    // Get approved, active communities only
     const communities = await db
       .select({
         id: groups.id,
@@ -71,7 +71,13 @@ export default async function ConnectPage() {
         category: groups.category,
       })
       .from(groups)
-      .where(eq(groups.type, 'open'))
+      .where(
+        and(
+          eq(groups.type, 'open'),
+          eq(groups.status, 'approved'),
+          eq(groups.isActive, true)
+        )
+      )
       .orderBy(desc(groups.memberCount))
       .limit(8);
 
@@ -94,32 +100,32 @@ export default async function ConnectPage() {
 
           {/* Quick Navigation */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Link 
-              href="/connect/cohorts" 
+            <Link
+              href="/connect/cohorts"
               className="border border-gray-200 bg-white p-4 text-center hover:border-primary-green transition-colors group"
             >
               <UserGroupIcon className="h-8 w-8 text-primary-green mx-auto mb-2 group-hover:scale-110 transition-transform" />
               <div className="font-medium text-sm">Cohorts</div>
               <div className="text-xs text-muted-text">Find your year</div>
             </Link>
-            <Link 
-              href="/connect/programmes" 
+            <Link
+              href="/connect/programmes"
               className="border border-gray-200 bg-white p-4 text-center hover:border-primary-green transition-colors group"
             >
               <BookOpenIcon className="h-8 w-8 text-primary-green mx-auto mb-2 group-hover:scale-110 transition-transform" />
               <div className="font-medium text-sm">Programmes</div>
               <div className="text-xs text-muted-text">Browse by faculty</div>
             </Link>
-            <Link 
-              href="/connect/communities" 
+            <Link
+              href="/connect/communities"
               className="border border-gray-200 bg-white p-4 text-center hover:border-primary-green transition-colors group"
             >
               <UsersIcon className="h-8 w-8 text-primary-green mx-auto mb-2 group-hover:scale-110 transition-transform" />
               <div className="font-medium text-sm">Communities</div>
               <div className="text-xs text-muted-text">Join groups</div>
             </Link>
-            <Link 
-              href="/connect/students" 
+            <Link
+              href="/connect/students"
               className="border border-gray-200 bg-white p-4 text-center hover:border-primary-green transition-colors group"
             >
               <AcademicIcon className="h-8 w-8 text-primary-green mx-auto mb-2 group-hover:scale-110 transition-transform" />
@@ -136,9 +142,9 @@ export default async function ConnectPage() {
               )}
 
               {currentUser && currentUser.programme && currentUser.year && (
-                <MyCohort 
-                  programme={currentUser.programme} 
-                  year={currentUser.year} 
+                <MyCohort
+                  programme={currentUser.programme}
+                  year={currentUser.year}
                   currentUserId={currentUser.id}
                 />
               )}
@@ -165,7 +171,7 @@ export default async function ConnectPage() {
                     communities.map((community) => (
                       <Link
                         key={community.id}
-                        href={`/groups/${community.slug}`}
+                        href="/connect/communities"
                         className="border border-gray-200 bg-white p-4 hover:border-primary-green transition-colors"
                       >
                         <h3 className="font-semibold">{community.name}</h3>
