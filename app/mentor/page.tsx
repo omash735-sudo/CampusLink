@@ -105,6 +105,15 @@ export default async function MentorDashboard() {
       <SuperAccessBannerServer as="mentor" />
       <div className="min-h-screen bg-off-white py-8">
         <div className="container mx-auto px-4">
+          <div className="mb-4">
+            <Link
+              href="/student/dashboard"
+              className="text-primary-green hover:underline text-sm"
+            >
+              ← Back to Student Dashboard
+            </Link>
+          </div>
+
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">Mentor Dashboard</h1>
