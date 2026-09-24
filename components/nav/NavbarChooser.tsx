@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { PublicNavigation } from './PublicNavigation';
 import { StudentNavigation } from './StudentNavigation';
 import { MentorNavigation } from './MentorNavigation';
@@ -18,6 +19,7 @@ type AuthUser = {
 };
 
 export function NavbarChooser() {
+  const pathname = usePathname() || '/';
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +43,6 @@ export function NavbarChooser() {
     };
   }, []);
 
-  // While loading, show the public nav so there's no layout jump.
   if (loading || !user) {
     return <PublicNavigation />;
   }
@@ -52,15 +53,22 @@ export function NavbarChooser() {
     avatar: user.avatar,
   };
 
-  switch (user.role) {
-    case 'admin':
-      return <AdminTopBar user={navUser} />;
-    case 'publications':
-      return <PublicationsNavigation user={navUser} />;
-    case 'mentor':
-      return <MentorNavigation user={navUser} />;
-    case 'student':
-    default:
-      return <StudentNavigation user={navUser} />;
+  if (user.role === 'admin') {
+    return <AdminTopBar user={navUser} />;
   }
+  if (user.role === 'publications') {
+    return <PublicationsNavigation user={navUser} />;
+  }
+
+  const isApprovedMentor =
+    user.isMentor === true && user.mentorStatus === 'approved';
+
+  const onMentorRoute =
+    pathname === '/mentor' || pathname.startsWith('/mentor/');
+
+  if (isApprovedMentor && onMentorRoute) {
+    return <MentorNavigation user={navUser} />;
+  }
+
+  return <StudentNavigation user={navUser} />;
 }
