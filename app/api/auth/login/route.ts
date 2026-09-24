@@ -27,7 +27,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // BLOCK restricted users
     if (user.isActive === false) {
       return NextResponse.json(
         {
@@ -40,7 +39,9 @@ export async function POST(request: Request) {
     }
 
     const token = signToken(user.id, user.role);
-    setAuthCookie(token);
+
+    // Next.js 15: setAuthCookie is async
+    await setAuthCookie(token);
 
     return NextResponse.json({
       user: {
