@@ -45,6 +45,7 @@ const allNavItems: NavItem[] = [
   { name: 'Student Union', href: '/admin/student-union', icon: UserGroupIcon, roles: ['admin', 'publications'] },
   { name: 'Spotlights', href: '/admin/spotlights', icon: AcademicIcon, roles: ['admin', 'publications'] },
   { name: 'Clubs', href: '/admin/clubs', icon: UserGroupIcon, roles: ['admin', 'publications'] },
+  { name: 'Communities', href: '/admin/communities', icon: UserGroupIcon, roles: ['admin'] },
   { name: 'Publications', href: '/admin/publications', icon: UsersIcon, roles: ['admin', 'publications'] },
   { name: 'Reports', href: '/admin/reports', icon: FlagIcon, roles: ['admin'] },
   { name: 'Feedback', href: '/admin/feedback', icon: ChatIcon, roles: ['admin'] },
