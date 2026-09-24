@@ -83,7 +83,7 @@ export async function PATCH(request: Request) {
         console.error('[role-change] email failed:', e);
       }
       try {
-        await notifyPublicationsApproved(userId);
+        await notifyPublicationsApproved(userId, user.fullName);
       } catch (e) {
         console.error('[role-change] notification failed:', e);
       }
