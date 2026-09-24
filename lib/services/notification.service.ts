@@ -217,3 +217,16 @@ export async function notifyCommunityRejected(
     metadata: { groupName },
   });
 }
+
+// ==================== PUBLICATIONS NOTIFICATIONS ====================
+
+export async function notifyPublicationsApproved(userId: string, userName: string) {
+  await createNotification({
+    userId,
+    type: 'publications_approved',
+    title: 'Publications Officer Access Granted',
+    content: `Congratulations ${userName}! You have been granted Publications Officer access. You can now manage publications, announcements, events, spotlights, and more from your admin dashboard.`,
+    link: '/admin',
+    metadata: { userName },
+  });
+}
