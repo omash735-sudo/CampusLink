@@ -81,7 +81,7 @@ export default function AdminStudentsPage() {
     if (!confirm(message)) return;
     try {
       const res = await fetch('/api/admin/users/role', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: id,
