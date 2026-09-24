@@ -18,6 +18,7 @@ interface User {
   isActive: boolean;
   isMentor: boolean;
   mentorStatus: string;
+  publicationsStatus: string;
   createdAt: string;
   lastActive: string;
 }
@@ -51,6 +52,7 @@ export default function AdminStudentsPage() {
         isActive: item.isActive || false,
         isMentor: item.isMentor || false,
         mentorStatus: item.mentorStatus || 'not_applied',
+        publicationsStatus: item.publicationsStatus || 'not_applied',
         createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
         lastActive: item.lastActive ? new Date(item.lastActive).toISOString() : '',
       }));
@@ -69,6 +71,31 @@ export default function AdminStudentsPage() {
       await loadUsers();
     } catch (error) {
       console.error('Failed to update status:', error);
+    }
+  };
+
+  const handlePublicationsRoleChange = async (id: string, makePublications: boolean) => {
+    const message = makePublications
+      ? 'Grant this user Publications Officer access?'
+      : 'Demote this Publications Officer back to Student?';
+    if (!confirm(message)) return;
+    try {
+      const res = await fetch('/api/admin/users/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: id,
+          role: makePublications ? 'publications' : 'student',
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update role');
+      }
+      await loadUsers();
+    } catch (error) {
+      console.error('Failed to update publications role:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update role');
     }
   };
 
@@ -190,6 +217,9 @@ export default function AdminStudentsPage() {
                     {user.mentorStatus === 'pending' && (
                       <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5">Mentor Pending</span>
                     )}
+                    {user.role === 'publications' && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5">Publications</span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-500">@{user.username}</p>
                   <p className="text-sm text-gray-500">{user.programme || 'No programme'} • Year {user.year || '?'}</p>
@@ -208,6 +238,16 @@ export default function AdminStudentsPage() {
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
                   Recovery
+                </button>
+                <button
+                  onClick={() => handlePublicationsRoleChange(user.id, user.role !== 'publications')}
+                  className={`text-sm ${
+                    user.role === 'publications'
+                      ? 'text-red-600 hover:text-red-800'
+                      : 'text-purple-600 hover:text-purple-800'
+                  }`}
+                >
+                  {user.role === 'publications' ? 'Demote to Student' : 'Make Publications Officer'}
                 </button>
                 <button
                   onClick={() => handleStatusChange(user.id, !user.isActive)}
