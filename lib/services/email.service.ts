@@ -466,3 +466,87 @@ export async function sendPasswordChangedConfirmationEmail(
     `,
   });
 }
+
+// ==================== COMMUNITY EMAILS ====================
+
+export async function sendCommunitySubmissionReceivedEmail(
+  email: string,
+  name: string,
+  groupName: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: `CampusLink — Community "${groupName}" received`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Submission Received</h1>
+        <p>Dear ${name},</p>
+        <p>Thanks for submitting <strong>${groupName}</strong> to CampusLink Communities.</p>
+        <p>An administrator will review your submission. You'll receive another email once a decision has been made.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/connect/communities" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            View Communities
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendCommunityApprovedEmail(
+  email: string,
+  name: string,
+  groupName: string
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://campuslinkmw.vercel.app';
+  return sendEmail({
+    to: email,
+    subject: `CampusLink — Community "${groupName}" is now live`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #176B3A;">Community Approved</h1>
+        <p>Dear ${name},</p>
+        <p>Your community <strong>${groupName}</strong> has been approved and is now live on CampusLink.</p>
+        <p style="margin-top: 20px;">
+          <a href="${appUrl}/connect/communities" style="background-color: #176B3A; color: white; padding: 12px 24px; text-decoration: none; display: inline-block;">
+            View Communities
+          </a>
+        </p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendCommunityRejectedEmail(
+  email: string,
+  name: string,
+  groupName: string,
+  reason?: string | null
+) {
+  return sendEmail({
+    to: email,
+    subject: `CampusLink — Community submission update`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb;">
+        <h1 style="color: #DC2626;">Community Submission Update</h1>
+        <p>Dear ${name},</p>
+        <p>Thank you for submitting <strong>${groupName}</strong> to CampusLink. Unfortunately, we are unable to approve this community at this time.</p>
+        ${reason ? `<p style="background: #fef3c7; padding: 12px; margin: 16px 0;"><strong>Reason:</strong> ${reason}</p>` : ''}
+        <p>You are welcome to submit a revised version in the future.</p>
+        <p style="margin-top: 20px; color: #64706A; font-size: 14px;">
+          Best regards,<br>
+          The CampusLink Team
+        </p>
+      </div>
+    `,
+  });
+}
