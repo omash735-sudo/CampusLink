@@ -101,16 +101,18 @@ export async function requireAdmin() {
 
 export async function requirePublications() {
   const user = await requireAuth();
-  if (user.role !== 'publications') throw new Error('Forbidden');
+  if (
+    user.role !== 'admin' &&
+    user.role !== 'publications' &&
+    user.publicationsStatus !== 'approved'
+  ) {
+    throw new Error('Forbidden');
+  }
   return user;
 }
 
 export async function requireAdminOrPublications() {
-  const user = await requireAuth();
-  if (user.role !== 'admin' && user.role !== 'publications') {
-    throw new Error('Forbidden');
-  }
-  return user;
+  return requirePublications();
 }
 
 export async function requireMentor() {
@@ -160,17 +162,68 @@ export async function clearAuthCookie() {
 }
 
 // ---------------------------------------------------------------------------
-// Redirect path
+// Redirect path & dashboard switching
 // ---------------------------------------------------------------------------
 
-export function getRedirectPath(user: {
+type AuthUserShape = {
   role?: string | null;
   isMentor?: boolean | null;
   mentorStatus?: string | null;
-}): string {
-  if (user.role === 'admin' || user.role === 'publications') return '/admin';
-  if (user.isMentor && user.mentorStatus === 'approved') return '/mentor';
+  publicationsStatus?: string | null;
+};
+
+/**
+ * Where should we send this user after login?
+ *
+ * Precedence:
+ *   1. admin                    → /admin
+ *   2. publications-approved    → /admin
+ *   3. mentor-approved          → /mentor
+ *   4. everyone else            → /student/dashboard
+ *
+ * A stacked user (mentor + publications) lands on /admin, since that's the
+ * broader surface. They can switch to /mentor from the dropdown.
+ */
+export function getRedirectPath(user: AuthUserShape): string {
+  if (user.role === 'admin') return '/admin';
+  if (user.role === 'publications' || user.publicationsStatus === 'approved') {
+    return '/admin';
+  }
+  if (user.isMentor === true && user.mentorStatus === 'approved') {
+    return '/mentor';
+  }
   return '/student/dashboard';
+}
+
+/**
+ * Which dashboards can this user switch between?
+ *
+ * Returns an ordered list of { label, href } entries. Layouts can call this
+ * and filter out the current path to render a "switch dashboard" menu.
+ */
+export function getSwitchLinks(
+  user: AuthUserShape
+): Array<{ label: string; href: string }> {
+  const links: Array<{ label: string; href: string }> = [];
+
+  // Everyone has a student home.
+  links.push({ label: 'Student Dashboard', href: '/student/dashboard' });
+
+  // Approved mentor → mentor home.
+  if (user.isMentor === true && user.mentorStatus === 'approved') {
+    links.push({ label: 'Mentor Dashboard', href: '/mentor' });
+  }
+
+  // Approved publications officer or admin → admin content home.
+  if (
+    user.role === 'admin' ||
+    user.role === 'publications' ||
+    user.publicationsStatus === 'approved'
+  ) {
+    links.push({ label: 'Publications Dashboard', href: '/admin' });
+  }
+
+  return links;
 }
 
 // ---------------------------------------------------------------------------
