@@ -126,7 +126,7 @@ export default function RegisterPage() {
           phone: form.phone,
           programmeId: form.programmeId,
           year: parseInt(form.year),
-          termsAccepted: true,
+          termsAccepted: acceptedTerms,
           marketingEmailConsent: marketingEmail,
           whatsappMarketingConsent: marketingWhatsapp,
         }),
