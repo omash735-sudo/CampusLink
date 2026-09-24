@@ -5,13 +5,13 @@ import SuperAccessForm from './SuperAccessForm';
 
 export const dynamic = 'force-dynamic';
 
-export default function SuperAccessPage() {
+export default async function SuperAccessPage() {
   if (!isSuperAccessEnabled()) {
     // Route effectively doesn't exist when disabled
     redirect('/');
   }
 
-  if (hasSuperAccess()) {
+  if (await hasSuperAccess()) {
     redirect('/admin');
   }
 
