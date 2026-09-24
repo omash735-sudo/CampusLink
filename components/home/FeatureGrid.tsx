@@ -1,5 +1,49 @@
 // components/home/FeatureGrid.tsx
 
+export function FeatureGrid() {
+  return (
+    <section className="py-16 md:py-20 bg-gradient-to-b from-white via-off-white/40 to-white relative">
+      <div className="container mx-auto px-4">
+        <div className="mb-12 text-center">
+          <p className="text-xs font-semibold tracking-wide uppercase text-primary-green/80 mb-2">
+            Welcome to CampusLink
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-primary-text">
+            Your Campus Community, Reimagined
+          </h2>
+          <p className="text-muted-text mt-3 max-w-2xl mx-auto">
+            Everything you need to navigate university life, all in one place.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature) => (
+            <a
+              key={feature.title}
+              href={feature.href}
+              className="group relative bg-white/70 backdrop-blur-md border border-gray-200/70 p-6 hover:border-primary-green/60 hover:bg-white hover:shadow-[0_4px_20px_-12px_rgba(23,107,58,0.25)] transition-all"
+            >
+              <div className="h-11 w-11 rounded-full bg-primary-green/10 flex items-center justify-center mb-4 group-hover:bg-primary-green/15 transition-colors">
+                <feature.icon className="h-5 w-5 text-primary-green group-hover:scale-110 transition-transform" />
+              </div>
+              <h3 className="mb-1.5 text-base font-semibold text-primary-text group-hover:text-primary-green transition-colors">
+                {feature.title}
+              </h3>
+              <p className="text-sm text-muted-text leading-relaxed">
+                {feature.description}
+              </p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Feature data                                                      */
+/* ------------------------------------------------------------------ */
+
 const features = [
   {
     icon: UsersIcon,
@@ -51,38 +95,10 @@ const features = [
   },
 ];
 
-export function FeatureGrid() {
-  return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold">Your Campus Community, Reimagined</h2>
-          <p className="text-muted-text mt-2">
-            Everything you need to navigate university life, all in one place.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
-            <a
-              key={feature.title}
-              href={feature.href}
-              className="group border border-gray-200 bg-white p-6 transition-colors hover:border-primary-green hover:bg-off-white"
-            >
-              <feature.icon className="mb-4 h-8 w-8 text-primary-green" />
-              <h3 className="mb-2 text-lg font-semibold text-primary-text group-hover:text-primary-green">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-text">{feature.description}</p>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+/* ------------------------------------------------------------------ */
+/*  Icons                                                             */
+/* ------------------------------------------------------------------ */
 
-// SVG Icons
 function UsersIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
 }
