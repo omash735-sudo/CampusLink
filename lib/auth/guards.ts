@@ -27,8 +27,8 @@ export async function requireUserFor(pagePath: string): Promise<AuthUser> {
     redirect(`/auth/login?next=${encodeURIComponent(pagePath)}`);
   }
 
-  if (!canAccess(auth.user.role, pagePath, AUTH_ROUTE_RULES)) {
-    explainDenial(auth.user.role, pagePath, AUTH_ROUTE_RULES);
+  if (!canAccess(auth.user, pagePath, AUTH_ROUTE_RULES)) {
+    explainDenial(auth.user, pagePath, AUTH_ROUTE_RULES);
     redirect(landingFor(auth.user.role));
   }
 
@@ -65,8 +65,8 @@ export async function requireAuthFor(
     };
   }
 
-  if (!canAccess(auth.user.role, apiPath, API_ROUTE_RULES)) {
-    explainDenial(auth.user.role, apiPath, API_ROUTE_RULES);
+  if (!canAccess(auth.user, apiPath, API_ROUTE_RULES)) {
+    explainDenial(auth.user, apiPath, API_ROUTE_RULES);
     return {
       ok: false,
       response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
