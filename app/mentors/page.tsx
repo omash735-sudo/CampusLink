@@ -9,10 +9,17 @@ import { MentorFilters } from '@/components/mentors/MentorFilters';
 import { MentorCard } from '@/components/mentors/MentorCard';
 import { RecommendedMentors } from '@/components/mentors/RecommendedMentors';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MentorsPage({
   searchParams,
 }: {
-  searchParams: { search?: string; expertise?: string; type?: string; availability?: string }
+  searchParams: {
+    search?: string;
+    expertise?: string;
+    type?: string;
+    availability?: string;
+  };
 }) {
   const currentUser = await getCurrentUser();
   const search = searchParams.search || '';
@@ -40,13 +47,12 @@ export default async function MentorsPage({
         year: campuslinkUsers.year,
         avatar: campuslinkUsers.avatar,
         mentorType: campuslinkUsers.mentorType,
-      }
+      },
     })
     .from(mentors)
     .leftJoin(campuslinkUsers, eq(mentors.userId, campuslinkUsers.id))
     .where(eq(mentors.status, 'approved'));
 
-  // Add search conditions
   if (search) {
     query = query.where(
       or(
@@ -57,22 +63,18 @@ export default async function MentorsPage({
     );
   }
 
-  // Add type filter
   if (typeFilter) {
     query = query.where(eq(campuslinkUsers.mentorType, typeFilter));
   }
 
-  // Add availability filter
   if (availabilityFilter === 'available') {
     query = query.where(eq(mentors.availability, 'available'));
   } else if (availabilityFilter === 'limited') {
     query = query.where(eq(mentors.availability, 'limited'));
   }
 
-  // Execute query
   const mentorsList = await query.orderBy(desc(mentors.rating)).limit(20);
 
-  // Get all expertise options for filters
   const expertiseOptions = await db
     .selectDistinct({
       name: mentorExpertise.name,
@@ -82,25 +84,40 @@ export default async function MentorsPage({
 
   const mentorTypes = ['Student', 'Alumni', 'Professional', 'Staff'];
 
+  const hasActiveFilters = !!(search || expertiseFilter || typeFilter || availabilityFilter);
+
   return (
-    <div className="min-h-screen bg-off-white">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-[#f6faf7] via-off-white to-off-white relative">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-primary-green/5 to-transparent"
+      />
+
+      <div className="relative container mx-auto px-4 py-8 md:py-10 max-w-6xl">
+        {/* ---------- Page header ---------- */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary-text">Find a Mentor</h1>
-          <p className="text-lg text-muted-text mt-2">
-            Get guidance from someone who has been where you are and knows where you're going.
+          <p className="text-xs font-semibold tracking-wide uppercase text-primary-green/80 mb-2">
+            Mentorship
           </p>
-          <div className="flex flex-wrap gap-4 mt-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-primary-text">
+            Find a Mentor
+          </h1>
+          <p className="text-base md:text-lg text-muted-text mt-2 max-w-2xl">
+            Get guidance from someone who has been where you are and knows where
+            you&apos;re going.
+          </p>
+
+          <div className="flex flex-wrap gap-3 mt-5">
             <Link
               href="/mentors"
-              className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors"
+              className="bg-primary-green text-white px-5 py-2.5 text-sm font-medium hover:bg-deep-green hover:shadow-[0_8px_24px_-12px_rgba(23,107,58,0.4)] transition-all"
             >
               Find a Mentor
             </Link>
             {!currentUser?.isMentor && (
               <Link
                 href="/mentors/become-a-mentor"
-                className="border-2 border-primary-green text-primary-green px-6 py-2 font-medium hover:bg-primary-green hover:text-white transition-colors"
+                className="bg-white/70 backdrop-blur-md border-2 border-primary-green text-primary-green px-5 py-2.5 text-sm font-medium hover:bg-primary-green hover:text-white transition-colors"
               >
                 Become a Mentor
               </Link>
@@ -108,19 +125,34 @@ export default async function MentorsPage({
           </div>
         </div>
 
-        {/* Recommended Mentors - Only for logged in users */}
+        {/* ---------- Recommended for you ---------- */}
         {currentUser && (
           <div className="mb-8">
             <RecommendedMentors currentUserId={currentUser.id} />
           </div>
         )}
 
-        {/* Search and Filters */}
-        <div className="bg-white border border-gray-200 p-6 mb-8">
+        {/* ---------- Search + Filters ---------- */}
+        <div className="bg-white/70 backdrop-blur-md border border-gray-200/70 shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-5 md:p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold tracking-wide uppercase text-muted-text">
+              Search & Filter
+            </h2>
+            {hasActiveFilters && (
+              <Link
+                href="/mentors"
+                className="text-xs font-medium text-primary-green hover:underline"
+              >
+                Clear all
+              </Link>
+            )}
+          </div>
+
           <div className="max-w-2xl">
             <MentorSearch />
           </div>
-          <div className="mt-4">
+
+          <div className="mt-4 pt-4 border-t border-gray-100/80">
             <MentorFilters
               expertiseOptions={expertiseOptions}
               mentorTypes={mentorTypes}
@@ -128,35 +160,60 @@ export default async function MentorsPage({
           </div>
         </div>
 
-        {/* Results */}
+        {/* ---------- Results ---------- */}
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
-              {mentorsList.length} mentor{mentorsList.length !== 1 ? 's' : ''} available
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-lg md:text-xl font-bold text-primary-text">
+              {mentorsList.length} mentor{mentorsList.length !== 1 ? 's' : ''}{' '}
+              <span className="text-sm font-normal text-muted-text">available</span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mentorsList.map((mentor) => (
-              <MentorCard
-                key={mentor.id}
-                mentor={mentor}
-                currentUserId={currentUser?.id}
-              />
-            ))}
-          </div>
-          {mentorsList.length === 0 && (
-            <div className="border border-gray-200 bg-white p-8 text-center">
-              <p className="text-muted-text">No mentors found matching your criteria.</p>
-              <div className="mt-4 flex gap-4 justify-center">
+
+          {mentorsList.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+              {mentorsList.map((mentor) => (
+                <MentorCard
+                  key={mentor.id}
+                  mentor={mentor}
+                  currentUserId={currentUser?.id}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white/70 backdrop-blur-md border border-dashed border-gray-200 p-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-primary-green/10 flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="h-6 w-6 text-primary-green"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-primary-text">
+                No mentors found
+              </h3>
+              <p className="text-sm text-muted-text mt-1 max-w-md mx-auto">
+                Try adjusting your search or filters — or if you have
+                experience to share, become a mentor yourself.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-4 justify-center">
                 <Link
                   href="/mentors"
-                  className="text-primary-green hover:underline text-sm"
+                  className="text-sm font-medium text-primary-green hover:underline"
                 >
                   Clear Filters
                 </Link>
                 <Link
                   href="/mentors/become-a-mentor"
-                  className="text-primary-green hover:underline text-sm"
+                  className="text-sm font-medium text-primary-green hover:underline"
                 >
                   Become a Mentor
                 </Link>
