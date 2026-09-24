@@ -22,6 +22,7 @@
     "drizzle-orm": "^0.28.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
+    "jose": "^5.9.6",
     "cookie": "^0.5.0",
     "zod": "^3.22.4",
     "clsx": "^2.0.0",
