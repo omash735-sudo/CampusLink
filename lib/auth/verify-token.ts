@@ -1,11 +1,13 @@
 // lib/auth/verify-token.ts
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
   throw new Error('[lib/auth] JWT_SECRET is not set');
 }
+
+const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 
 export type TokenPayload = {
   userId: string;
@@ -20,10 +22,20 @@ export type TokenPayload = {
  * it comes from the token and may not match a currently-valid role.
  * Callers should treat it as untrusted; authorization uses the
  * user's DB row instead.
+ *
+ * Uses `jose` instead of `jsonwebtoken` because this is called from
+ * middleware.ts, which always runs on the Edge runtime on Next 14 —
+ * jsonwebtoken needs Node's crypto module, which doesn't exist there,
+ * so verification was silently failing on every middleware request.
+ * jose runs on Web Crypto (works in both Edge and Node) and can verify
+ * the same HS256 tokens signToken() already produces.
  */
-export function verifyToken(token: string): TokenPayload | null {
+export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET!) as TokenPayload;
+    const { payload } = await jwtVerify(token, encodedSecret, {
+      algorithms: ['HS256'],
+    });
+    return payload as unknown as TokenPayload;
   } catch {
     return null;
   }
