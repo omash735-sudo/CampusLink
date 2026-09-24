@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         programme: programme.name,
         year: validated.year,
         role: 'student',
-        isActive: false,
+        isActive: true,
         isVerified: false,
         termsVersion,
         termsAcceptedAt: now,
