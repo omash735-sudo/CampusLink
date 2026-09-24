@@ -4,16 +4,32 @@ import { db } from '@/lib/db';
 import { groups } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await request.json();
 
-    // Build update object with only fields that exist
+    const [existing] = await db
+      .select()
+      .from(groups)
+      .where(eq(groups.id, params.id))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Community not found' },
+        { status: 404 }
+      );
+    }
+
     const updateData: any = {
       name: body.name,
       slug: body.slug,
@@ -23,22 +39,24 @@ export async function PUT(
       updatedAt: new Date(),
     };
 
-    // Only include whatsappLink if it exists in the schema
     if (body.whatsappLink !== undefined) {
       updateData.whatsappLink = body.whatsappLink;
     }
 
-    const [updated] = await db.update(groups)
+    const [updated] = await db
+      .update(groups)
       .set(updateData)
       .where(eq(groups.id, params.id))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json(
-        { error: 'Community not found' },
-        { status: 404 }
-      );
-    }
+    await logAudit({
+      adminId: admin.id,
+      action: 'update_community',
+      entity: 'group',
+      entityId: params.id,
+      previousValue: { name: existing.name, isActive: existing.isActive },
+      newValue: { name: updated.name, isActive: updated.isActive },
+    });
 
     return NextResponse.json(updated);
   } catch (error: any) {
@@ -51,12 +69,35 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
+
+    const [existing] = await db
+      .select()
+      .from(groups)
+      .where(eq(groups.id, params.id))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Community not found' },
+        { status: 404 }
+      );
+    }
+
     await db.delete(groups).where(eq(groups.id, params.id));
+
+    await logAudit({
+      adminId: admin.id,
+      action: 'delete_community',
+      entity: 'group',
+      entityId: params.id,
+      previousValue: { name: existing.name, status: existing.status },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete community error:', error);
