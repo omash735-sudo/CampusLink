@@ -1,7 +1,7 @@
 // lib/services/notification.service.ts
 import { db } from '@/lib/db';
 import { notifications, campuslinkUsers } from '@/lib/db/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';  // ← added sql
+import { eq, desc, and, sql } from 'drizzle-orm';
 
 interface NotificationData {
   userId: string;
@@ -169,5 +169,51 @@ export async function notifyNewResource(userId: string, resourceTitle: string, r
     title: 'New Resource Available',
     content: resourceTitle,
     link: `/resources/${resourceId}`,
+  });
+}
+
+// ==================== COMMUNITY NOTIFICATIONS ====================
+
+export async function notifyCommunitySubmitted(
+  adminId: string,
+  submitterId: string,
+  submitterName: string,
+  groupName: string
+) {
+  await createNotification({
+    userId: adminId,
+    type: 'community_submitted',
+    title: 'New Community Submission',
+    content: `${submitterName} submitted "${groupName}" for review.`,
+    link: '/admin/communities',
+    metadata: { submitterId, groupName },
+  });
+}
+
+export async function notifyCommunityApproved(userId: string, groupName: string) {
+  await createNotification({
+    userId,
+    type: 'community_approved',
+    title: 'Community Approved',
+    content: `Your community "${groupName}" has been approved and is now live.`,
+    link: '/connect/communities',
+    metadata: { groupName },
+  });
+}
+
+export async function notifyCommunityRejected(
+  userId: string,
+  groupName: string,
+  reason?: string | null
+) {
+  await createNotification({
+    userId,
+    type: 'community_rejected',
+    title: 'Community Submission Update',
+    content: reason
+      ? `Your community "${groupName}" was not approved. Reason: ${reason}`
+      : `Your community "${groupName}" was not approved.`,
+    link: '/connect/communities',
+    metadata: { groupName },
   });
 }
