@@ -4,10 +4,7 @@
 //
 // The real auth logic now lives in lib/auth/*. This file re-exports the
 // public surface so existing imports (`@/lib/auth`) keep working while
-// we migrate callers in Batch 3.
-//
-// Once Batch 3 is done, this file can be deleted and its callers
-// updated to import from `@/lib/auth` (which resolves to lib/auth/index.ts).
+// we migrate callers.
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -33,6 +30,7 @@ export type { TokenPayload } from './auth/verify-token';
 export { getCurrentUser, getUserByToken } from './auth/get-current-user';
 export {
   canAccess,
+  canAccessAsMentor,
   explainDenial,
   isPublic,
   PUBLIC_ROUTES,
@@ -72,31 +70,17 @@ export function signToken(userId: string, role: string = 'student') {
 }
 
 // ---------------------------------------------------------------------------
-// Legacy require* helpers
+// Legacy require* helpers — kept for compatibility.
+// New code should use requireUserFor / requireAuthFor.
 //
-// Kept for compatibility with any caller we haven't migrated yet.
-// New code should use:
-//   - requireUserFor(pagePath)          for server components
-//   - requireAuthFor(request, apiPath)  for API routes
-//
-// These throw on failure, matching their previous behavior.
+// These delegate to resolveAuth() so they share the same source of truth.
 // ---------------------------------------------------------------------------
 
 export async function requireAuth() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('auth_token')?.value;
-  if (!token) throw new Error('Unauthorized');
-
-  const decoded = jwt.verify(token, JWT_SECRET!) as { userId: string };
-  const [found] = await db
-    .select()
-    .from(campuslinkUsers)
-    .where(eq(campuslinkUsers.id, decoded.userId))
-    .limit(1);
-
-  if (!found) throw new Error('Unauthorized');
-  if (found.isActive === false) throw new Error('Unauthorized');
-  return found;
+  const { resolveAuth } = await import('./auth/resolve-auth');
+  const auth = await resolveAuth();
+  if (!auth.authenticated) throw new Error('Unauthorized');
+  return auth.user;
 }
 
 export async function requireAdmin() {
@@ -126,7 +110,7 @@ export async function requireMentor() {
     return user;
   }
 
-  if (user.role === 'admin' && hasSuperAccess()) {
+  if (user.role === 'admin' && (await hasSuperAccess())) {
     return user;
   }
 
@@ -134,7 +118,7 @@ export async function requireMentor() {
 }
 
 // ---------------------------------------------------------------------------
-// Admin existence check (used by /admin/setup)
+// Admin existence check
 // ---------------------------------------------------------------------------
 
 export async function adminExists(): Promise<boolean> {
@@ -146,11 +130,12 @@ export async function adminExists(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Cookies
+// Cookies — Next.js 15: cookies() is async
 // ---------------------------------------------------------------------------
 
-export function setAuthCookie(token: string) {
-  cookies().set('auth_token', token, {
+export async function setAuthCookie(token: string) {
+  const store = await cookies();
+  store.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -159,12 +144,13 @@ export function setAuthCookie(token: string) {
   });
 }
 
-export function clearAuthCookie() {
-  cookies().delete('auth_token');
+export async function clearAuthCookie() {
+  const store = await cookies();
+  store.delete('auth_token');
 }
 
 // ---------------------------------------------------------------------------
-// Redirect path (kept for callers that still import it)
+// Redirect path
 // ---------------------------------------------------------------------------
 
 export function getRedirectPath(user: {
@@ -178,7 +164,7 @@ export function getRedirectPath(user: {
 }
 
 // ---------------------------------------------------------------------------
-// Super access (unchanged)
+// Super access — also async now
 // ---------------------------------------------------------------------------
 
 const SUPER_ACCESS_COOKIE = 'super_access_token';
@@ -214,9 +200,10 @@ export function verifySuperAccessToken(token: string): boolean {
   }
 }
 
-export function setSuperAccessCookie() {
+export async function setSuperAccessCookie() {
   const token = signSuperAccessToken();
-  cookies().set(SUPER_ACCESS_COOKIE, token, {
+  const store = await cookies();
+  store.set(SUPER_ACCESS_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -225,13 +212,15 @@ export function setSuperAccessCookie() {
   });
 }
 
-export function clearSuperAccessCookie() {
-  cookies().delete(SUPER_ACCESS_COOKIE);
+export async function clearSuperAccessCookie() {
+  const store = await cookies();
+  store.delete(SUPER_ACCESS_COOKIE);
 }
 
-export function hasSuperAccess(): boolean {
+export async function hasSuperAccess(): Promise<boolean> {
   if (!isSuperAccessEnabled()) return false;
-  const token = cookies().get(SUPER_ACCESS_COOKIE)?.value;
+  const store = await cookies();
+  const token = store.get(SUPER_ACCESS_COOKIE)?.value;
   if (!token) return false;
   return verifySuperAccessToken(token);
 }
