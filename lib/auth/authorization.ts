@@ -1,10 +1,25 @@
 // lib/auth/authorization.ts
 import type { Role } from './roles';
 
+/**
+ * A user shape sufficient for authorization decisions.
+ * Matches the subset of campuslink_users the rules need.
+ */
+export type AuthUserLike = {
+  role: Role | string | null | undefined;
+  isMentor?: boolean | null;
+  mentorStatus?: string | null;
+  publicationsStatus?: string | null;
+};
+
 export type Rule = {
   pattern: string;
-  allow: Role[];
+  allow: (user: AuthUserLike) => boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Pattern matching (unchanged)
+// ---------------------------------------------------------------------------
 
 function matchPattern(pattern: string, pathname: string): boolean {
   if (pattern === pathname) return true;
@@ -23,6 +38,41 @@ function matchPattern(pattern: string, pathname: string): boolean {
 
   return false;
 }
+
+// ---------------------------------------------------------------------------
+// Shared predicates
+// ---------------------------------------------------------------------------
+
+const isAdmin = (u: AuthUserLike) => u.role === 'admin';
+
+/**
+ * An approved mentor. Role stays 'student' for mentors promoted via the
+ * application flow; isMentor + mentorStatus are the source of truth.
+ * Admins are always allowed.
+ */
+const isApprovedMentor = (u: AuthUserLike) =>
+  isAdmin(u) ||
+  (u.isMentor === true && u.mentorStatus === 'approved');
+
+/**
+ * An approved publications officer. Set explicitly by the admin role-change
+ * route, which flips role='publications' AND publicationsStatus='approved'.
+ * Admins are always allowed.
+ */
+const isApprovedPublications = (u: AuthUserLike) =>
+  isAdmin(u) ||
+  u.role === 'publications' ||
+  u.publicationsStatus === 'approved';
+
+/**
+ * Any authenticated user with an active account. Every rule below that isn't
+ * admin-only or flag-gated lands here.
+ */
+const isAnyAuthenticated = (_u: AuthUserLike) => true;
+
+// ---------------------------------------------------------------------------
+// Public routes
+// ---------------------------------------------------------------------------
 
 export const PUBLIC_ROUTES: string[] = [
   '/',
@@ -71,156 +121,143 @@ export function isPublic(pathname: string): boolean {
   return PUBLIC_ROUTES.some((p) => matchPattern(p, pathname));
 }
 
-/**
- * Authenticated route rules.
- *
- * Option C: publications officers can access BOTH:
- *   - the admin content area (`/admin/publications`, `/admin/announcements`,
- *     `/admin/events`, `/admin/student-union`, `/admin/spotlights`,
- *     `/admin/clubs`, `/admin/resources`, `/admin/resource-categories`,
- *     `/admin/profile`)
- *   - the student-facing routes (`/student/**`, `/connect`, `/mentorship`,
- *     `/mentors`, `/community`, `/groups`, `/profile`, `/settings`,
- *     `/notifications`, `/messages`)
- *
- * Publications does NOT overlap with mentor — `/mentor/*` stays
- * exclusive to `mentor` and `admin`.
- */
+// ---------------------------------------------------------------------------
+// Authenticated route rules
+// ---------------------------------------------------------------------------
+
 export const AUTH_ROUTE_RULES: Rule[] = [
   // --- Shared infrastructure routes ---
-  { pattern: '/resources/upload', allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/messages',         allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/messages/**',      allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/notifications',    allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/notifications/**', allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/resources/upload', allow: isAnyAuthenticated },
+  { pattern: '/messages',         allow: isAnyAuthenticated },
+  { pattern: '/messages/**',      allow: isAnyAuthenticated },
+  { pattern: '/notifications',    allow: isAnyAuthenticated },
+  { pattern: '/notifications/**', allow: isAnyAuthenticated },
 
-  // --- Mentor only ---
-  { pattern: '/mentor',    allow: ['mentor', 'admin'] },
-  { pattern: '/mentor/**', allow: ['mentor', 'admin'] },
+  // --- Mentor area: approved mentor OR admin ---
+  { pattern: '/mentor',    allow: isApprovedMentor },
+  { pattern: '/mentor/**', allow: isApprovedMentor },
 
-  // --- Student routes (publications allowed via Option C) ---
-  { pattern: '/student/**',     allow: ['student', 'publications', 'admin'] },
-  { pattern: '/connect',        allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/connect/**',     allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/mentorship',     allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/mentorship/**',  allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/mentors',        allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/mentors/**',     allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/community/**',   allow: ['student', 'publications', 'admin'] },
-  { pattern: '/groups/**',      allow: ['student', 'publications', 'admin'] },
+  // --- Student area: everyone ---
+  { pattern: '/student/**',     allow: isAnyAuthenticated },
+  { pattern: '/connect',        allow: isAnyAuthenticated },
+  { pattern: '/connect/**',     allow: isAnyAuthenticated },
+  { pattern: '/mentorship',     allow: isAnyAuthenticated },
+  { pattern: '/mentorship/**',  allow: isAnyAuthenticated },
+  { pattern: '/mentors',        allow: isAnyAuthenticated },
+  { pattern: '/mentors/**',     allow: isAnyAuthenticated },
+  { pattern: '/community/**',   allow: isAnyAuthenticated },
+  { pattern: '/groups/**',      allow: isAnyAuthenticated },
 
-  // --- Any authenticated user ---
-  { pattern: '/profile',    allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/profile/**', allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/settings',   allow: ['student', 'mentor', 'publications', 'admin'] },
-  { pattern: '/settings/**', allow: ['student', 'mentor', 'publications', 'admin'] },
+  { pattern: '/profile',    allow: isAnyAuthenticated },
+  { pattern: '/profile/**', allow: isAnyAuthenticated },
+  { pattern: '/settings',   allow: isAnyAuthenticated },
+  { pattern: '/settings/**', allow: isAnyAuthenticated },
 
-  // --- Publications-accessible admin content area ---
+  // --- Publications content area: approved publications officer OR admin ---
   // (must appear BEFORE the /admin/** catch-all)
-  { pattern: '/admin',                        allow: ['publications', 'admin'] },
-  { pattern: '/admin/publications',           allow: ['publications', 'admin'] },
-  { pattern: '/admin/publications/**',        allow: ['publications', 'admin'] },
-  { pattern: '/admin/announcements',          allow: ['publications', 'admin'] },
-  { pattern: '/admin/announcements/**',       allow: ['publications', 'admin'] },
-  { pattern: '/admin/events',                 allow: ['publications', 'admin'] },
-  { pattern: '/admin/events/**',              allow: ['publications', 'admin'] },
-  { pattern: '/admin/student-union',          allow: ['publications', 'admin'] },
-  { pattern: '/admin/student-union/**',       allow: ['publications', 'admin'] },
-  { pattern: '/admin/spotlights',             allow: ['publications', 'admin'] },
-  { pattern: '/admin/spotlights/**',          allow: ['publications', 'admin'] },
-  { pattern: '/admin/clubs',                  allow: ['publications', 'admin'] },
-  { pattern: '/admin/clubs/**',               allow: ['publications', 'admin'] },
-  { pattern: '/admin/resources',              allow: ['publications', 'admin'] },
-  { pattern: '/admin/resources/**',           allow: ['publications', 'admin'] },
-  { pattern: '/admin/resource-categories',    allow: ['publications', 'admin'] },
-  { pattern: '/admin/resource-categories/**', allow: ['publications', 'admin'] },
-  { pattern: '/admin/profile',                allow: ['publications', 'admin'] },
-  { pattern: '/admin/profile/**',             allow: ['publications', 'admin'] },
+  { pattern: '/admin',                        allow: isApprovedPublications },
+  { pattern: '/admin/publications',           allow: isApprovedPublications },
+  { pattern: '/admin/publications/**',        allow: isApprovedPublications },
+  { pattern: '/admin/announcements',          allow: isApprovedPublications },
+  { pattern: '/admin/announcements/**',       allow: isApprovedPublications },
+  { pattern: '/admin/events',                 allow: isApprovedPublications },
+  { pattern: '/admin/events/**',              allow: isApprovedPublications },
+  { pattern: '/admin/student-union',          allow: isApprovedPublications },
+  { pattern: '/admin/student-union/**',       allow: isApprovedPublications },
+  { pattern: '/admin/spotlights',             allow: isApprovedPublications },
+  { pattern: '/admin/spotlights/**',          allow: isApprovedPublications },
+  { pattern: '/admin/clubs',                  allow: isApprovedPublications },
+  { pattern: '/admin/clubs/**',               allow: isApprovedPublications },
+  { pattern: '/admin/resources',              allow: isApprovedPublications },
+  { pattern: '/admin/resources/**',           allow: isApprovedPublications },
+  { pattern: '/admin/resource-categories',    allow: isApprovedPublications },
+  { pattern: '/admin/resource-categories/**', allow: isApprovedPublications },
+  { pattern: '/admin/profile',                allow: isApprovedPublications },
+  { pattern: '/admin/profile/**',             allow: isApprovedPublications },
 
   // --- Admin only (catch-all) ---
-  { pattern: '/admin/**', allow: ['admin'] },
+  { pattern: '/admin/**', allow: isAdmin },
 ];
 
-/**
- * API route rules — mirrors the page rules above.
- */
 export const API_ROUTE_RULES: Rule[] = [
   // --- Publications-accessible admin APIs ---
-  { pattern: '/api/admin/upload',                  allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/publications',            allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/publications/**',         allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/announcements',           allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/announcements/**',        allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/events',                  allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/events/**',               allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/student-union',           allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/student-union/**',        allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/spotlights',              allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/spotlights/**',           allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/clubs',                   allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/clubs/**',                allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/resources',               allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/resources/**',            allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/resource-categories',     allow: ['publications', 'admin'] },
-  { pattern: '/api/admin/resource-categories/**',  allow: ['publications', 'admin'] },
+  { pattern: '/api/admin/upload',                  allow: isApprovedPublications },
+  { pattern: '/api/admin/publications',            allow: isApprovedPublications },
+  { pattern: '/api/admin/publications/**',         allow: isApprovedPublications },
+  { pattern: '/api/admin/announcements',           allow: isApprovedPublications },
+  { pattern: '/api/admin/announcements/**',        allow: isApprovedPublications },
+  { pattern: '/api/admin/events',                  allow: isApprovedPublications },
+  { pattern: '/api/admin/events/**',               allow: isApprovedPublications },
+  { pattern: '/api/admin/student-union',           allow: isApprovedPublications },
+  { pattern: '/api/admin/student-union/**',        allow: isApprovedPublications },
+  { pattern: '/api/admin/spotlights',              allow: isApprovedPublications },
+  { pattern: '/api/admin/spotlights/**',           allow: isApprovedPublications },
+  { pattern: '/api/admin/clubs',                   allow: isApprovedPublications },
+  { pattern: '/api/admin/clubs/**',                allow: isApprovedPublications },
+  { pattern: '/api/admin/resources',               allow: isApprovedPublications },
+  { pattern: '/api/admin/resources/**',            allow: isApprovedPublications },
+  { pattern: '/api/admin/resource-categories',     allow: isApprovedPublications },
+  { pattern: '/api/admin/resource-categories/**',  allow: isApprovedPublications },
 
   // --- Admin only ---
-  { pattern: '/api/admin/**', allow: ['admin'] },
+  { pattern: '/api/admin/**', allow: isAdmin },
 
   // --- Mentor APIs ---
-  { pattern: '/api/mentor',    allow: ['mentor', 'admin'] },
-  { pattern: '/api/mentor/**', allow: ['mentor', 'admin'] },
+  { pattern: '/api/mentor',    allow: isApprovedMentor },
+  { pattern: '/api/mentor/**', allow: isApprovedMentor },
 ];
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 export function canAccess(
-  role: Role,
+  user: AuthUserLike,
   pathname: string,
   rules: Rule[] = AUTH_ROUTE_RULES
 ): boolean {
   for (const rule of rules) {
     if (matchPattern(rule.pattern, pathname)) {
-      return rule.allow.includes(role);
+      return rule.allow(user);
     }
   }
   return false;
 }
 
 /**
- * Mentor-flag authorization check.
+ * Back-compat: previous signature took a bare `role` string.
+ * Still supported for callers that haven't been updated yet.
  *
- * Runs alongside canAccess(). A user whose DB flags are
- * isMentor === true and mentorStatus === 'approved' gets access
- * to /mentor/* regardless of their base role (which stays 'student').
- *
- * Non-mentors get false here — canAccess is still the primary gate
- * for their role-based routes.
+ * NOTE: this only knows the role, not the flags, so it will NOT grant
+ * flag-based access (e.g. a student with isMentor=true will be denied
+ * /mentor via this helper). Prefer canAccess(user, path).
  */
+export function canAccessByRole(
+  role: Role,
+  pathname: string,
+  rules: Rule[] = AUTH_ROUTE_RULES
+): boolean {
+  return canAccess({ role }, pathname, rules);
+}
+
 export function canAccessAsMentor(
-  user: { isMentor?: boolean | null; mentorStatus?: string | null },
+  user: AuthUserLike,
   pathname: string
 ): boolean {
-  const isApprovedMentor =
-    user.isMentor === true && user.mentorStatus === 'approved';
-  if (!isApprovedMentor) return false;
-
-  if (pathname === '/mentor' || pathname.startsWith('/mentor/')) {
-    return true;
-  }
-
-  return false;
+  return isApprovedMentor(user) && (pathname === '/mentor' || pathname.startsWith('/mentor/'));
 }
 
 export function explainDenial(
-  role: Role,
+  user: AuthUserLike,
   pathname: string,
   rules: Rule[] = AUTH_ROUTE_RULES
 ): { matched: Rule | null; allowed: boolean } {
   for (const rule of rules) {
     if (matchPattern(rule.pattern, pathname)) {
-      const allowed = rule.allow.includes(role);
+      const allowed = rule.allow(user);
       if (!allowed && process.env.NODE_ENV !== 'production') {
         console.warn(
-          `[auth] ${role} denied ${pathname} (rule: ${rule.pattern}, allowed: ${rule.allow.join(', ')})`
+          `[auth] user(role=${user.role}, mentor=${user.isMentor}, pubs=${user.publicationsStatus}) denied ${pathname} (rule: ${rule.pattern})`
         );
       }
       return { matched: rule, allowed };
@@ -228,7 +265,7 @@ export function explainDenial(
   }
   if (process.env.NODE_ENV !== 'production') {
     console.warn(
-      `[auth] ${role} denied ${pathname} (no matching rule — deny by default)`
+      `[auth] user(role=${user.role}) denied ${pathname} (no matching rule — deny by default)`
     );
   }
   return { matched: null, allowed: false };
