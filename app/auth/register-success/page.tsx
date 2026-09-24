@@ -33,29 +33,31 @@ export default function RegisterSuccessPage() {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-bold mb-3">Registration Received</h1>
+        <h1 className="text-2xl font-bold mb-3">Welcome to CampusLink</h1>
 
         <p className="text-muted-text mb-4">
-          Thank you for joining CampusLink. Your registration has been received
-          successfully.
-        </p>
-
-        <p className="text-muted-text mb-6">
-          Access to CampusLink is currently limited while we complete our
-          authorization system. Your information has been securely recorded, and
-          we will notify you when access becomes available.
+          Your account has been created successfully. You can sign in right
+          away and start connecting with the CampusLink community.
         </p>
 
         <p className="text-sm text-muted-text mb-8">
           A confirmation email has been sent to your inbox.
         </p>
 
-        <Link
-          href="/"
-          className="bg-primary-green text-white font-medium px-6 py-3 hover:bg-deep-green transition-colors inline-block"
-        >
-          Back to Home
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/auth/login"
+            className="bg-primary-green text-white font-medium px-6 py-3 hover:bg-deep-green transition-colors inline-block"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/"
+            className="border border-gray-300 text-gray-700 font-medium px-6 py-3 hover:border-primary-green hover:text-primary-green transition-colors inline-block"
+          >
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );
