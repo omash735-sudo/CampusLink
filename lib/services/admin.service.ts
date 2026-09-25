@@ -417,33 +417,69 @@ export async function getAnnouncements() {
 }
 
 export async function getAnnouncementById(id: string) {
-  return await db.select().from(announcements).where(eq(announcements.id, id)).then(res => res[0]);
+  return await db
+    .select()
+    .from(announcements)
+    .where(eq(announcements.id, id))
+    .then(res => res[0]);
 }
 
 export async function createAnnouncement(data: any) {
-  const [announcement] = await db.insert(announcements).values({
-    title: data.title,
-    content: data.content,
-    authorId: data.authorId || 'admin',
-    type: data.category || 'general',
-    priority: data.priority || 'normal',
-    isPublished: data.isPublished || false,
-    imageUrl: data.imageUrl || null,
-    publishedAt: data.isPublished ? new Date() : null,
-  }).returning();
+  // authorId is required — announcements.authorId is a UUID FK to campuslink_users.
+  // The previous default of 'admin' was not a UUID and caused a foreign key
+  // constraint violation at insert time.
+  if (!data.authorId) {
+    throw new Error('authorId is required to create an announcement');
+  }
+
+  const [announcement] = await db
+    .insert(announcements)
+    .values({
+      title: data.title,
+      content: data.content,
+      authorId: data.authorId,
+      // Accept either key — the admin form sends `type`, older callers may send `category`.
+      type: data.type || data.category || 'general',
+      priority: data.priority || 'normal',
+      isPublished: data.isPublished || false,
+      imageUrl: data.imageUrl || null,
+      publishedAt: data.isPublished ? new Date() : null,
+    })
+    .returning();
   return announcement;
 }
 
 export async function updateAnnouncement(id: string, data: any) {
-  const [updated] = await db.update(announcements)
+  // Preserve publishedAt correctly:
+  //   draft → published : stamp now
+  //   still published   : keep the original timestamp
+  //   unpublished       : clear it
+  const [existing] = await db
+    .select({
+      isPublished: announcements.isPublished,
+      publishedAt: announcements.publishedAt,
+    })
+    .from(announcements)
+    .where(eq(announcements.id, id));
+
+  const publishedAt = !existing
+    ? null
+    : data.isPublished && !existing.isPublished
+    ? new Date()
+    : data.isPublished
+    ? existing.publishedAt
+    : null;
+
+  const [updated] = await db
+    .update(announcements)
     .set({
       title: data.title,
       content: data.content,
-      type: data.category || 'general',
+      type: data.type || data.category || 'general',
       priority: data.priority || 'normal',
       isPublished: data.isPublished,
       imageUrl: data.imageUrl || null,
-      publishedAt: data.isPublished ? new Date() : null,
+      publishedAt,
       updatedAt: new Date(),
     })
     .where(eq(announcements.id, id))
@@ -456,7 +492,8 @@ export async function deleteAnnouncement(id: string) {
 }
 
 export async function publishAnnouncement(id: string) {
-  const [updated] = await db.update(announcements)
+  const [updated] = await db
+    .update(announcements)
     .set({
       isPublished: true,
       publishedAt: new Date(),
