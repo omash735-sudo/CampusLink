@@ -65,10 +65,10 @@ export function SpotlightRow({ spotlight }: { spotlight: Spotlight }) {
         <img
           src={spotlight.graphicUrl}
           alt={spotlight.studentName}
-          className="w-12 h-16 object-cover border border-gray-200 flex-shrink-0"
+          className="w-16 h-auto border border-gray-200 flex-shrink-0"
         />
       ) : (
-        <div className="w-12 h-16 bg-primary-green/10 flex items-center justify-center text-xs text-primary-green flex-shrink-0">
+        <div className="w-16 h-20 bg-primary-green/10 flex items-center justify-center text-[10px] text-primary-green flex-shrink-0 text-center px-1">
           No graphic
         </div>
       )}
