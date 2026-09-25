@@ -262,8 +262,9 @@ export function SpotlightForm({ initialData, mode }: Props) {
       <div className="bg-white border border-gray-200 p-6 space-y-4">
         <h2 className="text-lg font-semibold">Graphic</h2>
         <p className="text-xs text-muted-text">
-          Upload the spotlight graphic. Recommended: portrait poster, around
-          600 × 800 pixels. JPG or PNG, under 4MB.
+          Upload the spotlight graphic. Any dimensions work — the full graphic
+          is shown uncropped on the public page. Portrait posters work best.
+          JPG or PNG, under 4MB.
         </p>
 
         {form.graphicUrl && (
@@ -272,7 +273,7 @@ export function SpotlightForm({ initialData, mode }: Props) {
             <img
               src={form.graphicUrl}
               alt="Preview"
-              className="w-40 border border-gray-200"
+              className="w-56 max-w-full h-auto border border-gray-200"
             />
             <button
               type="button"
