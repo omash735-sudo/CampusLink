@@ -1,7 +1,7 @@
 // app/admin/events/new/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { EVENT_CATEGORIES } from '@/lib/event-categories';
@@ -23,6 +23,20 @@ export default function NewEventPage() {
     category: '',
     maxAttendees: '',
   });
+
+  // Local object URL for the selected file, so the admin can see the full
+  // poster (uncropped) before it's even uploaded.
+  const previewUrl = useMemo(() => {
+    if (!imageFile) return null;
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
+
+  // Revoke the object URL when the file changes or the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,7 +131,23 @@ export default function NewEventPage() {
           </div>
 
           <div>
-            <label className="label-text">Event Image</label>
+            <label className="label-text">Event Poster</label>
+            <p className="text-xs text-muted-text mb-2">
+              If you upload a poster containing event details, it will be
+              displayed in full at the top of the post. Any dimensions work.
+            </p>
+
+            {previewUrl && (
+              <div className="mb-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Event poster preview"
+                  className="w-full max-w-md h-auto border border-gray-200"
+                />
+              </div>
+            )}
+
             <input
               type="file"
               accept="image/*"
