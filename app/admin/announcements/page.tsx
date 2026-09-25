@@ -15,6 +15,7 @@ interface Announcement {
   isPublished: boolean;
   publishedAt: string | null;
   createdAt: string;
+  imageUrl: string | null;
 }
 
 export default function AdminAnnouncementsPage() {
@@ -39,6 +40,7 @@ export default function AdminAnnouncementsPage() {
         isPublished: item.isPublished || false,
         publishedAt: item.publishedAt || null,
         createdAt: item.createdAt,
+        imageUrl: item.imageUrl || null,
       }));
       setAnnouncements(mappedData);
     } catch (error) {
@@ -96,7 +98,10 @@ export default function AdminAnnouncementsPage() {
           <h1 className="text-2xl font-bold">Announcements</h1>
           <p className="text-sm text-gray-500">{announcements.length} total announcements</p>
         </div>
-        <Link href="/admin/announcements/new" className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1">
+        <Link
+          href="/admin/announcements/new"
+          className="bg-primary-green text-white px-4 py-2 text-sm font-medium hover:bg-deep-green transition-colors flex items-center gap-1"
+        >
           <PlusIcon className="h-4 w-4" />
           Add Announcement
         </Link>
@@ -104,38 +109,78 @@ export default function AdminAnnouncementsPage() {
 
       <div className="space-y-3">
         {announcements.map((announcement) => (
-          <div key={announcement.id} className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors">
+          <div
+            key={announcement.id}
+            className="bg-white border border-gray-200 p-4 hover:border-primary-green transition-colors"
+          >
             <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold">{announcement.title}</h3>
-                  <span className={`text-xs px-2 py-0.5 ${
-                    announcement.isPublished ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {announcement.isPublished ? 'Published' : 'Draft'}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 ${
-                    announcement.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                    announcement.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {announcement.priority}
-                  </span>
+              <div className="flex items-start gap-4 min-w-0">
+                {announcement.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={announcement.imageUrl}
+                    alt={announcement.title}
+                    className="w-16 h-auto border border-gray-200 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-20 bg-primary-green/10 flex items-center justify-center text-[10px] text-primary-green flex-shrink-0 text-center px-1">
+                    No poster
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold">{announcement.title}</h3>
+                    <span
+                      className={`text-xs px-2 py-0.5 ${
+                        announcement.isPublished
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
+                      {announcement.isPublished ? 'Published' : 'Draft'}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 ${
+                        announcement.priority === 'urgent'
+                          ? 'bg-red-100 text-red-700'
+                          : announcement.priority === 'high'
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {announcement.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">{announcement.category}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    {announcement.content}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Added {new Date(announcement.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500">{announcement.category}</p>
-                <p className="text-sm text-gray-500 line-clamp-2">{announcement.content}</p>
-                <p className="text-xs text-gray-400 mt-1">Added {new Date(announcement.createdAt).toLocaleDateString()}</p>
               </div>
-              <div className="flex flex-wrap items-start gap-2">
-                <Link href={`/admin/announcements/${announcement.id}`} className="text-primary-green hover:underline text-sm">
+
+              <div className="flex flex-wrap items-start gap-2 flex-shrink-0">
+                <Link
+                  href={`/admin/announcements/${announcement.id}/edit`}
+                  className="text-primary-green hover:underline text-sm"
+                >
                   Edit
                 </Link>
                 {!announcement.isPublished && (
-                  <button onClick={() => handlePublish(announcement.id)} className="text-sm text-green-600 hover:text-green-700">
+                  <button
+                    onClick={() => handlePublish(announcement.id)}
+                    className="text-sm text-green-600 hover:text-green-700"
+                  >
                     Publish
                   </button>
                 )}
-                <button onClick={() => handleDelete(announcement.id)} className="text-sm text-red-500 hover:text-red-700">
+                <button
+                  onClick={() => handleDelete(announcement.id)}
+                  className="text-sm text-red-500 hover:text-red-700"
+                >
                   Delete
                 </button>
               </div>
