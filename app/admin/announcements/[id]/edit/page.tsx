@@ -1,7 +1,7 @@
 // app/admin/announcements/[id]/edit/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ANNOUNCEMENT_TYPES } from '@/lib/announcement-types';
@@ -12,13 +12,32 @@ export default function EditAnnouncementPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     content: '',
     type: 'general',
     priority: 'normal',
     isPublished: false,
+    imageUrl: '',
   });
+
+  // Local preview while a replacement poster is selected but not yet uploaded.
+  const localPreviewUrl = useMemo(() => {
+    if (!imageFile) return null;
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
+
+  // Revoke the object URL when the file changes or the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
+  // What to show in the preview: local (unsaved) file, else the saved URL.
+  const previewUrl = localPreviewUrl || form.imageUrl || null;
 
   useEffect(() => {
     loadAnnouncement();
@@ -35,6 +54,7 @@ export default function EditAnnouncementPage() {
           type: data.type || 'general',
           priority: data.priority || 'normal',
           isPublished: data.isPublished || false,
+          imageUrl: data.imageUrl || '',
         });
       }
     } catch (error) {
@@ -44,12 +64,47 @@ export default function EditAnnouncementPage() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setForm((prev) => ({ ...prev, imageUrl: '' }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
 
     try {
+      let imageUrl = form.imageUrl;
+
+      // Only upload if a new file was actually selected.
+      if (imageFile) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('type', 'announcements');
+
+        const uploadRes = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.url;
+        setUploading(false);
+      }
+
       const res = await fetch(`/api/admin/announcements`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -60,6 +115,7 @@ export default function EditAnnouncementPage() {
           type: form.type,
           priority: form.priority,
           isPublished: form.isPublished,
+          imageUrl: imageUrl || null,
         }),
       });
 
@@ -72,6 +128,7 @@ export default function EditAnnouncementPage() {
       setError(err.message);
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -110,6 +167,49 @@ export default function EditAnnouncementPage() {
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
             />
+          </div>
+
+          <div>
+            <label className="label-text">Announcement Poster</label>
+            <p className="text-xs text-muted-text mb-2">
+              Optional. If you upload a poster containing the announcement
+              details, it will be displayed in full at the top of the post.
+              Any dimensions work.
+            </p>
+
+            {previewUrl && (
+              <div className="mb-3 flex items-start gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Announcement poster preview"
+                  className="w-full max-w-md h-auto border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="text-sm text-red-600 hover:underline flex-shrink-0"
+                >
+                  Remove poster
+                </button>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="input-field"
+            />
+            {imageFile && (
+              <p className="text-sm text-muted-text mt-1">
+                New file selected: {imageFile.name} ({(imageFile.size / 1024).toFixed(1)} KB)
+                {' '}— will replace the current poster on save.
+              </p>
+            )}
+            {uploading && (
+              <p className="text-sm text-blue-600 mt-1">Uploading image...</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -161,7 +261,7 @@ export default function EditAnnouncementPage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="bg-primary-green text-white px-6 py-2 font-medium hover:bg-deep-green transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
