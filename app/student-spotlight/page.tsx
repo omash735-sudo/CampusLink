@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { db } from '@/lib/db';
 import { studentSpotlights } from '@/lib/db/schema';
 import { eq, asc } from 'drizzle-orm';
+import { PosterImage } from '@/components/PosterImage';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,7 @@ export default async function StudentSpotlightPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {rows.map((s) => (
                 <SpotlightCard key={s.id} spotlight={s} />
               ))}
@@ -83,16 +84,15 @@ function SpotlightCard({
   };
 }) {
   return (
-    <div className="bg-white border border-gray-200 overflow-hidden flex flex-col">
+    <article className="bg-white border border-gray-200 flex flex-col">
+      {/* Full graphic, uncropped. Only rendered when a graphic exists. */}
       {spotlight.graphicUrl && (
-        <div className="relative w-full aspect-[3/4] bg-gray-50">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={spotlight.graphicUrl}
-            alt={spotlight.studentName}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        </div>
+        <PosterImage
+          src={spotlight.graphicUrl}
+          alt={spotlight.studentName}
+          variant="card"
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
       )}
 
       <div className="p-6 flex flex-col flex-1">
@@ -110,9 +110,11 @@ function SpotlightCard({
           </p>
         )}
 
-        <p className="text-sm text-muted-text mt-3 leading-relaxed">
-          {spotlight.bio}
-        </p>
+        {spotlight.bio && (
+          <p className="text-sm text-muted-text mt-3 leading-relaxed">
+            {spotlight.bio}
+          </p>
+        )}
 
         {spotlight.tags && spotlight.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
@@ -127,6 +129,6 @@ function SpotlightCard({
           </div>
         )}
       </div>
-    </div>
+    </article>
   );
 }
