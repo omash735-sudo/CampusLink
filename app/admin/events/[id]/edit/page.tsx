@@ -43,9 +43,7 @@ export default function EditEventPage() {
           title: data.title || '',
           description: data.description || '',
           date: startDate ? startDate.toISOString().split('T')[0] : '',
-          startTime: startDate
-            ? startDate.toTimeString().slice(0, 5)
-            : '',
+          startTime: startDate ? startDate.toTimeString().slice(0, 5) : '',
           endTime: endDate ? endDate.toTimeString().slice(0, 5) : '',
           location: data.location || '',
           organizer: data.organizer || '',
@@ -158,17 +156,23 @@ export default function EditEventPage() {
           </div>
 
           <div>
-            <label className="label-text">Event Image</label>
+            <label className="label-text">Event Poster</label>
+            <p className="text-xs text-muted-text mb-2">
+              If you upload a poster containing event details, it will be
+              displayed in full at the top of the post. Any dimensions work.
+            </p>
+
             {form.image && (
-              <div className="mb-2">
+              <div className="mb-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.image}
-                  alt="Event"
-                  className="h-32 object-cover border border-gray-200"
+                  alt="Event poster"
+                  className="w-full max-w-md h-auto border border-gray-200"
                 />
               </div>
             )}
+
             <input
               type="file"
               accept="image/*"
