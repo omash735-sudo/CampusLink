@@ -1,7 +1,7 @@
 // app/admin/announcements/new/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ANNOUNCEMENT_TYPES } from '@/lib/announcement-types';
@@ -18,6 +18,19 @@ export default function NewAnnouncementPage() {
     type: 'general',
     priority: 'normal',
   });
+
+  // Local preview so the admin can see the full poster before uploading.
+  const previewUrl = useMemo(() => {
+    if (!imageFile) return null;
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
+
+  // Revoke the object URL when the file changes or the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,7 +128,24 @@ export default function NewAnnouncementPage() {
           </div>
 
           <div>
-            <label className="label-text">Image</label>
+            <label className="label-text">Announcement Poster</label>
+            <p className="text-xs text-muted-text mb-2">
+              Optional. If you upload a poster containing the announcement
+              details, it will be displayed in full at the top of the post.
+              Any dimensions work.
+            </p>
+
+            {previewUrl && (
+              <div className="mb-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Announcement poster preview"
+                  className="w-full max-w-md h-auto border border-gray-200"
+                />
+              </div>
+            )}
+
             <input
               type="file"
               accept="image/*"
